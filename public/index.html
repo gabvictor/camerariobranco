@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Câmeras ao Vivo - Rio Branco</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Your Custom Stylesheet -->
+    <link rel="stylesheet" href="css/index-style.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <!-- Barra de Progresso da Atualização -->
+    <div id="update-progress-bar-container">
+        <div id="update-progress-bar"></div>
+    </div>
+
+    <!-- Modal da Câmera -->
+    <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4 md:p-6 transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] relative transform scale-95 transition-transform duration-300 grid grid-rows-[auto_1fr]">
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-lg font-semibold">Câmera</h3>
+                <button id="close-modal" aria-label="Fechar modal" class="p-2 -mr-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="relative min-h-0 p-4 bg-black/10 dark:bg-black/20 flex items-center justify-center">
+                <img id="modal-camera-feed" src="" alt="Visualização da Câmera" class="max-w-full max-h-full object-contain bg-black rounded-md">
+                <div id="modal-loader" class="absolute"><div class="loader"></div></div>
+                <button id="modal-prev" aria-label="Câmera anterior" class="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-25 disabled:cursor-not-allowed"><i data-lucide="chevron-left" class="w-8 h-8"></i></button>
+                <button id="modal-next" aria-label="Próxima câmera" class="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-25 disabled:cursor-not-allowed"><i data-lucide="chevron-right" class="w-8 h-8"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container mx-auto px-4 py-8">
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Câmeras de Rio Branco</h1>
+                <p class="text-gray-500 dark:text-gray-300 mt-1">Veja o que está a acontecer na cidade em tempo real.</p>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-4">
+                <span id="last-updated" class="text-sm text-gray-500 whitespace-nowrap"></span>
+                <a href="/mapa.html" target="_blank" title="Ver no mapa" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="map" class="w-5 h-5"></i></a>
+                <button id="toggle-theme" title="Alternar tema" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i></button>
+            </div>
+        </header>
+
+        <!-- Filtros e Busca -->
+        <div class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm space-y-4">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i>
+                <input type="text" id="search-input" placeholder="Buscar por nome da câmera..." class="w-full pl-10 pr-4 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div id="filters-container" class="space-y-3">
+                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span class="font-semibold text-sm">Status:</span>
+                    <div id="status-filters" class="flex flex-wrap gap-2">
+                        <button data-filter-group="status" data-filter="online" class="filter-btn active-filter">Online (<span id="count-online">0</span>)</button>
+                        <button data-filter-group="status" data-filter="all" class="filter-btn">Todas (<span id="count-all">0</span>)</button>
+                        <button data-filter-group="status" data-filter="offline" class="filter-btn">Offline (<span id="count-offline">0</span>)</button>
+                        <button data-filter-group="status" data-filter="favorites" class="filter-btn">Favoritas (<span id="count-favorites">0</span>)</button>
+                    </div>
+                </div>
+                <!-- NOVO: Estrutura para categorias recolhíveis -->
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <button id="category-toggle-btn" class="flex items-center justify-between w-full text-left font-semibold text-sm py-1">
+                        <span>Categorias</span>
+                        <i data-lucide="chevron-down" id="category-toggle-icon" class="w-5 h-5 transition-transform"></i>
+                    </button>
+                    <div id="category-filters-container" class="mt-2 hidden">
+                        <div id="category-filters" class="flex flex-wrap gap-2">
+                            <!-- Botões de categoria serão inseridos aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grid de Câmeras -->
+        <main id="camera-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 min-h-[500px]"></main>
+        
+        <!-- Elementos de Feedback -->
+        <div id="initial-loader" class="text-center py-20"><div class="loader mx-auto"></div><p class="mt-4 text-gray-500">A carregar câmaras...</p></div>
+        <div id="no-results" class="text-center py-20 hidden col-span-full"><i data-lucide="camera-off" class="w-16 h-16 mx-auto mb-4 text-gray-400"></i><p class="text-gray-500">Nenhuma câmara encontrada para os filtros selecionados.</p></div>
+        
+        <!-- Controles de Paginação -->
+        <div id="pagination-controls" class="flex justify-center items-center mt-8 space-x-2">
+            <!-- Os botões de paginação serão inseridos aqui pelo JavaScript -->
+        </div>
+
+        <!-- Rodapé -->
+        <footer class="text-center mt-12 text-sm text-gray-500">
+            <p>🔗 Projeto experimental - Câmaras Rio Branco</p>
+            <a href="/admin.html" class="hover:underline mt-2 inline-block">Admin</a>
+        </footer>
+    </div>
+
+    <!-- Your Custom JavaScript -->
+    <script src="script/index-script.js" defer></script>
+</body>
+</html>
