@@ -4,10 +4,10 @@
     "nome": "Rodoviária",
     "categoria": "Vias urbanas",
     "coords": [
-      -10.0148927,
-      -67.8048951
+      -10.014889748738735,
+      -67.8040868782613
     ],
-    "descricao": "Uma das principais avenidas da cidade, com intenso fluxo de veículos e acesso a diversos bairros e estabelecimentos comerciais."
+    "descricao": ""
   },
   {
     "codigo": "001007",
@@ -1261,6 +1261,357 @@
     "coords": [
       -9.972143487237433,
       -67.82006456039876
+    ]
+  },
+  {
+    "codigo": "001022",
+    "nome": "Praça da revolução",
+    "categoria": "Praça",
+    "descricao": "",
+    "coords": [
+      -9.972429,
+      -67.809795
+    ]
+  },
+  {
+    "codigo": "001029",
+    "nome": "Praça da revolução",
+    "categoria": "Praça",
+    "descricao": "",
+    "coords": [
+      -9.973118,
+      -67.809821
+    ]
+  },
+  {
+    "codigo": "001036",
+    "nome": "Praça Oscar Passos",
+    "categoria": "Praça",
+    "descricao": "",
+    "coords": [
+      -9.971426,
+      -67.808064
+    ]
+  },
+  {
+    "codigo": "001069",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001071",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001076",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001077",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001078",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001079",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001080",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001081",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001082",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001084",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001085",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001174",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001179",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001180",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001181",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001184",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001188",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001190",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001191",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001192",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001193",
+    "nome": "Rodoviária",
+    "categoria": "Rodoviária",
+    "descricao": "",
+    "coords": [
+      -10.014889748738735,
+      -67.8040868782613
+    ]
+  },
+  {
+    "codigo": "001206",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001249",
+    "nome": "Terminal",
+    "categoria": "Terminal",
+    "descricao": "",
+    "coords": [
+      9.972740879513657,
+      -67.8049066022407
+    ]
+  },
+  {
+    "codigo": "001421",
+    "nome": "Delegacia de Flagrantes ",
+    "categoria": "Delegacia de Flagrantes ",
+    "descricao": "",
+    "coords": null
+  },
+  {
+    "codigo": "001405",
+    "nome": "Delegacia de Flagrantes ",
+    "categoria": "Delegacia de Flagrantes ",
+    "descricao": "",
+    "coords": null
+  },
+  {
+    "codigo": "001086",
+    "nome": "Vias urbanas",
+    "categoria": "Vias urbanas",
+    "descricao": "",
+    "coords": [
+      -9.971756032145752,
+      -67.8051223497245
+    ]
+  },
+  {
+    "codigo": "001088",
+    "nome": "Vias urbanas",
+    "categoria": "Vias urbanas",
+    "descricao": "",
+    "coords": [
+      -9.971756032145752,
+      -67.8051223497245
+    ]
+  },
+  {
+    "codigo": "001095",
+    "nome": "Vias urbanas",
+    "categoria": "Vias urbanas",
+    "descricao": "",
+    "coords": [
+      -9.971756032145752,
+      -67.8051223497245
+    ]
+  },
+  {
+    "codigo": "001167",
+    "nome": "Concha Acústica",
+    "categoria": "Concha Acústica",
+    "descricao": "",
+    "coords": [
+      -9.969479768012475,
+      -67.80433159437473
+    ]
+  },
+  {
+    "codigo": "001018",
+    "nome": "N/A",
+    "categoria": "N/A",
+    "descricao": "",
+    "coords": null
+  },
+  {
+    "codigo": "001032",
+    "nome": "Praça Oscar Passos",
+    "categoria": "Praça",
+    "descricao": "",
+    "coords": [
+      -9.971400438064213,
+      -67.80824969059208
+    ]
+  },
+  {
+    "codigo": "001033",
+    "nome": "Vias urbanas",
+    "categoria": "Vias urbanas",
+    "descricao": "",
+    "coords": [
+      -9.971747064022928,
+      -67.80704189562083
+    ]
+  },
+  {
+    "codigo": "001042",
+    "nome": "Vias urbanas",
+    "categoria": "Vias urbanas",
+    "descricao": "",
+    "coords": [
+      -9.975295965926327,
+      -67.81055017419496
     ]
   }
 ]
