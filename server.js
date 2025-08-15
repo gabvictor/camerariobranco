@@ -13,7 +13,7 @@ const CONFIG = {
     CAMERA_CODE_END: 1500,
     REQUEST_TIMEOUT: 5000,
     MIN_IMAGE_SIZE_KB: 22,
-    SCAN_TIMEOUT_MS: 120 * 1000,      // 30 segundos para o timeout da varredura
+    SCAN_TIMEOUT_MS: 240 * 1000,      // 30 segundos para o timeout da varredura
     SCAN_RETRY_DELAY_MS: 120 * 1000, // 2 minutos de espera após um timeout
 };
 
