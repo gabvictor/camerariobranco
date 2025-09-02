@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Câmeras - Rio Branco</title>
+    <style>
+        :root {
+            --background-color: #f0f2f5;
+            --card-background: #ffffff;
+            --text-color: #1c1e21;
+            --accent-color: #007bff;
+            --border-color: #dddfe2;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        h1 {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        #status-container {
+            background-color: var(--card-background);
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        #status, #camera-count {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        #progress-bar-container {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 10px;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease-in-out;
+        }
+        #camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .camera-card {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .camera-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        .camera-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            background-color: #eee;
+        }
+        .camera-card-info {
+            padding: 12px;
+            font-weight: 600;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Visualizador de Câmeras Públicas</h1>
+            <p>Exibindo câmeras online com imagem válida (> 22 KB)</p>
+        </header>
+
+        <div id="status-container">
+            <p id="status">Iniciando verificação...</p>
+            <p id="camera-count">Câmeras encontradas: 0</p>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="camera-grid"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const CONFIG = {
+                CODE_START: 1000,
+                CODE_END: 1500,
+                MIN_SIZE_KB: 22,
+                CONCURRENCY_LIMIT: 10 // Número de verificações simultâneas
+            };
+
+            const grid = document.getElementById('camera-grid');
+            const statusEl = document.getElementById('status');
+            const countEl = document.getElementById('camera-count');
+            const progressBar = document.getElementById('progress-bar');
+            
+            let onlineCameras = 0;
+            const totalCameras = CONFIG.CODE_END - CONFIG.CODE_START + 1;
+
+            // Função para verificar uma única câmera
+            async function checkCamera(code) {
+                const formattedCode = code.toString().padStart(6, '0');
+                // IMPORTANTE: A URL está mantida como no script original.
+                // Se o endereço mudar, ele deve ser alterado aqui.
+                const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${formattedCode}`;
+                
+                try {
+                    const response = await fetch(url, { signal: AbortSignal.timeout(7000) }); // Timeout de 7s por imagem
+                    if (!response.ok) {
+                        return; // Ignora se a resposta não for bem-sucedida (ex: erro 404, 500)
+                    }
+
+                    const blob = await response.blob();
+                    if (blob.size > CONFIG.MIN_SIZE_KB * 1024) {
+                        displayCamera(blob, formattedCode);
+                        onlineCameras++;
+                        countEl.textContent = `Câmeras encontradas: ${onlineCameras}`;
+                    }
+                } catch (error) {
+                    // Ignora erros de timeout ou de rede e continua para a próxima
+                    // console.error(`Erro ao verificar câmera ${formattedCode}:`, error.name);
+                }
+            }
+
+            // Função para exibir a imagem da câmera na tela
+            function displayCamera(blob, code) {
+                const objectURL = URL.createObjectURL(blob);
+                
+                const card = document.createElement('div');
+                card.className = 'camera-card';
+                
+                const img = document.createElement('img');
+                img.src = objectURL;
+                img.alt = `Imagem da câmera ${code}`;
+                
+                const info = document.createElement('div');
+                info.className = 'camera-card-info';
+                info.textContent = `CÓDIGO: ${code}`;
+                
+                card.appendChild(img);
+                card.appendChild(info);
+                grid.appendChild(card);
+            }
+
+            // Função para processar as câmeras em lotes
+            async function runScanner() {
+                for (let i = CONFIG.CODE_START; i <= CONFIG.CODE_END; i += CONFIG.CONCURRENCY_LIMIT) {
+                    const promises = [];
+                    const end = Math.min(i + CONFIG.CONCURRENCY_LIMIT - 1, CONFIG.CODE_END);
+                    
+                    for (let j = i; j <= end; j++) {
+                        promises.push(checkCamera(j));
+                    }
+
+                    const currentProgress = ((end - CONFIG.CODE_START + 1) / totalCameras) * 100;
+                    statusEl.textContent = `Verificando câmeras de ${i} a ${end}...`;
+                    progressBar.style.width = `${currentProgress}%`;
+                    
+                    await Promise.all(promises);
+                }
+                
+                statusEl.textContent = 'Verificação concluída!';
+                if (onlineCameras === 0) {
+                     countEl.textContent = 'Nenhuma câmera online encontrada. O serviço pode estar fora do ar.';
+                }
+            }
+
+            runScanner();
+        });
+    </script>
+</body>
+</html>
