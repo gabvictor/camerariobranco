@@ -95,7 +95,7 @@
     <div class="container">
         <header>
             <h1>Visualizador de Câmeras Públicas</h1>
-            <p>Exibindo câmeras online com imagem válida (> 22 KB)</p>
+            <p>Exibindo câmeras que estão online</p>
         </header>
 
         <div id="status-container">
@@ -114,7 +114,6 @@
             const CONFIG = {
                 CODE_START: 1000,
                 CODE_END: 1500,
-                MIN_SIZE_KB: 22,
                 CONCURRENCY_LIMIT: 10 // Número de verificações simultâneas
             };
 
@@ -126,40 +125,38 @@
             let onlineCameras = 0;
             const totalCameras = CONFIG.CODE_END - CONFIG.CODE_START + 1;
 
-            // Função para verificar uma única câmera
-            async function checkCamera(code) {
-                const formattedCode = code.toString().padStart(6, '0');
-                // IMPORTANTE: A URL está mantida como no script original.
-                // Se o endereço mudar, ele deve ser alterado aqui.
-                const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${formattedCode}`;
-                
-                try {
-                    const response = await fetch(url, { signal: AbortSignal.timeout(7000) }); // Timeout de 7s por imagem
-                    if (!response.ok) {
-                        return; // Ignora se a resposta não for bem-sucedida (ex: erro 404, 500)
-                    }
-
-                    const blob = await response.blob();
-                    if (blob.size > CONFIG.MIN_SIZE_KB * 1024) {
-                        displayCamera(blob, formattedCode);
+            // Função para verificar se uma câmera está online (sem checar o tamanho)
+            function checkCamera(code) {
+                return new Promise((resolve) => {
+                    const formattedCode = code.toString().padStart(6, '0');
+                    const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${formattedCode}`;
+                    
+                    const tempImg = new Image();
+                    
+                    // Se a imagem carregar com sucesso, consideramos a câmera online
+                    tempImg.onload = () => {
+                        displayCamera(url, formattedCode);
                         onlineCameras++;
                         countEl.textContent = `Câmeras encontradas: ${onlineCameras}`;
-                    }
-                } catch (error) {
-                    // Ignora erros de timeout ou de rede e continua para a próxima
-                    // console.error(`Erro ao verificar câmera ${formattedCode}:`, error.name);
-                }
+                        resolve();
+                    };
+                    
+                    // Se der erro, apenas ignoramos e passamos para a próxima
+                    tempImg.onerror = () => {
+                        resolve();
+                    };
+
+                    tempImg.src = url;
+                });
             }
 
             // Função para exibir a imagem da câmera na tela
-            function displayCamera(blob, code) {
-                const objectURL = URL.createObjectURL(blob);
-                
+            function displayCamera(url, code) {
                 const card = document.createElement('div');
                 card.className = 'camera-card';
                 
                 const img = document.createElement('img');
-                img.src = objectURL;
+                img.src = url;
                 img.alt = `Imagem da câmera ${code}`;
                 
                 const info = document.createElement('div');
