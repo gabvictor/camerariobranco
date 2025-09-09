@@ -9,16 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .form-input {
-            background-color: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem; width: 100%; transition: border-color 0.2s, box-shadow 0.2s;
-        }
+        .form-input { background-color: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 0.375rem; padding: 0.5rem 0.75rem; width: 100%; transition: border-color 0.2s, box-shadow 0.2s; }
         .form-input:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 1px #4F46E5; }
         .dark .form-input { background-color: #374151; border-color: #4B5563; color: #F9FAFB; }
-        .btn {
-            padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600;
-            transition: background-color 0.2s, opacity 0.2s; display: inline-flex; align-items: center; justify-content: center;
-        }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: background-color 0.2s, opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-primary { background-color: #4F46E5; color: white; }
         .btn-primary:hover:not(:disabled) { background-color: #4338CA; }
@@ -28,234 +22,153 @@
         .dark .btn-secondary:hover:not(:disabled) { background-color: #6B7280; }
         .loader { width: 48px; height: 48px; border: 5px solid; border-color: #4F46E5 transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: #333; color: white; padding: 1rem 1.5rem; border-radius: 8px; z-index: 100; transition: bottom 0.5s ease-in-out; font-size: 0.9rem; }
+        #toast.show { bottom: 30px; }
+        #toast.success { background-color: #22c55e; }
+        #toast.error { background-color: #ef4444; }
+        #content-wrapper { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
-
-    <!-- Modal de Edição -->
-    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <!-- Cabeçalho do Modal -->
-            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 id="modal-title" class="text-xl font-bold">Editar Câmera</h2>
-                <button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-            </div>
-            <!-- Corpo do Modal -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto">
-                <!-- Coluna da Esquerda: Pré-visualização -->
-                <div class="bg-black rounded-lg flex items-center justify-center min-h-[300px] relative">
-                    <img id="modal-preview-img" src="" alt="Pré-visualização da câmera" class="w-full h-full object-contain rounded-lg">
-                    <div id="modal-loader" class="absolute"><div class="loader"></div></div>
-                </div>
-                <!-- Coluna da Direita: Formulário -->
-                <div>
-                    <form id="modal-form" class="space-y-4">
-                        <input type="hidden" name="codigo">
-                        <div>
-                            <label class="font-semibold text-sm mb-1 block">Nome</label>
-                            <input type="text" name="nome" class="form-input">
-                        </div>
-                        <div>
-                            <label class="font-semibold text-sm mb-1 block">Categoria</label>
-                            <input type="text" name="categoria" class="form-input">
-                        </div>
-                        <div>
-                            <label class="font-semibold text-sm mb-1 block">Descrição</label>
-                            <textarea name="descricao" class="form-input" rows="3"></textarea>
-                        </div>
-                         <div>
-                            <label class="font-semibold text-sm mb-1 block">Coordenadas (lat, lon)</label>
-                            <input type="text" name="coords" class="form-input" placeholder="-9.9731, -67.8108">
-                        </div>
-                        <div class="flex justify-end gap-3 pt-4">
-                            <button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancelar</button>
-                            <button type="submit" class="btn btn-primary save-btn">Salvar Alterações</button>
-                        </div>
-                    </form>
+    
+    <div id="content-wrapper">
+        <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4 transition-opacity">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700"><h2 id="modal-title" class="text-xl font-bold">Editar Câmera</h2><button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto">
+                    <div class="bg-black rounded-lg flex items-center justify-center min-h-[300px] relative"><img id="modal-preview-img" src="" alt="Pré-visualização da câmera" class="w-full h-full object-contain rounded-lg"><div id="modal-loader" class="absolute"><div class="loader"></div></div></div>
+                    <div>
+                        <form id="modal-form" class="space-y-4">
+                            <input type="hidden" name="codigo">
+                            <div><label class="font-semibold text-sm mb-1 block">Nome</label><input type="text" name="nome" class="form-input" required></div>
+                            <div><label class="font-semibold text-sm mb-1 block">Categoria</label><input type="text" name="categoria" class="form-input"></div>
+                            <div><label class="font-semibold text-sm mb-1 block">Descrição</label><textarea name="descricao" class="form-input" rows="3"></textarea></div>
+                            <div><label class="font-semibold text-sm mb-1 block">Coordenadas (lat, lon)</label><input type="text" name="coords" class="form-input" placeholder="-9.9731, -67.8108"></div>
+                            <div><label class="font-semibold text-sm mb-1 block">Senha de Administrador</label><input type="password" name="secret" class="form-input" required placeholder="Digite a senha para salvar"></div>
+                            <div class="flex justify-end gap-3 pt-4"><button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancelar</button><button type="submit" class="btn btn-primary save-btn">Salvar Alterações</button></div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="container mx-auto p-4 md:p-8">
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <h1 class="text-3xl font-bold">Painel de Administração</h1>
+                <div class="flex items-center gap-4"><button id="toggle-theme" title="Alternar tema" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i></button><a href="/" title="Voltar à página inicial" class="btn btn-secondary"><i data-lucide="arrow-left" class="w-5 h-5 mr-2 -ml-1"></i><span>Voltar</span></a></div>
+            </header>
+            <div class="mb-6 relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i><input type="text" id="search-input" placeholder="Buscar por nome ou código..." class="form-input w-full pl-10"></div>
+            <div id="camera-list" class="space-y-4"><div class="text-center py-10"><div class="loader mx-auto"></div></div></div>
+        </div>
+        <div id="toast"></div>
     </div>
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-bold">Painel de Administração (Online)</h1>
-            <div class="flex items-center gap-4">
-                <button id="toggle-theme" title="Alternar tema" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
-                </button>
-                <a href="/" title="Voltar à página inicial" class="btn btn-secondary">
-                    <i data-lucide="arrow-left" class="w-5 h-5 mr-2 -ml-1"></i>
-                    <span>Voltar</span>
-                </a>
-            </div>
-        </header>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+            authDomain: "camerasriobranco.firebaseapp.com",
+            projectId: "camerasriobranco",
+            storageBucket: "camerasriobranco.appspot.com",
+            messagingSenderId: "84020805734",
+            appId: "1:84020805734:web:9904063112bd0b649f2da7",
+            measurementId: "G-Y6B72KFF66"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        <div class="mb-6 relative">
-            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i>
-            <input type="text" id="search-input" placeholder="Buscar por nome ou código..." class="form-input w-full pl-10">
-        </div>
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('content-wrapper').style.display = 'block';
+                initializeAdminLogic();
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
 
-        <div id="camera-list" class="space-y-4">
-            <!-- As câmeras serão carregadas aqui -->
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const cameraList = document.getElementById('camera-list');
-            const themeToggleButton = document.getElementById('toggle-theme');
-            const searchInput = document.getElementById('search-input');
-            const modal = document.getElementById('edit-modal');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const cancelModalBtn = document.getElementById('cancel-modal-btn');
-            const modalForm = document.getElementById('modal-form');
-            const modalPreviewImg = document.getElementById('modal-preview-img');
-            const modalLoader = document.getElementById('modal-loader');
-            
-            let allOnlineCameras = [];
+        function initializeAdminLogic() {
+            const elements = {
+                cameraList: document.getElementById('camera-list'), themeToggleButton: document.getElementById('toggle-theme'), searchInput: document.getElementById('search-input'), modal: document.getElementById('edit-modal'), closeModalBtn: document.getElementById('close-modal-btn'), cancelModalBtn: document.getElementById('cancel-modal-btn'), modalForm: document.getElementById('modal-form'), modalPreviewImg: document.getElementById('modal-preview-img'), modalLoader: document.getElementById('modal-loader'), toast: document.getElementById('toast'),
+            };
+            let allCameras = [];
             let previewInterval;
-
-            // --- Gerenciamento do Tema ---
+            const showToast = (message, type = 'success') => {
+                elements.toast.textContent = message; elements.toast.className = ``; elements.toast.classList.add(type, 'show');
+                setTimeout(() => { elements.toast.classList.remove('show'); }, 3000);
+            };
             const applyTheme = (isDark) => document.documentElement.classList.toggle('dark', isDark);
             const initializeTheme = () => {
                 const savedTheme = localStorage.getItem('theme');
                 applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
             };
-            themeToggleButton.addEventListener('click', () => {
-                const isDark = document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            });
-
-            // --- Funções do Modal ---
+            elements.themeToggleButton.addEventListener('click', () => { const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); });
             const openEditModal = (camera) => {
-                modalForm.elements.codigo.value = camera.codigo;
-                modalForm.elements.nome.value = camera.nome;
-                modalForm.elements.categoria.value = camera.categoria;
-                modalForm.elements.descricao.value = camera.descricao || '';
-                modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
-                
-                modal.classList.remove('hidden');
-                updatePreview(camera.codigo);
+                elements.modalForm.reset(); elements.modalForm.elements.codigo.value = camera.codigo; elements.modalForm.elements.nome.value = camera.nome; elements.modalForm.elements.categoria.value = camera.categoria; elements.modalForm.elements.descricao.value = camera.descricao || ''; elements.modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
+                elements.modal.classList.remove('hidden'); updatePreview(camera.codigo);
             };
-
-            const closeEditModal = () => {
-                modal.classList.add('hidden');
-                clearInterval(previewInterval);
-                modalPreviewImg.src = '';
-            };
-
+            const closeEditModal = () => { elements.modal.classList.add('hidden'); clearInterval(previewInterval); elements.modalPreviewImg.src = ''; };
             const updatePreview = (code) => {
                 clearInterval(previewInterval);
-                const update = () => {
-                    modalLoader.classList.remove('hidden');
-                    modalPreviewImg.src = `/proxy/camera?code=${code}&t=${Date.now()}`;
-                };
-                modalPreviewImg.onload = () => modalLoader.classList.add('hidden');
+                const update = () => { elements.modalLoader.classList.remove('hidden'); elements.modalPreviewImg.style.display = 'none'; elements.modalPreviewImg.src = `/proxy/camera?code=${code}&t=${Date.now()}`; };
+                elements.modalPreviewImg.onload = () => { elements.modalLoader.classList.add('hidden'); elements.modalPreviewImg.style.display = 'block'; };
+                elements.modalPreviewImg.onerror = () => { elements.modalLoader.classList.add('hidden'); elements.modalPreviewImg.style.display = 'block'; elements.modalPreviewImg.src = 'https://placehold.co/400x300/e0e0e0/757575?text=Offline'; };
                 update();
                 previewInterval = setInterval(update, 2000);
             };
-
-            closeModalBtn.addEventListener('click', closeEditModal);
-            cancelModalBtn.addEventListener('click', closeEditModal);
-
-            // --- Lógica Principal ---
+            elements.closeModalBtn.addEventListener('click', closeEditModal);
+            elements.cancelModalBtn.addEventListener('click', closeEditModal);
             const createCameraRow = (camera) => {
                 const div = document.createElement('div');
                 div.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm flex items-center justify-between gap-4';
-                div.innerHTML = `
-                    <div class="flex items-center gap-4 overflow-hidden">
-                        <img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" class="w-24 h-16 object-cover rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0" alt="Câmera ${camera.codigo}">
-                        <div class="overflow-hidden">
-                            <p class="font-bold text-lg truncate">${camera.nome}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}</p>
-                        </div>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <button class="btn btn-secondary edit-btn">
-                            <i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i>
-                            <span class="hidden sm:inline">Editar</span>
-                        </button>
-                    </div>
-                `;
+                const statusBadge = camera.status === 'online' ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Online</span>` : `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Offline</span>`;
+                div.innerHTML = `<div class="flex items-center gap-4 overflow-hidden"><div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative"><img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" class="w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}"><div class="absolute bottom-1 right-1">${statusBadge}</div></div><div class="overflow-hidden"><p class="font-bold text-lg truncate">${camera.nome}</p><p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}</p></div></div><div class="flex-shrink-0"><button class="btn btn-secondary edit-btn"><i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i><span class="hidden sm:inline">Editar</span></button></div>`;
                 div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
                 return div;
             };
-
             const renderCameras = (cameras) => {
-                cameraList.innerHTML = '';
-                if (cameras.length === 0) {
-                    cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada.</p>';
-                    return;
-                }
-                cameras.forEach(camera => cameraList.appendChild(createCameraRow(camera)));
+                elements.cameraList.innerHTML = '';
+                if (cameras.length === 0) { elements.cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada.</p>'; return; }
+                const fragment = document.createDocumentFragment();
+                cameras.forEach(camera => fragment.appendChild(createCameraRow(camera)));
+                elements.cameraList.appendChild(fragment);
                 lucide.createIcons();
             };
-
             const loadCameras = async () => {
                 try {
                     const response = await fetch('/status-cameras');
-                    const cameras = await response.json();
-                    allOnlineCameras = cameras.filter(camera => camera.status === 'online');
-                    renderCameras(allOnlineCameras);
-                } catch (error) {
-                    cameraList.innerHTML = '<p class="text-red-500 text-center">Não foi possível carregar as câmeras.</p>';
-                }
+                    allCameras = await response.json();
+                    renderCameras(allCameras);
+                } catch (error) { elements.cameraList.innerHTML = '<p class="text-red-500 text-center">Não foi possível carregar as câmeras.</p>'; }
             };
-
-            searchInput.addEventListener('input', (e) => {
+            elements.searchInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredCameras = allOnlineCameras.filter(camera => 
-                    camera.nome.toLowerCase().includes(searchTerm) ||
-                    camera.codigo.includes(searchTerm)
-                );
-                renderCameras(filteredCameras);
+                renderCameras(allCameras.filter(camera => camera.nome.toLowerCase().includes(searchTerm) || camera.codigo.includes(searchTerm)));
             });
-            
-            modalForm.addEventListener('submit', async (e) => {
+            elements.modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(modalForm);
+                const formData = new FormData(elements.modalForm);
                 const coordsRaw = formData.get('coords').split(',').map(c => parseFloat(c.trim()));
                 const data = {
-                    codigo: formData.get('codigo'),
-                    nome: formData.get('nome'),
-                    categoria: formData.get('categoria'),
-                    descricao: formData.get('descricao'),
-                    coords: coordsRaw.length === 2 && !isNaN(coordsRaw[0]) && !isNaN(coordsRaw[1]) ? coordsRaw : null,
+                    codigo: formData.get('codigo'), nome: formData.get('nome'), categoria: formData.get('categoria'), descricao: formData.get('descricao'),
+                    coords: coordsRaw.length === 2 && !isNaN(coordsRaw[0]) && !isNaN(coordsRaw[1]) ? coordsRaw : null, secret: formData.get('secret'),
                 };
-
-                const saveBtn = modalForm.querySelector('.save-btn');
+                const saveBtn = elements.modalForm.querySelector('.save-btn');
                 const originalText = saveBtn.textContent;
-                saveBtn.textContent = 'Salvando...';
-                saveBtn.disabled = true;
-
+                saveBtn.textContent = 'A Salvar...'; saveBtn.disabled = true;
                 try {
-                    const response = await fetch('/api/update-camera-info', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    if (!response.ok) throw new Error('Falha ao salvar');
-                    
-                    await loadCameras(); // Recarrega a lista para refletir as mudanças
-                    closeEditModal();
-
-                } catch (error) {
-                    alert('Erro ao salvar as informações.');
-                    console.error(error);
-                } finally {
-                    saveBtn.textContent = originalText;
-                    saveBtn.disabled = false;
-                }
+                    const response = await fetch('/api/update-camera-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                    const result = await response.json();
+                    if (!response.ok) { throw new Error(result.message || 'Falha ao salvar'); }
+                    showToast(result.message, 'success');
+                    await loadCameras(); closeEditModal();
+                } catch (error) { showToast(error.message, 'error'); console.error(error); } finally { saveBtn.textContent = originalText; saveBtn.disabled = false; }
             });
-            
             initializeTheme();
             loadCameras();
             lucide.createIcons();
-        });
+        }
     </script>
 </body>
 </html>
