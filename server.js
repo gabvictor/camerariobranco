@@ -38,7 +38,7 @@ const ADMIN_EMAIL = "vgabvictor@gmail.com";
 // --- Configurações Centralizadas ---
 const CONFIG = {
     PORT: process.env.PORT || 3001,
-    UPDATE_INTERVAL_MS: 2 * 60 * 1000,
+    UPDATE_INTERVAL_MS: 1 * 60 * 1000,
     CONCURRENCY_LIMIT: 15,
     CAMERA_CODE_START: 1000,
     CAMERA_CODE_END: 1500,
