@@ -197,7 +197,7 @@
                         const originalText = elements.shareButton.innerHTML;
                         elements.shareButton.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Link Copiado!`;
                         lucide.createIcons();
-                        setTimeout(() => { elements.shareButton.innerHTML = originalText; lucide.createIcons(); }, 2000);
+                        setTimeout(() => { elements.shareButton.innerHTML = originalText; lucide.createIcons(); }, 500);
                     }).catch(err => console.error('Failed to copy:', err));
                 }
             });
