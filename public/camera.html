@@ -188,7 +188,7 @@
             elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
             elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
             updateFeed();
-            setInterval(updateFeed, 500);
+            setInterval(updateFeed, 750);
 
             elements.shareButton.addEventListener('click', async () => {
                 const shareData = { title: `Câmera: ${elements.infoTitle.textContent}`, text: `Confira a transmissão ao vivo da câmera "${elements.infoTitle.textContent}"`, url: window.location.href };
@@ -205,4 +205,5 @@
     </script>
 </body>
 </html>
+
 
