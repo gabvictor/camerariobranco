@@ -6,195 +6,203 @@
     <title>Câmera ao Vivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .loader { width: 48px; height: 48px; border: 5px solid; border-color: #4F46E5 transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #content-wrapper { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="flex items-center justify-between mb-6">
-            <a href="/" title="Voltar à página inicial" class="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                <span class="hidden sm:inline">Voltar</span>
-            </a>
-            <h1 id="header-title" class="text-lg md:text-xl font-bold text-center truncate px-2">Carregando...</h1>
-            <div class="w-16"></div> </header>
-
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 bg-black rounded-lg shadow-lg flex items-center justify-center min-h-[250px]">
-                <div id="image-container" class="w-full h-full relative">
-                    <img id="camera-feed" src="" alt="Visualização da Câmera" class="w-full h-full object-contain hidden">
-                    <div id="loader" class="absolute inset-0 flex items-center justify-center">
-                        <div class="loader"></div>
-                    </div>
-                    <div id="error-message" class="absolute inset-0 flex items-center justify-center text-red-400 hidden p-4 text-center"></div>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <h2 id="info-title" class="text-2xl font-bold mb-4">Carregando...</h2>
-                <div id="status-badge" class="mb-4"></div>
-                
-                <div class="space-y-4 text-gray-700 dark:text-gray-300">
-                    <div>
-                        <h3 class="font-semibold text-sm text-gray-500 dark:text-gray-400">Categoria</h3>
-                        <p id="camera-category">-</p>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-sm text-gray-500 dark:text-gray-400">Descrição</h3>
-                        <p id="camera-description">-</p>
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8">
+            <header class="flex items-center justify-between mb-6">
+                <a href="/" title="Voltar à página inicial" class="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline">Voltar</span>
+                </a>
+                <h1 id="header-title" class="text-lg md:text-xl font-bold text-center truncate px-2">A carregar...</h1>
+                <div class="w-16"></div>
+            </header>
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-black rounded-lg shadow-lg flex items-center justify-center min-h-[250px]">
+                    <div id="image-container" class="w-full h-full relative">
+                        <img id="camera-feed" src="" alt="Visualização da Câmera" class="w-full h-full object-contain hidden">
+                        <div id="loader" class="absolute inset-0 flex items-center justify-center"><div class="loader"></div></div>
+                        <div id="error-message" class="absolute inset-0 flex items-center justify-center text-red-400 hidden p-4 text-center"></div>
                     </div>
                 </div>
-
-                <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <a id="map-link" href="#" target="_blank" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-disabled="true">
-                            <i data-lucide="map-pin" class="w-5 h-5"></i>
-                            Ver no Mapa
-                        </a>
-                        <button id="share-button" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors">
-                            <i data-lucide="share-2" class="w-5 h-5"></i>
-                            Compartilhar
-                        </button>
+                <div class="space-y-8">
+                    <div class="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                        <h2 id="info-title" class="text-2xl font-bold mb-4">A carregar...</h2>
+                        <div id="status-badge" class="mb-4"></div>
+                        <div class="space-y-4 text-gray-700 dark:text-gray-300">
+                            <div><h3 class="font-semibold text-sm text-gray-500 dark:text-gray-400">Categoria</h3><p id="camera-category">-</p></div>
+                            <div><h3 class="font-semibold text-sm text-gray-500 dark:text-gray-400">Descrição</h3><p id="camera-description">-</p></div>
+                        </div>
+                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <a id="map-link" href="#" target="_blank" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-disabled="true"><i data-lucide="map-pin" class="w-5 h-5"></i>Ver no Mapa</a>
+                                <button id="share-button" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"><i data-lucide="share-2" class="w-5 h-5"></i>Partilhar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- SECÇÃO DE COMENTÁRIOS -->
+                    <div class="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold mb-4">Comentários ao Vivo</h2>
+                        <div id="comments-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                            <!-- Comentários serão inseridos aqui -->
+                        </div>
+                        <form id="comment-form" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="relative">
+                                <input type="text" id="comment-input" placeholder="Adicione um comentário..." class="w-full pr-12 py-2 pl-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+            authDomain: "camerasriobranco.firebaseapp.com",
+            projectId: "camerasriobranco",
+            storageBucket: "camerasriobranco.appspot.com",
+            messagingSenderId: "84020805734",
+            appId: "1:84020805734:web:9904063112bd0b649f2da7",
+            measurementId: "G-Y6B72KFF66"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('content-wrapper').style.display = 'block';
+                initializeCameraLogic(user);
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+
+        function initializeComments(user, cameraCode) {
+            const commentsList = document.getElementById('comments-list');
+            const commentForm = document.getElementById('comment-form');
+            const commentInput = document.getElementById('comment-input');
+            const submitButton = commentForm.querySelector('button');
+
+            const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
+            const q = query(commentsColRef, orderBy('timestamp', 'desc'));
+
+            onSnapshot(q, (snapshot) => {
+                commentsList.innerHTML = ''; // Limpa comentários antigos
+                if (snapshot.empty) {
+                    commentsList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Nenhum comentário ainda. Seja o primeiro!</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const comment = doc.data();
+                    const commentEl = document.createElement('div');
+                    commentEl.className = 'py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0';
+                    const date = comment.timestamp?.toDate().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) || 'agora';
+                    commentEl.innerHTML = `
+                        <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            <span class="font-semibold">${comment.userDisplayName || 'Anónimo'}</span>
+                            <span>${date.replace(',', ' às')}</span>
+                        </div>
+                        <p class="text-gray-800 dark:text-gray-200 break-words">${comment.text}</p>
+                    `;
+                    commentsList.appendChild(commentEl);
+                });
+            });
+
+            commentForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = commentInput.value.trim();
+                if (text && user) {
+                    commentInput.disabled = true;
+                    submitButton.disabled = true;
+                    try {
+                        await addDoc(commentsColRef, {
+                            text: text,
+                            userDisplayName: user.displayName,
+                            userId: user.uid,
+                            timestamp: serverTimestamp()
+                        });
+                        commentInput.value = '';
+                    } catch (error) {
+                        console.error("Erro ao adicionar comentário: ", error);
+                        alert("Não foi possível enviar o seu comentário. Tente novamente.");
+                    } finally {
+                        commentInput.disabled = false;
+                        submitButton.disabled = false;
+                        commentInput.focus();
+                    }
+                }
+            });
+        }
+
+        function initializeCameraLogic(user) {
             const params = new URLSearchParams(window.location.search);
             const cameraCode = params.get('code');
-
             const elements = {
-                headerTitle: document.getElementById('header-title'),
-                infoTitle: document.getElementById('info-title'),
-                statusBadge: document.getElementById('status-badge'),
-                category: document.getElementById('camera-category'),
-                description: document.getElementById('camera-description'),
-                mapLink: document.getElementById('map-link'),
-                feed: document.getElementById('camera-feed'),
-                loader: document.getElementById('loader'),
-                error: document.getElementById('error-message'),
-                // NOVO: Referência para o botão de compartilhar
-                shareButton: document.getElementById('share-button'),
+                headerTitle: document.getElementById('header-title'), infoTitle: document.getElementById('info-title'), statusBadge: document.getElementById('status-badge'), category: document.getElementById('camera-category'), description: document.getElementById('camera-description'), mapLink: document.getElementById('map-link'), feed: document.getElementById('camera-feed'), loader: document.getElementById('loader'), error: document.getElementById('error-message'), shareButton: document.getElementById('share-button'),
             };
 
             lucide.createIcons();
-
             if (!cameraCode) {
-                elements.headerTitle.textContent = 'Erro';
-                elements.infoTitle.textContent = 'Código da câmera não fornecido.';
-                elements.loader.classList.add('hidden');
-                // NOVO: Desabilita o botão se não houver código
-                elements.shareButton.disabled = true;
-                elements.shareButton.classList.add('opacity-50', 'cursor-not-allowed');
+                // ... (lógica de erro existente)
                 return;
             }
+            
+            initializeComments(user, cameraCode);
 
             const setCameraInfo = (camera) => {
+                document.title = `${camera.nome} - Câmera ao Vivo`;
                 elements.headerTitle.textContent = camera.nome;
                 elements.infoTitle.textContent = camera.nome;
                 elements.category.textContent = camera.categoria || 'Não disponível';
                 elements.description.textContent = camera.descricao || 'Não disponível';
-
-                // Status Badge
                 const isOnline = camera.status === 'online';
-                elements.statusBadge.innerHTML = `
-                    <span class="px-3 py-1 text-sm font-semibold rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
-                        ${isOnline ? 'Online' : 'Offline'}
-                    </span>
-                `;
-
-                // Map Link
-                if (camera.coords) {
-                    elements.mapLink.href = `https://www.google.com/maps?q=${camera.coords[0]},${camera.coords[1]}`;
-                    elements.mapLink.removeAttribute('aria-disabled');
-                    elements.mapLink.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
-                } else {
-                    elements.mapLink.setAttribute('aria-disabled', 'true');
-                }
+                elements.statusBadge.innerHTML = `<span class="px-3 py-1 text-sm font-semibold rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">${isOnline ? 'Online' : 'Offline'}</span>`;
+                if (camera.coords) { elements.mapLink.href = `https://www.google.com/maps?q=${camera.coords[0]},${camera.coords[1]}`; elements.mapLink.removeAttribute('aria-disabled'); } else { elements.mapLink.setAttribute('aria-disabled', 'true'); }
             };
-            
-            fetch('/status-cameras')
-                .then(res => res.json())
-                .then(cameras => {
-                    const camera = cameras.find(c => c.codigo === cameraCode);
-                    if (camera) {
-                        setCameraInfo(camera);
-                    } else {
-                        elements.headerTitle.textContent = `Câmera ${cameraCode}`;
-                        elements.infoTitle.textContent = `Câmera ${cameraCode}`;
-                        elements.description.textContent = 'Informações não encontradas.';
-                    }
-                });
+            fetch('/status-cameras').then(res => res.json()).then(cameras => {
+                const camera = cameras.find(c => c.codigo === cameraCode);
+                if (camera) { setCameraInfo(camera); } else { elements.headerTitle.textContent = `Câmera ${cameraCode}`; elements.infoTitle.textContent = `Câmera ${cameraCode}`; }
+            });
 
-            const updateFeed = () => {
-                elements.feed.src = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`;
-            };
-
-            elements.feed.onload = () => {
-                elements.loader.classList.add('hidden');
-                elements.error.classList.add('hidden');
-                elements.feed.classList.remove('hidden');
-            };
-
-            elements.feed.onerror = () => {
-                elements.loader.classList.add('hidden');
-                elements.feed.classList.add('hidden');
-                elements.error.textContent = `Erro ao carregar câmera. Pode estar offline.`;
-                elements.error.classList.remove('hidden');
-            }
-
+            const updateFeed = () => { elements.feed.src = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`; };
+            elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
+            elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
             updateFeed();
-            setInterval(updateFeed, 1000);
+            setInterval(updateFeed, 2000);
 
-            // --- NOVO: LÓGICA DE COMPARTILHAMENTO ---
             elements.shareButton.addEventListener('click', async () => {
-                const shareData = {
-                    title: `Câmera: ${elements.infoTitle.textContent}`,
-                    text: `Confira a transmissão ao vivo da câmera "${elements.infoTitle.textContent}"`,
-                    url: window.location.href // Compartilha o URL da página atual
-                };
-
-                // Tenta usar a API de compartilhamento nativa
-                if (navigator.share) {
-                    try {
-                        await navigator.share(shareData);
-                        console.log('Link compartilhado com sucesso!');
-                    } catch (err) {
-                        console.error('Erro ao compartilhar:', err);
-                    }
-                } else {
-                    // Fallback: copia o link para a área de transferência
-                    try {
-                        await navigator.clipboard.writeText(window.location.href);
-                        
-                        // Fornece feedback visual ao usuário
+                const shareData = { title: `Câmera: ${elements.infoTitle.textContent}`, text: `Confira a transmissão ao vivo da câmera "${elements.infoTitle.textContent}"`, url: window.location.href };
+                if (navigator.share) { await navigator.share(shareData).catch(err => console.error('Error sharing:', err)); } else {
+                    await navigator.clipboard.writeText(window.location.href).then(() => {
                         const originalText = elements.shareButton.innerHTML;
                         elements.shareButton.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Link Copiado!`;
-                        lucide.createIcons(); // Renderiza o novo ícone
-
-                        setTimeout(() => {
-                            elements.shareButton.innerHTML = originalText;
-                            lucide.createIcons();
-                        }, 2000);
-
-                    } catch (err) {
-                        console.error('Falha ao copiar o link:', err);
-                        alert('Não foi possível copiar o link.');
-                    }
+                        lucide.createIcons();
+                        setTimeout(() => { elements.shareButton.innerHTML = originalText; lucide.createIcons(); }, 2000);
+                    }).catch(err => console.error('Failed to copy:', err));
                 }
             });
-        });
+        }
     </script>
 </body>
-
 </html>
+

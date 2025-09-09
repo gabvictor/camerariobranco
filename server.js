@@ -14,7 +14,6 @@ try {
         console.log("✔ Firebase Admin SDK a inicializar com credenciais de ambiente.");
     } else {
         // Fallback para o ficheiro local (para desenvolvimento no seu computador)
-        // IMPORTANTE: O ficheiro 'serviceAccountKey.json' NÃO DEVE ser enviado para o GitHub.
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✔ Firebase Admin SDK a inicializar com ficheiro local.");
     }
@@ -23,9 +22,14 @@ try {
         credential: admin.credential.cert(serviceAccount)
     });
     console.log("✔ Firebase Admin SDK inicializado com sucesso.");
+
+    // INICIALIZAÇÃO DO FIRESTORE
+    admin.firestore();
+    console.log("✔ Firebase Firestore inicializado com sucesso.");
+
 } catch (error) {
     console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.");
-    console.error("Verifique se o ficheiro 'serviceAccountKey.json' existe (para desenvolvimento local) ou se a variável de ambiente 'FIREBASE_SERVICE_ACCOUNT_JSON' está configurada corretamente (para produção).");
+    console.error("Verifique se o ficheiro 'serviceAccountKey.json' existe (localmente) ou se a variável de ambiente 'FIREBASE_SERVICE_ACCOUNT_JSON' está configurada (em produção).");
 }
 const ADMIN_EMAIL = "vgabvictor@gmail.com";
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
@@ -46,7 +50,9 @@ const CONFIG = {
 
 const app = express();
 const CAMERA_INFO_FILE = path.join(__dirname, 'cameras_info.json');
-const ASSETS_FOLDER = path.join(__dirname, 'assets');
+// --- ESTRUTURA DE PASTAS ATUALIZADA ---
+const PUBLIC_FOLDER = path.join(__dirname, 'public');
+const ASSETS_FOLDER = path.join(PUBLIC_FOLDER, 'assets');
 const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'placeholder_error.webp');
 
 // --- Estado da Aplicação ---
@@ -60,9 +66,9 @@ let cachedCameraStatus = [];
 app.use(cors());
 app.use(express.json());
 
-// --- Servir ficheiros estáticos (HTML, CSS, JS do cliente) a partir do diretório raiz ---
-app.use(express.static(__dirname));
-app.use('/assets', express.static(ASSETS_FOLDER));
+// --- Servir ficheiros estáticos a partir da pasta 'public' ---
+app.use(express.static(PUBLIC_FOLDER));
+
 
 // --- Lógica de Carregamento de Metadados ---
 async function loadCameraInfo() {
@@ -83,6 +89,9 @@ async function loadCameraInfo() {
 }
 
 // --- Rotas da API ---
+
+// Rota explícita para a página inicial não é mais necessária.
+// `express.static` irá servir automaticamente o `index.html` da pasta `public`.
 
 // Middleware de verificação de admin
 const verifyAdmin = async (req, res, next) => {

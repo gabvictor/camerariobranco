@@ -4,161 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa das Câmeras - Rio Branco</title>
-    <!-- Estilos do Mapa (Leaflet) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <!-- Estilos para o Agrupamento de Marcadores -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; }
+        #map-wrapper { display: none; height: 100%; width: 100%; }
         #map { height: 100%; width: 100%; z-index: 10; background-color: #e5e7eb; }
-        
-        /* --- ESTILOS DO POPUP MELHORADOS E RESPONSIVOS --- */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .leaflet-popup-content {
-            margin: 0;
-            width: 400px !important; /* Largura para ecrãs maiores */
-            max-width: 90vw; /* Garante que não ultrapasse a largura do ecrã */
-        }
-        /* Media query para ajustar a largura em ecrãs de telemóvel */
-        @media (max-width: 480px) {
-            .leaflet-popup-content {
-                width: 85vw !important; /* Usa a largura da viewport em telemóveis */
-            }
-        }
-        .leaflet-popup-content img { 
-            width: 100%;
-            height: auto;
-            display: block;
-            border-radius: 8px 8px 0 0; /* Arredonda apenas os cantos superiores */
-            background-color: #f3f4f6; 
-        }
-        .leaflet-popup-content .popup-info {
-            padding: 12px;
-            text-align: center;
-        }
-        .leaflet-popup-content h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .leaflet-popup-content a { 
-            display: inline-block;
-            margin-top: 5px;
-            padding: 6px 12px;
-            background-color: #4f46e5; 
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
+        .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .leaflet-popup-content { margin: 0; width: 400px !important; max-width: 90vw; }
+        @media (max-width: 480px) { .leaflet-popup-content { width: 85vw !important; } }
+        .leaflet-popup-content img { width: 100%; height: auto; display: block; border-radius: 8px 8px 0 0; background-color: #f3f4f6; }
+        .leaflet-popup-content .popup-info { padding: 12px; text-align: center; }
+        .leaflet-popup-content h3 { margin: 0 0 10px 0; font-size: 16px; font-weight: 600; }
+        .leaflet-popup-content a { display: inline-block; margin-top: 5px; padding: 6px 12px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500; transition: background-color 0.2s; }
         .leaflet-popup-content a:hover { background-color: #4338CA; }
-        
-        /* Estilo para o ícone SVG personalizado */
-        .custom-leaflet-icon {
-            background: transparent;
-            border: none;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-        }
+        .custom-leaflet-icon { background: transparent; border: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
     </style>
 </head>
 <body class="relative">
-    <header class="absolute top-0 left-0 w-full p-4 z-20 flex items-center justify-between pointer-events-none">
-        <a href="/" title="Voltar à página inicial" class="bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 shadow-md rounded-full p-2 transition-colors pointer-events-auto">
-            <i data-lucide="arrow-left" class="w-6 h-6"></i>
-        </a>
-        <h1 class="text-lg font-bold bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 px-4 py-2 rounded-lg shadow-md pointer-events-auto">Mapa de Câmeras</h1>
-    </header>
-
-    <div id="map"></div>
-
-    <!-- Scripts do Mapa (Leaflet) -->
+    <div id="map-wrapper">
+        <header class="absolute top-0 left-0 w-full p-4 z-20 flex items-center justify-between pointer-events-none">
+            <a href="/" title="Voltar à página inicial" class="bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 shadow-md rounded-full p-2 transition-colors pointer-events-auto">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </a>
+            <h1 class="text-lg font-bold bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 px-4 py-2 rounded-lg shadow-md pointer-events-auto">Mapa de Câmeras</h1>
+        </header>
+        <div id="map"></div>
+    </div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+            authDomain: "camerasriobranco.firebaseapp.com",
+            projectId: "camerasriobranco",
+            storageBucket: "camerasriobranco.appspot.com",
+            messagingSenderId: "84020805734",
+            appId: "1:84020805734:web:9904063112bd0b649f2da7",
+            measurementId: "G-Y6B72KFF66"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('map-wrapper').style.display = 'block';
+                initializeMapLogic();
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+
+        async function initializeMapLogic() {
             lucide.createIcons();
-
             const map = L.map('map').setView([-9.9745, -67.8100], 14);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
             const markers = L.markerClusterGroup();
-
             const categoryColors = {
-                'Vias Urbanas': '#3b82f6', // blue-500
-                'Praça': '#22c55e',        // green-500
-                'Ponte': '#ef4444',        // red-500
-                'Calçadão': '#f97316',     // orange-500
-                'Shopping Aquiri': '#8b5cf6', // violet-500
-                'Mercado Velho': '#a16207', // yellow-700
-                'Gameleira': '#16a34a', // green-600
-                'Terminal': '#64748b', // slate-500
-                'ExpoAcre': '#e11d48', // rose-600
-                'Horto Florestal': '#15803d', // green-700
-                'Cemitério': '#78716c', // stone-500
-                'default': '#71717a'       // zinc-500
+                'Vias Urbanas': '#3b82f6', 'Praça': '#22c55e', 'Ponte': '#ef4444', 'Calçadão': '#f97316', 'Shopping Aquiri': '#8b5cf6', 'Mercado Velho': '#a16207', 'Gameleira': '#16a34a', 'Terminal': '#64748b', 'ExpoAcre': '#e11d48', 'Horto Florestal': '#15803d', 'Cemitério': '#78716c', 'default': '#71717a'
             };
-
             const createPinIcon = (color) => {
-                const svg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-                        <path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                        <circle fill="white" cx="12" cy="9" r="2.5"/>
-                    </svg>`;
-                return L.divIcon({
-                    html: svg,
-                    className: 'custom-leaflet-icon',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 32],
-                    popupAnchor: [0, -32]
-                });
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"><path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle fill="white" cx="12" cy="9" r="2.5"/></svg>`;
+                return L.divIcon({ html: svg, className: 'custom-leaflet-icon', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32] });
             };
 
             try {
                 const response = await fetch('/status-cameras');
                 const cameras = await response.json();
-
-                const onlineCamerasWithCoords = cameras.filter(cam => cam.status === 'online' && cam.coords);
+                const onlineCamerasWithCoords = cameras.filter(cam => cam.status === 'online' && Array.isArray(cam.coords) && cam.coords.length === 2);
 
                 onlineCamerasWithCoords.forEach(camera => {
                     const color = categoryColors[camera.categoria] || categoryColors['default'];
                     const icon = createPinIcon(color);
                     const marker = L.marker(camera.coords, { icon: icon });
-                    
-                    // --- CONTEÚDO DO POPUP ATUALIZADO ---
-                    const popupContent = `
-                        <img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" alt="Câmera ${camera.nome}">
-                        <div class="popup-info">
-                            <h3>${camera.nome}</h3>
-                            <a href="/camera.html?code=${camera.codigo}" target="_blank">Ver em Tela Cheia</a>
-                        </div>
-                    `;
-                    // A largura agora é controlada pelo CSS
+                    const popupContent = `<img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" alt="Câmera ${camera.nome}"><div class="popup-info"><h3>${camera.nome}</h3><a href="/camera.html?code=${camera.codigo}" target="_blank">Ver em Tela Cheia</a></div>`;
                     marker.bindPopup(popupContent);
-                    
                     markers.addLayer(marker);
                 });
-
                 map.addLayer(markers);
-
             } catch (error) {
                 console.error("Falha ao carregar câmeras para o mapa:", error);
-                alert("Não foi possível carregar as câmeras no mapa.");
+                document.body.insertAdjacentHTML('beforeend', '<div class="absolute bottom-5 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg">Não foi possível carregar as câmeras.</div>');
             }
-        });
+        }
     </script>
 </body>
 </html>
+

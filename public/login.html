@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso ao Sistema | Câmeras Rio Branco</title>
+    
+    <!-- Tailwind CSS & Lucide Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        html { 
+            font-family: 'Inter', sans-serif; 
+        }
+
+        /* Animação de entrada do card */
+        .card-enter {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Estilos para o loader do botão */
+        .loader { 
+            width: 20px; height: 20px; border: 2px solid #FFF; border-bottom-color: transparent; 
+            border-radius: 50%; display: inline-block; box-sizing: border-box; 
+            animation: rotation 1s linear infinite; 
+        }
+
+        @keyframes rotation { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+        /* Estilos para Toast Notification */
+        .toast {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            opacity: 0;
+            animation: slideInRight 0.4s ease-out forwards, fadeOut 0.4s ease-in 3.6s forwards;
+        }
+        .toast-info { background-color: #3b82f6; } /* bg-blue-500 */
+        .toast-success { background-color: #22c55e; } /* bg-green-500 */
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
+
+    <main class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="card-enter w-full max-w-md mx-auto">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8">
+                
+                <!-- Cabeçalho -->
+                <header class="text-center mb-8">
+                    <div class="inline-block bg-blue-100 dark:bg-slate-700 p-3 rounded-full mb-4">
+                        <i data-lucide="camera" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <h1 id="form-title" class="text-3xl font-bold text-slate-900 dark:text-white">Bem-vindo(a)</h1>
+                    <p id="form-subtitle" class="text-slate-500 dark:text-slate-400 mt-2">Faça login para acessar o sistema.</p>
+                </header>
+
+                <!-- Formulário de Login -->
+                <form id="login-form" class="space-y-4">
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="email" id="login-email" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Seu e-mail" required>
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="password" id="login-password" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Sua senha" required>
+                    </div>
+                     <div class="text-right text-sm">
+                        <button type="button" id="show-reset-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Esqueceu a senha?</button>
+                    </div>
+                    <button type="submit" class="w-full !mt-6 bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:opacity-60 flex items-center justify-center">
+                        <span class="btn-text">Entrar</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                </form>
+
+                <!-- Formulário de Registro (Oculto por padrão) -->
+                <form id="register-form" class="space-y-4 hidden">
+                    <div class="relative">
+                        <i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="text" id="register-nickname" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Escolha um nickname" required>
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="email" id="register-email" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Seu melhor e-mail" required>
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="password" id="register-password" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Crie uma senha (mín. 6 caracteres)" required>
+                    </div>
+                    <div class="relative">
+                         <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="password" id="register-password-confirm" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Confirme a senha" required>
+                    </div>
+                    <button type="submit" class="w-full !mt-6 bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:opacity-60 flex items-center justify-center">
+                        <span class="btn-text">Criar Conta</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                </form>
+
+                <!-- Formulário de Redefinição de Senha (Oculto por padrão) -->
+                <form id="reset-form" class="space-y-4 hidden">
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="email" id="reset-email" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Seu e-mail de cadastro" required>
+                    </div>
+                    <button type="submit" class="w-full !mt-6 bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:opacity-60 flex items-center justify-center">
+                        <span class="btn-text">Enviar Link de Redefinição</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                </form>
+
+                <!-- Tela de Verificação de Email (Oculta por padrão) -->
+                <div id="verification-view" class="space-y-4 hidden text-center">
+                    <p class="text-slate-600 dark:text-slate-300">Enviamos um link de verificação para o seu e-mail. Por favor, verifique sua conta para continuar.</p>
+                    <button id="resend-verification-btn" class="w-full !mt-6 bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                        Reenviar E-mail
+                    </button>
+                </div>
+
+
+                <!-- Mensagem de Erro -->
+                <p id="error-message" class="text-red-500 text-sm text-center min-h-[20px] mt-4"></p>
+
+                <!-- Rodapé para troca de formulário -->
+                <footer id="toggle-forms-footer" class="text-center text-sm text-slate-500 dark:text-slate-400 mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <p>
+                        Ainda não tem uma conta?
+                        <button id="show-register-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+                            Crie uma agora
+                        </button>
+                    </p>
+                </footer>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        
+        // --- SUAS CREDENCIAIS DO FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+            authDomain: "camerasriobranco.firebaseapp.com",
+            projectId: "camerasriobranco",
+            storageBucket: "camerasriobranco.appspot.com",
+            messagingSenderId: "84020805734",
+            appId: "1:84020805734:web:9904063112bd0b649f2da7",
+            measurementId: "G-Y6B72KFF66"
+        };
+        
+        // --- INICIALIZAÇÃO ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // --- ELEMENTOS DO DOM ---
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const resetForm = document.getElementById('reset-form');
+        const verificationView = document.getElementById('verification-view');
+        const errorMessage = document.getElementById('error-message');
+        const toggleFooter = document.getElementById('toggle-forms-footer');
+        const formTitle = document.getElementById('form-title');
+        const formSubtitle = document.getElementById('form-subtitle');
+        const toastContainer = document.getElementById('toast-container');
+        let userForVerification = null;
+
+        // --- CONFIGURAÇÕES DE AÇÃO DE E-MAIL ---
+        const actionCodeSettings = {
+            url: window.location.origin + '/login.html',
+            handleCodeInApp: true
+        };
+
+        // --- FUNÇÃO PARA MOSTRAR TOAST ---
+        const showToast = (message, type = 'info') => {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        };
+
+        // --- FUNÇÃO PARA TROCAR DE FORMULÁRIO ---
+        const switchForm = (show) => {
+            const forms = [loginForm, registerForm, resetForm, verificationView];
+            const titles = {
+                login: 'Bem-vindo(a)',
+                register: 'Crie sua Conta',
+                reset: 'Redefinir Senha',
+                verification: 'Verifique seu E-mail'
+            };
+            const subtitles = {
+                login: 'Faça login para acessar o sistema.',
+                register: 'É rápido, preencha os campos abaixo.',
+                reset: 'Digite seu e-mail para receber o link.',
+                verification: 'Siga as instruções enviadas para o seu e-mail.'
+            };
+            const footers = {
+                login: `<p>Ainda não tem uma conta? <button id="show-register-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Crie uma agora</button></p>`,
+                register: `<p>Já tem uma conta? <button id="show-login-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Faça login</button></p>`,
+                reset: `<p>Lembrou da senha? <button id="show-login-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Voltar para o login</button></p>`,
+                verification: `<p>Verificou seu e-mail? <button id="show-login-btn" class="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Tentar login novamente</button></p>`
+            };
+            
+            forms.forEach(form => form.classList.add('hidden'));
+            document.getElementById(`${show}-form`)?.classList.remove('hidden');
+            if (show === 'verification') verificationView.classList.remove('hidden');
+
+            formTitle.textContent = titles[show];
+            formSubtitle.textContent = subtitles[show];
+            toggleFooter.innerHTML = footers[show];
+            errorMessage.textContent = '';
+        };
+
+        // --- ADICIONA EVENT LISTENERS PARA TROCA DE FORMULÁRIO ---
+        document.body.addEventListener('click', (e) => {
+            const targetId = e.target.id;
+            if (targetId === 'show-register-btn') switchForm('register');
+            if (targetId === 'show-reset-btn') switchForm('reset');
+            if (targetId === 'show-login-btn') {
+                if (userForVerification) {
+                    signOut(auth);
+                    userForVerification = null;
+                }
+                switchForm('login');
+            }
+            if (targetId === 'resend-verification-btn') {
+                if (!userForVerification) return;
+                sendEmailVerification(userForVerification, actionCodeSettings)
+                    .then(() => showToast('Um novo link de verificação foi enviado.'))
+                    .catch(() => errorMessage.textContent = 'Muitas tentativas. Tente novamente mais tarde.');
+            }
+        });
+        
+        // --- FUNÇÃO DE FEEDBACK DE CARREGAMENTO ---
+        const setLoadingState = (form, isLoading) => {
+            const button = form.querySelector('button[type="submit"]');
+            if(!button) return;
+            const btnText = button.querySelector('.btn-text');
+            const loader = button.querySelector('.loader');
+            
+            button.disabled = isLoading;
+            btnText.classList.toggle('hidden', isLoading);
+            loader.classList.toggle('hidden', !isLoading);
+        };
+
+        // --- VERIFICA SE O USUÁRIO JÁ ESTÁ LOGADO E VERIFICADO ---
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.emailVerified) {
+                window.location.href = '/index.html';
+            }
+        });
+
+        // --- LÓGICA DE LOGIN ---
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            setLoadingState(loginForm, true);
+            errorMessage.textContent = '';
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((credential) => {
+                    const user = credential.user;
+                    if (user.emailVerified) {
+                        window.location.href = '/index.html';
+                    } else {
+                        userForVerification = user;
+                        switchForm('verification');
+                    }
+                })
+                .catch(() => {
+                    errorMessage.textContent = 'E-mail ou senha inválidos. Tente novamente.';
+                })
+                .finally(() => {
+                    setLoadingState(loginForm, false);
+                });
+        });
+
+        // --- LÓGICA DE REGISTRO ---
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nickname = document.getElementById('register-nickname').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const passwordConfirm = document.getElementById('register-password-confirm').value;
+
+            if (password !== passwordConfirm) {
+                errorMessage.textContent = 'As senhas não coincidem.';
+                return;
+            }
+            setLoadingState(registerForm, true);
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((credential) => {
+                    // Atualiza o perfil com o nickname
+                    return updateProfile(credential.user, { displayName: nickname }).then(() => {
+                        sendEmailVerification(credential.user, actionCodeSettings);
+                        showToast('Conta criada! Verifique seu e-mail para ativar.', 'success');
+                        switchForm('login');
+                    });
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/weak-password') errorMessage.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+                    else if (error.code === 'auth/email-already-in-use') errorMessage.textContent = 'Este e-mail já está em uso.';
+                    else errorMessage.textContent = 'Ocorreu um erro ao criar a conta.';
+                })
+                .finally(() => {
+                    setLoadingState(registerForm, false);
+                });
+        });
+
+        // --- LÓGICA DE REDEFINIÇÃO DE SENHA ---
+        resetForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            setLoadingState(resetForm, true);
+
+            sendPasswordResetEmail(auth, email, actionCodeSettings)
+                .then(() => {
+                    showToast('Link de redefinição enviado para seu e-mail.');
+                    switchForm('login');
+                })
+                .catch(() => {
+                    errorMessage.textContent = 'Não foi possível encontrar um usuário com este e-mail.';
+                })
+                .finally(() => {
+                    setLoadingState(resetForm, false);
+                });
+        });
+
+        // Inicializa os ícones
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+
