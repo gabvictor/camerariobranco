@@ -44,7 +44,14 @@
                             <div><label class="font-semibold text-sm mb-1 block">Categoria</label><input type="text" name="categoria" class="form-input"></div>
                             <div><label class="font-semibold text-sm mb-1 block">Descrição</label><textarea name="descricao" class="form-input" rows="3"></textarea></div>
                             <div><label class="font-semibold text-sm mb-1 block">Coordenadas (lat, lon)</label><input type="text" name="coords" class="form-input" placeholder="-9.9731, -67.8108"></div>
-                            <div><label class="font-semibold text-sm mb-1 block">Senha de Administrador</label><input type="password" name="secret" class="form-input" required placeholder="Digite a senha para salvar"></div>
+                            <!-- CAMPO DE NÍVEL DE PERMISSÃO ADICIONADO -->
+                            <div>
+                                <label class="font-semibold text-sm mb-1 block">Nível de Permissão</label>
+                                <select name="level" class="form-input">
+                                    <option value="1">Nível 1 (Público)</option>
+                                    <option value="3">Nível 3 (Admin)</option>
+                                </select>
+                            </div>
                             <div class="flex justify-end gap-3 pt-4"><button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancelar</button><button type="submit" class="btn btn-primary save-btn">Salvar Alterações</button></div>
                         </form>
                     </div>
@@ -104,10 +111,20 @@
                 applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
             };
             elements.themeToggleButton.addEventListener('click', () => { const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); });
+            
             const openEditModal = (camera) => {
-                elements.modalForm.reset(); elements.modalForm.elements.codigo.value = camera.codigo; elements.modalForm.elements.nome.value = camera.nome; elements.modalForm.elements.categoria.value = camera.categoria; elements.modalForm.elements.descricao.value = camera.descricao || ''; elements.modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
-                elements.modal.classList.remove('hidden'); updatePreview(camera.codigo);
+                elements.modalForm.reset(); 
+                elements.modalForm.elements.codigo.value = camera.codigo; 
+                elements.modalForm.elements.nome.value = camera.nome; 
+                elements.modalForm.elements.categoria.value = camera.categoria; 
+                elements.modalForm.elements.descricao.value = camera.descricao || ''; 
+                elements.modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
+                // Popula o campo de nível de permissão
+                elements.modalForm.elements.level.value = camera.level || 1;
+                elements.modal.classList.remove('hidden'); 
+                updatePreview(camera.codigo);
             };
+
             const closeEditModal = () => { elements.modal.classList.add('hidden'); clearInterval(previewInterval); elements.modalPreviewImg.src = ''; };
             const updatePreview = (code) => {
                 clearInterval(previewInterval);
@@ -119,14 +136,20 @@
             };
             elements.closeModalBtn.addEventListener('click', closeEditModal);
             elements.cancelModalBtn.addEventListener('click', closeEditModal);
+            
             const createCameraRow = (camera) => {
                 const div = document.createElement('div');
                 div.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm flex items-center justify-between gap-4';
+                
                 const statusBadge = camera.status === 'online' ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Online</span>` : `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Offline</span>`;
-                div.innerHTML = `<div class="flex items-center gap-4 overflow-hidden"><div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative"><img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" class="w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}"><div class="absolute bottom-1 right-1">${statusBadge}</div></div><div class="overflow-hidden"><p class="font-bold text-lg truncate">${camera.nome}</p><p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}</p></div></div><div class="flex-shrink-0"><button class="btn btn-secondary edit-btn"><i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i><span class="hidden sm:inline">Editar</span></button></div>`;
+                const levelText = camera.level === 3 ? ' (Admin)' : ' (Público)';
+
+                div.innerHTML = `<div class="flex items-center gap-4 overflow-hidden"><div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative"><img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" class="w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}"><div class="absolute bottom-1 right-1">${statusBadge}</div></div><div class="overflow-hidden"><p class="font-bold text-lg truncate">${camera.nome}</p><p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}<span class="font-semibold">${levelText}</span></p></div></div><div class="flex-shrink-0"><button class="btn btn-secondary edit-btn"><i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i><span class="hidden sm:inline">Editar</span></button></div>`;
+                
                 div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
                 return div;
             };
+
             const renderCameras = (cameras) => {
                 elements.cameraList.innerHTML = '';
                 if (cameras.length === 0) { elements.cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada.</p>'; return; }
@@ -135,36 +158,69 @@
                 elements.cameraList.appendChild(fragment);
                 lucide.createIcons();
             };
+            
             const loadCameras = async () => {
                 try {
-                    const response = await fetch('/status-cameras');
+                    const user = auth.currentUser;
+                    if (!user) throw new Error("Utilizador não autenticado.");
+                    
+                    const idToken = await user.getIdToken();
+                    const response = await fetch('/status-cameras', {
+                        headers: { 'Authorization': `Bearer ${idToken}` }
+                    });
+                    if (!response.ok) throw new Error("Falha ao buscar câmeras.");
+                    
                     allCameras = await response.json();
                     renderCameras(allCameras);
-                } catch (error) { elements.cameraList.innerHTML = '<p class="text-red-500 text-center">Não foi possível carregar as câmeras.</p>'; }
+                } catch (error) { elements.cameraList.innerHTML = `<p class="text-red-500 text-center">Não foi possível carregar as câmeras. ${error.message}</p>`; }
             };
+
             elements.searchInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
                 renderCameras(allCameras.filter(camera => camera.nome.toLowerCase().includes(searchTerm) || camera.codigo.includes(searchTerm)));
             });
+            
             elements.modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const user = auth.currentUser;
+                if (!user) {
+                    showToast('Sessão expirada. Por favor, faça login novamente.', 'error');
+                    return;
+                }
+
                 const formData = new FormData(elements.modalForm);
                 const coordsRaw = formData.get('coords').split(',').map(c => parseFloat(c.trim()));
                 const data = {
-                    codigo: formData.get('codigo'), nome: formData.get('nome'), categoria: formData.get('categoria'), descricao: formData.get('descricao'),
-                    coords: coordsRaw.length === 2 && !isNaN(coordsRaw[0]) && !isNaN(coordsRaw[1]) ? coordsRaw : null, secret: formData.get('secret'),
+                    codigo: formData.get('codigo'), 
+                    nome: formData.get('nome'), 
+                    categoria: formData.get('categoria'), 
+                    descricao: formData.get('descricao'),
+                    coords: coordsRaw.length === 2 && !isNaN(coordsRaw[0]) && !isNaN(coordsRaw[1]) ? coordsRaw : null,
+                    level: parseInt(formData.get('level'), 10) // Envia o nível de permissão
                 };
+
                 const saveBtn = elements.modalForm.querySelector('.save-btn');
                 const originalText = saveBtn.textContent;
                 saveBtn.textContent = 'A Salvar...'; saveBtn.disabled = true;
+                
                 try {
-                    const response = await fetch('/api/update-camera-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                    const idToken = await user.getIdToken();
+                    const response = await fetch('/api/update-camera-info', { 
+                        method: 'POST', 
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}` // Envia o token para autenticação
+                        }, 
+                        body: JSON.stringify(data) 
+                    });
                     const result = await response.json();
                     if (!response.ok) { throw new Error(result.message || 'Falha ao salvar'); }
                     showToast(result.message, 'success');
-                    await loadCameras(); closeEditModal();
+                    await loadCameras(); 
+                    closeEditModal();
                 } catch (error) { showToast(error.message, 'error'); console.error(error); } finally { saveBtn.textContent = originalText; saveBtn.disabled = false; }
             });
+
             initializeTheme();
             loadCameras();
             lucide.createIcons();
@@ -172,4 +228,3 @@
     </script>
 </body>
 </html>
-
