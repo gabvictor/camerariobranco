@@ -8,12 +8,10 @@ const admin = require('firebase-admin');
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 try {
     let serviceAccount;
-    // Prioriza a variável de ambiente (para produção, como no Render)
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
         console.log("✔ Firebase Admin SDK a inicializar com credenciais de ambiente.");
     } else {
-        // Fallback para o ficheiro local (para desenvolvimento no seu computador)
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✔ Firebase Admin SDK a inicializar com ficheiro local.");
     }
@@ -23,13 +21,12 @@ try {
     });
     console.log("✔ Firebase Admin SDK inicializado com sucesso.");
 
-    // INICIALIZAÇÃO DO FIRESTORE
     admin.firestore();
     console.log("✔ Firebase Firestore inicializado com sucesso.");
 
 } catch (error) {
     console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.");
-    console.error("Verifique se o ficheiro 'serviceAccountKey.json' existe (localmente) ou se a variável de ambiente 'FIREBASE_SERVICE_ACCOUNT_JSON' está configurada (em produção).");
+    console.error("Verifique se o ficheiro 'serviceAccountKey.json' existe ou se a variável de ambiente 'FIREBASE_SERVICE_ACCOUNT_JSON' está configurada.");
 }
 const ADMIN_EMAIL = "vgabvictor@gmail.com";
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
@@ -50,7 +47,6 @@ const CONFIG = {
 
 const app = express();
 const CAMERA_INFO_FILE = path.join(__dirname, 'cameras_info.json');
-// --- ESTRUTURA DE PASTAS ATUALIZADA ---
 const PUBLIC_FOLDER = path.join(__dirname, 'public');
 const ASSETS_FOLDER = path.join(PUBLIC_FOLDER, 'assets');
 const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'placeholder_error.webp');
@@ -65,8 +61,6 @@ let cachedCameraStatus = [];
 // --- Middlewares ---
 app.use(cors());
 app.use(express.json());
-
-// --- Servir ficheiros estáticos a partir da pasta 'public' ---
 app.use(express.static(PUBLIC_FOLDER));
 
 
@@ -88,12 +82,7 @@ async function loadCameraInfo() {
     }
 }
 
-// --- Rotas da API ---
-
-// Rota explícita para a página inicial não é mais necessária.
-// `express.static` irá servir automaticamente o `index.html` da pasta `public`.
-
-// Middleware de verificação de admin
+// --- Middlewares de Autenticação ---
 const verifyAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -109,11 +98,27 @@ const verifyAdmin = async (req, res, next) => {
             res.status(403).json({ message: 'Acesso negado: Permissões insuficientes.' });
         }
     } catch (error) {
-        console.error('Erro ao verificar token:', error);
         res.status(401).json({ message: 'Token inválido ou expirado.' });
     }
 };
 
+const verifyOptionalAdmin = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    req.userIsAdmin = false;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const idToken = authHeader.split('Bearer ')[1];
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            if (decodedToken.email === ADMIN_EMAIL) {
+                req.userIsAdmin = true;
+            }
+        } catch (error) { /* Ignora erros de token inválido */ }
+    }
+    next();
+};
+
+
+// --- Rotas da API ---
 
 app.get('/proxy/camera', async (req, res) => {
     const { code } = req.query;
@@ -131,13 +136,17 @@ app.get('/proxy/camera', async (req, res) => {
     }
 });
 
-app.get('/status-cameras', (req, res) => res.json(cachedCameraStatus));
+app.get('/status-cameras', verifyOptionalAdmin, (req, res) => {
+    if (req.userIsAdmin) {
+        res.json(cachedCameraStatus);
+    } else {
+        const publicCameras = cachedCameraStatus.filter(camera => camera.level === 1 || !camera.level);
+        res.json(publicCameras);
+    }
+});
 
 app.get('/api/sync-info', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
         updateInterval: CONFIG.UPDATE_INTERVAL_MS,
         nextScanTimestamp: nextScanTimestamp,
@@ -145,25 +154,44 @@ app.get('/api/sync-info', (req, res) => {
     });
 });
 
-app.post('/api/update-camera-info', async (req, res) => {
-    const { codigo, nome, categoria, descricao, coords } = req.body;
+// --- ROTA DE ATUALIZAÇÃO ---
+app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
+    const { codigo, nome, categoria, descricao, coords, level } = req.body;
+    
     if (!codigo || !nome) {
         return res.status(400).json({ message: 'Código e nome são obrigatórios.' });
     }
+    
     try {
-        const currentInfo = [...cameraInfo];
-        const cameraIndex = currentInfo.findIndex(c => c.codigo === codigo);
-        const newInfo = { codigo, nome, categoria, descricao, coords };
+        const fileData = await fs.readFile(CAMERA_INFO_FILE, 'utf8');
+        const allCameraInfoFromFile = JSON.parse(fileData);
+
+        const cameraIndex = allCameraInfoFromFile.findIndex(c => c.codigo === codigo);
+
+        const updatedDataFromForm = {
+            codigo,
+            nome,
+            categoria,
+            descricao,
+            coords,
+            // ALTERAÇÃO PRINCIPAL: O valor padrão agora é 1 (Público)
+            level: Number(level) || 1
+        };
+
         if (cameraIndex > -1) {
-            currentInfo[cameraIndex] = { ...currentInfo[cameraIndex], ...newInfo };
+            allCameraInfoFromFile[cameraIndex] = { ...allCameraInfoFromFile[cameraIndex], ...updatedDataFromForm };
         } else {
-            currentInfo.push(newInfo);
+            allCameraInfoFromFile.push(updatedDataFromForm);
         }
-        await fs.writeFile(CAMERA_INFO_FILE, JSON.stringify(currentInfo, null, 2), 'utf8');
-        await loadCameraInfo();
+
+        await fs.writeFile(CAMERA_INFO_FILE, JSON.stringify(allCameraInfoFromFile, null, 2), 'utf8');
+        
+        await loadCameraInfo(); 
         const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
         updateStatusCache(currentStatuses);
+        
         res.status(200).json({ message: 'Informações da câmera atualizadas com sucesso!' });
+
     } catch (error) {
         console.error('[UPDATE_INFO_ERROR]', error);
         res.status(500).json({ message: 'Erro ao salvar as informações.' });
@@ -176,21 +204,14 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     try {
         const listUsersResult = await admin.auth().listUsers(1000);
         const totalUsers = listUsersResult.users.length;
-
         const today = new Date();
         today.setHours(23, 59, 59, 999);
-
-        const signupsByDay = {
-            labels: [],
-            values: Array(7).fill(0)
-        };
-
+        const signupsByDay = { labels: [], values: Array(7).fill(0) };
         for (let i = 6; i >= 0; i--) {
             const date = new Date(today);
             date.setDate(today.getDate() - i);
             signupsByDay.labels.push(date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
         }
-
         listUsersResult.users.forEach(user => {
             const creationTime = new Date(user.metadata.creationTime);
             const diffDays = Math.floor((today - creationTime) / (1000 * 60 * 60 * 24));
@@ -199,18 +220,12 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
                 signupsByDay.values[index]++;
             }
         });
-
-        res.json({
-            totalUsers,
-            signupsByDay
-        });
-
+        res.json({ totalUsers, signupsByDay });
     } catch (error) {
         console.error('Erro ao buscar estatísticas de usuários:', error);
         res.status(500).json({ message: "Não foi possível carregar as estatísticas." });
     }
 });
-
 
 // --- Lógica de Verificação de Câmeras ---
 async function checkCameraStatus(code, signal) {
@@ -224,9 +239,8 @@ async function checkCameraStatus(code, signal) {
         const isOnline = Buffer.byteLength(response.data) > CONFIG.MIN_IMAGE_SIZE_KB * 1024;
         return { codigo: code, status: isOnline ? 'online' : 'offline' };
     } catch (error) {
-        if (error.name === 'AbortError' || error.code === 'ECONNABORTED' || error.code === 'ECONNRESET' || error.message === 'canceled') {
-        } else {
-             console.error(`[${new Date().toLocaleTimeString()}] [CHECK_ERROR] Câmera ${code}: ${error.message}`);
+        if (error.name !== 'AbortError' && error.code !== 'ECONNABORTED') {
+           // console.error(`[CHECK_ERROR] Câmera ${code}: ${error.message}`);
         }
         return { codigo: code, status: 'offline' };
     }
@@ -240,7 +254,8 @@ function updateStatusCache(statuses) {
             nome: info ? info.nome : `Câmera ${status.codigo}`,
             categoria: info ? info.categoria : "Sem Categoria",
             coords: info ? info.coords : null,
-            descricao: info ? info.descricao : ""
+            descricao: info ? info.descricao : "",
+            level: info ? info.level : 1
         };
     }).sort((a, b) => (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1) || a.nome.localeCompare(b.nome));
 }
@@ -251,66 +266,47 @@ async function scanAllCameras() {
     scanTimeoutOccurred = false;
     console.log(`[${new Date().toLocaleTimeString()}] Iniciando varredura...`);
     const startTime = Date.now();
-
     const controller = new AbortController();
-
     const scanningPromise = (async () => {
-        const codes = Array.from({ length: CONFIG.CAMERA_CODE_END - CONFIG.CAMERA_CODE_START + 1 }, (_, i) => 
-            (CONFIG.CAMERA_CODE_START + i).toString().padStart(6, '0')
-        );
+        const codes = Array.from({ length: CONFIG.CAMERA_CODE_END - CONFIG.CAMERA_CODE_START + 1 }, (_, i) => (CONFIG.CAMERA_CODE_START + i).toString().padStart(6, '0'));
         const allStatuses = [];
         for (let i = 0; i < codes.length; i += CONFIG.CONCURRENCY_LIMIT) {
+            if (controller.signal.aborted) break;
             const batch = codes.slice(i, i + CONFIG.CONCURRENCY_LIMIT);
             const promises = batch.map(code => checkCameraStatus(code, controller.signal));
             const results = await Promise.allSettled(promises);
             results.forEach(result => {
                 if (result.status === 'fulfilled') allStatuses.push(result.value);
             });
-            if (controller.signal.aborted) {
-                console.log('[INFO] A varredura foi abortada, interrompendo o processamento de lotes.');
-                break;
-            }
         }
         return allStatuses;
     })();
-
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Scan timeout')), CONFIG.SCAN_TIMEOUT_MS)
-    );
-
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Scan timeout')), CONFIG.SCAN_TIMEOUT_MS));
     try {
         const allStatuses = await Promise.race([scanningPromise, timeoutPromise]);
-        
         updateStatusCache(allStatuses);
-
         const duration = (Date.now() - startTime) / 1000;
         console.log(`✔ Varredura concluída em ${duration.toFixed(2)}s. ${cachedCameraStatus.filter(c => c.status === 'online').length} câmeras online encontradas.`);
-
     } catch (error) {
         if (error.message === 'Scan timeout') {
-            console.warn(`[TIMEOUT] A varredura excedeu ${CONFIG.SCAN_TIMEOUT_MS / 1000}s. Abortando requisições pendentes...`);
+            console.warn(`[TIMEOUT] A varredura excedeu ${CONFIG.SCAN_TIMEOUT_MS / 1000}s. Abortando...`);
             controller.abort();
             scanTimeoutOccurred = true;
         } else {
-            console.error('[SCAN_ERROR] Erro inesperado durante a varredura:', error);
+            console.error('[SCAN_ERROR] Erro inesperado:', error);
         }
     } finally {
         isScanning = false;
     }
 }
 
-
 // --- Agendador e Inicialização ---
 function runScheduledScan() {
     scanAllCameras().finally(() => {
-        if (scanTimeoutOccurred) {
-            console.log(`Próxima tentativa de varredura em ${CONFIG.SCAN_RETRY_DELAY_MS / 1000}s.`);
-            nextScanTimestamp = Date.now() + CONFIG.SCAN_RETRY_DELAY_MS;
-            setTimeout(runScheduledScan, CONFIG.SCAN_RETRY_DELAY_MS);
-        } else {
-            nextScanTimestamp = Date.now() + CONFIG.UPDATE_INTERVAL_MS;
-            setTimeout(runScheduledScan, CONFIG.UPDATE_INTERVAL_MS);
-        }
+        const delay = scanTimeoutOccurred ? CONFIG.SCAN_RETRY_DELAY_MS : CONFIG.UPDATE_INTERVAL_MS;
+        console.log(`Próxima varredura em ${delay / 1000}s.`);
+        nextScanTimestamp = Date.now() + delay;
+        setTimeout(runScheduledScan, delay);
     });
 }
 
@@ -320,7 +316,6 @@ async function startServer() {
         console.log(`Servidor executando em http://localhost:${CONFIG.PORT}`);
         runScheduledScan();
     });
-    
     process.on('SIGINT', () => {
         console.log('\nDesligando servidor...');
         server.close(() => process.exit(isScanning ? 1 : 0));
