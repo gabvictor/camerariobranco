@@ -21,12 +21,13 @@ try {
     });
     console.log("✔ Firebase Admin SDK inicializado com sucesso.");
 
-    admin.firestore();
-    console.log("✔ Firebase Firestore inicializado com sucesso.");
+    // Inicializa o Firestore
+    const db = admin.firestore();
+    console.log("✔ Firebase Firestore inicializado.");
 
 } catch (error) {
-    console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.");
-    console.error("Verifique se o ficheiro 'serviceAccountKey.json' existe ou se a variável de ambiente 'FIREBASE_SERVICE_ACCOUNT_JSON' está configurada.");
+    console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.", error);
+    process.exit(1);
 }
 const ADMIN_EMAIL = "vgabvictor@gmail.com";
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
@@ -46,7 +47,6 @@ const CONFIG = {
 };
 
 const app = express();
-const CAMERA_INFO_FILE = path.join(__dirname, 'cameras_info.json');
 const PUBLIC_FOLDER = path.join(__dirname, 'public');
 const ASSETS_FOLDER = path.join(PUBLIC_FOLDER, 'assets');
 const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'placeholder_error.webp');
@@ -55,7 +55,7 @@ const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'placeholder_error.webp');
 let nextScanTimestamp = Date.now();
 let isScanning = false;
 let scanTimeoutOccurred = false;
-let cameraInfo = [];
+let cameraInfo = []; // Agora será preenchido pelo Firestore
 let cachedCameraStatus = [];
 
 // --- Middlewares ---
@@ -64,25 +64,28 @@ app.use(express.json());
 app.use(express.static(PUBLIC_FOLDER));
 
 
-// --- Lógica de Carregamento de Metadados ---
-async function loadCameraInfo() {
+// --- Lógica de Carregamento de Metadados do FIRESTORE ---
+async function loadCameraInfoFromFirestore() {
     try {
-        const infoData = await fs.readFile(CAMERA_INFO_FILE, 'utf8');
-        cameraInfo = JSON.parse(infoData);
-        console.log("✔ Informações de câmeras carregadas.");
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.log("Arquivo 'cameras_info.json' não encontrado. Será criado um novo.");
+        const db = admin.firestore();
+        const snapshot = await db.collection('cameras').get();
+
+        if (snapshot.empty) {
+            console.warn("[WARN] Coleção 'cameras' no Firestore está vazia.");
             cameraInfo = [];
-            await fs.writeFile(CAMERA_INFO_FILE, '[]', 'utf8');
-        } else {
-            console.warn("[WARN] Não foi possível carregar 'cameras_info.json'.");
-            cameraInfo = [];
+            return;
         }
+        
+        cameraInfo = snapshot.docs.map(doc => doc.data());
+        console.log(`✔ ${cameraInfo.length} informações de câmeras carregadas do Firestore.`);
+
+    } catch (error) {
+        console.error("[FIRESTORE_LOAD_ERROR] Não foi possível carregar informações do Firestore.", error);
+        cameraInfo = [];
     }
 }
 
-// --- Middlewares de Autenticação ---
+// --- Middlewares de Autenticação (sem alterações) ---
 const verifyAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -136,6 +139,7 @@ app.get('/proxy/camera', async (req, res) => {
     }
 });
 
+// ESTA ROTA FOI MANTIDA E FUNCIONA EXATAMENTE COMO ANTES PARA O SEU APLICATIVO
 app.get('/status-cameras', verifyOptionalAdmin, (req, res) => {
     if (req.userIsAdmin) {
         res.json(cachedCameraStatus);
@@ -154,7 +158,7 @@ app.get('/api/sync-info', (req, res) => {
     });
 });
 
-// --- ROTA DE ATUALIZAÇÃO ---
+// --- ROTA DE ATUALIZAÇÃO MODIFICADA PARA USAR O FIRESTORE ---
 app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
     const { codigo, nome, categoria, descricao, coords, level } = req.body;
     
@@ -163,43 +167,34 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
     }
     
     try {
-        const fileData = await fs.readFile(CAMERA_INFO_FILE, 'utf8');
-        const allCameraInfoFromFile = JSON.parse(fileData);
+        const db = admin.firestore();
+        const cameraRef = db.collection('cameras').doc(codigo);
 
-        const cameraIndex = allCameraInfoFromFile.findIndex(c => c.codigo === codigo);
-
-        const updatedDataFromForm = {
+        const updatedData = {
             codigo,
             nome,
             categoria,
             descricao,
             coords,
-            // ALTERAÇÃO PRINCIPAL: O valor padrão agora é 1 (Público)
             level: Number(level) || 1
         };
-
-        if (cameraIndex > -1) {
-            allCameraInfoFromFile[cameraIndex] = { ...allCameraInfoFromFile[cameraIndex], ...updatedDataFromForm };
-        } else {
-            allCameraInfoFromFile.push(updatedDataFromForm);
-        }
-
-        await fs.writeFile(CAMERA_INFO_FILE, JSON.stringify(allCameraInfoFromFile, null, 2), 'utf8');
         
-        await loadCameraInfo(); 
+        await cameraRef.set(updatedData, { merge: true });
+        
+        await loadCameraInfoFromFirestore(); 
         const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
         updateStatusCache(currentStatuses);
         
         res.status(200).json({ message: 'Informações da câmera atualizadas com sucesso!' });
 
     } catch (error) {
-        console.error('[UPDATE_INFO_ERROR]', error);
-        res.status(500).json({ message: 'Erro ao salvar as informações.' });
+        console.error('[FIRESTORE_UPDATE_ERROR]', error);
+        res.status(500).json({ message: 'Erro ao salvar as informações no Firestore.' });
     }
 });
 
 
-// --- ROTA DE DADOS PARA O DASHBOARD ---
+// --- ROTA DE DADOS PARA O DASHBOARD (sem alterações) ---
 app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     try {
         const listUsersResult = await admin.auth().listUsers(1000);
@@ -210,7 +205,7 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
         for (let i = 6; i >= 0; i--) {
             const date = new Date(today);
             date.setDate(today.getDate() - i);
-            signupsByDay.labels.push(date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+            signupsByDay.labels.push(date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit' }));
         }
         listUsersResult.users.forEach(user => {
             const creationTime = new Date(user.metadata.creationTime);
@@ -227,7 +222,7 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     }
 });
 
-// --- Lógica de Verificação de Câmeras ---
+// --- Lógica de Verificação de Câmeras (sem alterações) ---
 async function checkCameraStatus(code, signal) {
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
     try {
@@ -311,11 +306,13 @@ function runScheduledScan() {
 }
 
 async function startServer() {
-    await loadCameraInfo();
+    await loadCameraInfoFromFirestore(); 
+    
     const server = app.listen(CONFIG.PORT, () => {
         console.log(`Servidor executando em http://localhost:${CONFIG.PORT}`);
         runScheduledScan();
     });
+    
     process.on('SIGINT', () => {
         console.log('\nDesligando servidor...');
         server.close(() => process.exit(isScanning ? 1 : 0));
@@ -323,4 +320,3 @@ async function startServer() {
 }
 
 startServer();
-
