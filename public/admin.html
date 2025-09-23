@@ -27,6 +27,9 @@
         #toast.success { background-color: #22c55e; }
         #toast.error { background-color: #ef4444; }
         #content-wrapper { display: none; }
+        
+        .skeleton-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
@@ -34,7 +37,17 @@
     <div id="content-wrapper">
         <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4 transition-opacity">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700"><h2 id="modal-title" class="text-xl font-bold">Editar Câmera</h2><button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-3">
+                        <h2 id="modal-title" class="text-xl font-bold">Editar Câmera</h2>
+                        <button id="refresh-preview-btn" title="Atualizar imagem" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto">
                     <div class="bg-black rounded-lg flex items-center justify-center min-h-[300px] relative"><img id="modal-preview-img" src="" alt="Pré-visualização da câmera" class="w-full h-full object-contain rounded-lg"><div id="modal-loader" class="absolute"><div class="loader"></div></div></div>
                     <div>
@@ -44,12 +57,11 @@
                             <div><label class="font-semibold text-sm mb-1 block">Categoria</label><input type="text" name="categoria" class="form-input"></div>
                             <div><label class="font-semibold text-sm mb-1 block">Descrição</label><textarea name="descricao" class="form-input" rows="3"></textarea></div>
                             <div><label class="font-semibold text-sm mb-1 block">Coordenadas (lat, lon)</label><input type="text" name="coords" class="form-input" placeholder="-9.9731, -67.8108"></div>
-                            <!-- CAMPO DE NÍVEL DE PERMISSÃO ADICIONADO -->
                             <div>
                                 <label class="font-semibold text-sm mb-1 block">Nível de Permissão</label>
                                 <select name="level" class="form-input">
                                     <option value="1">Nível 1 (Público)</option>
-                                    <option value="3">Nível 3 (Admin)</option>
+                                    <option value="3">Nível 3 (Privado)</option>
                                 </select>
                             </div>
                             <div class="flex justify-end gap-3 pt-4"><button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancelar</button><button type="submit" class="btn btn-primary save-btn">Salvar Alterações</button></div>
@@ -63,7 +75,21 @@
                 <h1 class="text-3xl font-bold">Painel de Administração</h1>
                 <div class="flex items-center gap-4"><button id="toggle-theme" title="Alternar tema" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i></button><a href="/" title="Voltar à página inicial" class="btn btn-secondary"><i data-lucide="arrow-left" class="w-5 h-5 mr-2 -ml-1"></i><span>Voltar</span></a></div>
             </header>
-            <div class="mb-6 relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i><input type="text" id="search-input" placeholder="Buscar por nome ou código..." class="form-input w-full pl-10"></div>
+            
+            <div class="mb-6 flex flex-col sm:flex-row gap-4">
+                <div class="relative flex-grow">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i>
+                    <input type="text" id="search-input" placeholder="Buscar por nome ou código..." class="form-input w-full pl-10">
+                </div>
+                <div class="flex-shrink-0">
+                    <select id="filter-level-select" class="form-input w-full sm:w-auto">
+                        <option value="all">Todos os Níveis</option>
+                        <option value="1">Apenas Públicas</option>
+                        <option value="3">Apenas Privadas</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="camera-list" class="space-y-4"><div class="text-center py-10"><div class="loader mx-auto"></div></div></div>
         </div>
         <div id="toast"></div>
@@ -97,10 +123,23 @@
 
         function initializeAdminLogic() {
             const elements = {
-                cameraList: document.getElementById('camera-list'), themeToggleButton: document.getElementById('toggle-theme'), searchInput: document.getElementById('search-input'), modal: document.getElementById('edit-modal'), closeModalBtn: document.getElementById('close-modal-btn'), cancelModalBtn: document.getElementById('cancel-modal-btn'), modalForm: document.getElementById('modal-form'), modalPreviewImg: document.getElementById('modal-preview-img'), modalLoader: document.getElementById('modal-loader'), toast: document.getElementById('toast'),
+                cameraList: document.getElementById('camera-list'), 
+                themeToggleButton: document.getElementById('toggle-theme'), 
+                searchInput: document.getElementById('search-input'),
+                filterLevelSelect: document.getElementById('filter-level-select'),
+                modal: document.getElementById('edit-modal'), 
+                closeModalBtn: document.getElementById('close-modal-btn'), 
+                cancelModalBtn: document.getElementById('cancel-modal-btn'), 
+                modalForm: document.getElementById('modal-form'), 
+                modalPreviewImg: document.getElementById('modal-preview-img'), 
+                modalLoader: document.getElementById('modal-loader'), 
+                toast: document.getElementById('toast'),
+                refreshPreviewBtn: document.getElementById('refresh-preview-btn'),
             };
             let allCameras = [];
             let previewInterval;
+            let isPreviewLoading = false;
+            
             const showToast = (message, type = 'success') => {
                 elements.toast.textContent = message; elements.toast.className = ``; elements.toast.classList.add(type, 'show');
                 setTimeout(() => { elements.toast.classList.remove('show'); }, 3000);
@@ -119,21 +158,60 @@
                 elements.modalForm.elements.categoria.value = camera.categoria; 
                 elements.modalForm.elements.descricao.value = camera.descricao || ''; 
                 elements.modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
-                // Popula o campo de nível de permissão
                 elements.modalForm.elements.level.value = camera.level || 1;
-                elements.modal.classList.remove('hidden'); 
+                elements.modal.classList.remove('hidden');
+                lucide.createIcons();
                 updatePreview(camera.codigo);
             };
 
             const closeEditModal = () => { elements.modal.classList.add('hidden'); clearInterval(previewInterval); elements.modalPreviewImg.src = ''; };
+
             const updatePreview = (code) => {
                 clearInterval(previewInterval);
-                const update = () => { elements.modalLoader.classList.remove('hidden'); elements.modalPreviewImg.style.display = 'none'; elements.modalPreviewImg.src = `/proxy/camera?code=${code}&t=${Date.now()}`; };
-                elements.modalPreviewImg.onload = () => { elements.modalLoader.classList.add('hidden'); elements.modalPreviewImg.style.display = 'block'; };
-                elements.modalPreviewImg.onerror = () => { elements.modalLoader.classList.add('hidden'); elements.modalPreviewImg.style.display = 'block'; elements.modalPreviewImg.src = 'https://placehold.co/400x300/e0e0e0/757575?text=Offline'; };
+                let isFirstLoad = true;
+
+                const update = () => {
+                    if (isPreviewLoading) return;
+                    isPreviewLoading = true;
+
+                    if (isFirstLoad) {
+                        elements.modalLoader.classList.remove('hidden');
+                        elements.modalPreviewImg.style.display = 'none';
+                    }
+
+                    const tempImg = new Image();
+                    const newSrc = `/proxy/camera?code=${code}&t=${Date.now()}`;
+                    
+                    tempImg.onload = () => {
+                        elements.modalPreviewImg.src = newSrc;
+                        
+                        if (isFirstLoad) {
+                            elements.modalLoader.classList.add('hidden');
+                            elements.modalPreviewImg.style.display = 'block';
+                            isFirstLoad = false;
+                        }
+                        isPreviewLoading = false;
+                    };
+
+                    tempImg.onerror = () => {
+                        elements.modalPreviewImg.src = 'https://placehold.co/400x300/e0e0e0/757575?text=Offline';
+                        if (isFirstLoad) {
+                            elements.modalLoader.classList.add('hidden');
+                            elements.modalPreviewImg.style.display = 'block';
+                            isFirstLoad = false;
+                        }
+                        isPreviewLoading = false;
+                    };
+                    
+                    tempImg.src = newSrc;
+                };
+
+                elements.refreshPreviewBtn.onclick = () => update();
+                
                 update();
-                previewInterval = setInterval(update, 2000);
+                previewInterval = setInterval(update, 8000);
             };
+
             elements.closeModalBtn.addEventListener('click', closeEditModal);
             elements.cancelModalBtn.addEventListener('click', closeEditModal);
             
@@ -142,9 +220,28 @@
                 div.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm flex items-center justify-between gap-4';
                 
                 const statusBadge = camera.status === 'online' ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Online</span>` : `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Offline</span>`;
-                const levelText = camera.level === 3 ? ' (Admin)' : ' (Público)';
+                const levelText = camera.level === 3 ? ' (Privado)' : ' (Público)';
+                
+                const cacheBuster = Math.round(Date.now() / 15000) * 15000;
+                const imageUrl = `/proxy/camera?code=${camera.codigo}&t=${cacheBuster}`;
 
-                div.innerHTML = `<div class="flex items-center gap-4 overflow-hidden"><div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative"><img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" class="w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}"><div class="absolute bottom-1 right-1">${statusBadge}</div></div><div class="overflow-hidden"><p class="font-bold text-lg truncate">${camera.nome}</p><p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}<span class="font-semibold">${levelText}</span></p></div></div><div class="flex-shrink-0"><button class="btn btn-secondary edit-btn"><i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i><span class="hidden sm:inline">Editar</span></button></div>`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative skeleton-pulse">
+                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}">
+                            <div class="absolute bottom-1 right-1">${statusBadge}</div>
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="font-bold text-lg truncate">${camera.nome}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}<span class="font-semibold">${levelText}</span></p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button class="btn btn-secondary edit-btn">
+                            <i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i>
+                            <span class="hidden sm:inline">Editar</span>
+                        </button>
+                    </div>`;
                 
                 div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
                 return div;
@@ -152,11 +249,76 @@
 
             const renderCameras = (cameras) => {
                 elements.cameraList.innerHTML = '';
-                if (cameras.length === 0) { elements.cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada.</p>'; return; }
+                if (cameras.length === 0) {
+                    elements.cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada para os filtros aplicados.</p>';
+                    return;
+                }
                 const fragment = document.createDocumentFragment();
                 cameras.forEach(camera => fragment.appendChild(createCameraRow(camera)));
                 elements.cameraList.appendChild(fragment);
                 lucide.createIcons();
+                
+                initializeLazyLoading();
+            };
+            
+            const initializeLazyLoading = () => {
+                const lazyImages = document.querySelectorAll('img.lazy-load');
+                
+                if ("IntersectionObserver" in window) {
+                    const observer = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                const imgContainer = img.parentElement;
+                                
+                                img.src = img.dataset.src;
+                                
+                                img.onload = () => {
+                                    img.classList.remove('lazy-load');
+                                    imgContainer.classList.remove('skeleton-pulse');
+                                };
+                                img.onerror = () => {
+                                    img.classList.remove('lazy-load');
+                                    imgContainer.classList.remove('skeleton-pulse');
+                                    img.alt = "Falha ao carregar";
+                                };
+                                observer.unobserve(img);
+                            }
+                        });
+                    }, { rootMargin: "0px 0px 200px 0px" });
+
+                    lazyImages.forEach(img => observer.observe(img));
+                } else {
+                    lazyImages.forEach(img => {
+                        img.src = img.dataset.src;
+                        img.parentElement.classList.remove('skeleton-pulse');
+                    });
+                }
+            };
+            
+            const applyFilters = () => {
+                const searchTerm = elements.searchInput.value.toLowerCase();
+                const selectedLevel = elements.filterLevelSelect.value;
+
+                let filteredCameras = allCameras;
+
+                if (searchTerm) {
+                    filteredCameras = filteredCameras.filter(camera => 
+                        camera.nome.toLowerCase().includes(searchTerm) || 
+                        camera.codigo.includes(searchTerm)
+                    );
+                }
+
+                if (selectedLevel !== 'all') {
+                    const level = parseInt(selectedLevel, 10);
+                    if (level === 1) {
+                        filteredCameras = filteredCameras.filter(camera => camera.level !== 3);
+                    } else if (level === 3) {
+                        filteredCameras = filteredCameras.filter(camera => camera.level === 3);
+                    }
+                }
+
+                renderCameras(filteredCameras);
             };
             
             const loadCameras = async () => {
@@ -171,14 +333,12 @@
                     if (!response.ok) throw new Error("Falha ao buscar câmeras.");
                     
                     allCameras = await response.json();
-                    renderCameras(allCameras);
+                    applyFilters();
                 } catch (error) { elements.cameraList.innerHTML = `<p class="text-red-500 text-center">Não foi possível carregar as câmeras. ${error.message}</p>`; }
             };
 
-            elements.searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                renderCameras(allCameras.filter(camera => camera.nome.toLowerCase().includes(searchTerm) || camera.codigo.includes(searchTerm)));
-            });
+            elements.searchInput.addEventListener('input', applyFilters);
+            elements.filterLevelSelect.addEventListener('change', applyFilters);
             
             elements.modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -196,7 +356,7 @@
                     categoria: formData.get('categoria'), 
                     descricao: formData.get('descricao'),
                     coords: coordsRaw.length === 2 && !isNaN(coordsRaw[0]) && !isNaN(coordsRaw[1]) ? coordsRaw : null,
-                    level: parseInt(formData.get('level'), 10) // Envia o nível de permissão
+                    level: parseInt(formData.get('level'), 10)
                 };
 
                 const saveBtn = elements.modalForm.querySelector('.save-btn');
@@ -209,7 +369,7 @@
                         method: 'POST', 
                         headers: { 
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${idToken}` // Envia o token para autenticação
+                            'Authorization': `Bearer ${idToken}`
                         }, 
                         body: JSON.stringify(data) 
                     });
