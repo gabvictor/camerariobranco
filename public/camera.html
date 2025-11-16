@@ -69,7 +69,7 @@
         </div>
     </div>
     
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -88,13 +88,14 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- MODIFICAÇÃO 1: Mostrar conteúdo imediatamente ---
+        // Não esperamos mais pelo login para mostrar a página.
+        document.getElementById('content-wrapper').style.display = 'block';
+
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('content-wrapper').style.display = 'block';
-                initializeCameraLogic(user);
-            } else {
-                window.location.href = '/login.html';
-            }
+            // 'user' será 'null' se não estiver logado, ou o objeto do usuário se estiver.
+            // A lógica da câmera agora é chamada independentemente do login.
+            initializeCameraLogic(user);
         });
 
         function initializeComments(user, cameraCode) {
@@ -103,16 +104,22 @@
             const commentInput = document.getElementById('comment-input');
             const submitButton = commentForm.querySelector('button');
 
+            // --- MODIFICAÇÃO 2: Esconder o formulário se não houver usuário ---
+            if (!user) {
+                commentForm.style.display = 'none';
+            }
+
             const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
             const q = query(commentsColRef, orderBy('timestamp', 'desc'));
 
             onSnapshot(q, (snapshot) => {
-                commentsList.innerHTML = ''; // Limpa comentários antigos
+                commentsList.innerHTML = ''; 
                 if (snapshot.empty) {
                     commentsList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Nenhum comentário ainda. Seja o primeiro!</p>';
                     return;
                 }
                 snapshot.forEach(doc => {
+                    // ... (código para renderizar comentários, sem alteração) ...
                     const comment = doc.data();
                     const commentEl = document.createElement('div');
                     commentEl.className = 'py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0';
@@ -131,6 +138,8 @@
             commentForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const text = commentInput.value.trim();
+                
+                // Esta verificação 'if (text && user)' já impede o envio se o 'user' for nulo
                 if (text && user) {
                     commentInput.disabled = true;
                     submitButton.disabled = true;
@@ -150,11 +159,14 @@
                         submitButton.disabled = false;
                         commentInput.focus();
                     }
+                } else if (!user) {
+                    alert("Você precisa estar logado para enviar um comentário.");
                 }
             });
         }
 
-        function initializeCameraLogic(user) {
+        // --- MODIFICAÇÃO 3: Tornar a função 'async' para aguardar o token ---
+        async function initializeCameraLogic(user) {
             const params = new URLSearchParams(window.location.search);
             const cameraCode = params.get('code');
             const elements = {
@@ -167,6 +179,7 @@
                 return;
             }
             
+            // Esta função agora lida com 'user' podendo ser 'null'
             initializeComments(user, cameraCode);
 
             const setCameraInfo = (camera) => {
@@ -179,17 +192,38 @@
                 elements.statusBadge.innerHTML = `<span class="px-3 py-1 text-sm font-semibold rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">${isOnline ? 'Online' : 'Offline'}</span>`;
                 if (camera.coords) { elements.mapLink.href = `https://www.google.com/maps?q=${camera.coords[0]},${camera.coords[1]}`; elements.mapLink.removeAttribute('aria-disabled'); } else { elements.mapLink.setAttribute('aria-disabled', 'true'); }
             };
-            fetch('/status-cameras').then(res => res.json()).then(cameras => {
-                const camera = cameras.find(c => c.codigo === cameraCode);
-                if (camera) { setCameraInfo(camera); } else { elements.headerTitle.textContent = `Câmera ${cameraCode}`; elements.infoTitle.textContent = `Câmera ${cameraCode}`; }
-            });
 
-            const updateFeed = () => { elements.feed.src = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`; };
-            elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
-            elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
-            updateFeed();
-            setInterval(updateFeed, 2000);
+            // --- MODIFICAÇÃO 4: Enviar token de autenticação (se existir) ---
+            // Isto permite que administradores vejam câmeras privadas no site
+            const idToken = user ? await user.getIdToken() : null;
+            const headers = {};
+            if (idToken) {
+                headers['Authorization'] = `Bearer ${idToken}`;
+            }
 
+            fetch('/status-cameras', { headers: headers })
+                .then(res => res.json())
+                .then(cameras => {
+                    const camera = cameras.find(c => c.codigo === cameraCode);
+                    if (camera) { 
+                        setCameraInfo(camera); 
+                        // Inicia o feed da câmera apenas se ela for encontrada
+                        const updateFeed = () => { elements.feed.src = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`; };
+                        elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
+                        elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
+                        updateFeed();
+                        setInterval(updateFeed, 2000); //
+                    } else { 
+                        // Se não encontrar a câmera (pode ser privada ou não existir)
+                        elements.headerTitle.textContent = `Câmera ${cameraCode}`; 
+                        elements.infoTitle.textContent = `Câmera ${cameraCode}`;
+                        elements.loader.classList.add('hidden');
+                        elements.error.textContent = 'Câmera não encontrada ou acesso negado.';
+                        elements.error.classList.remove('hidden');
+                    }
+                });
+
+            // O botão de partilha continua a partilhar o URL do site (correto)
             elements.shareButton.addEventListener('click', async () => {
                 const shareData = { title: `Câmera: ${elements.infoTitle.textContent}`, text: `Confira a transmissão ao vivo da câmera "${elements.infoTitle.textContent}"`, url: window.location.href };
                 if (navigator.share) { await navigator.share(shareData).catch(err => console.error('Error sharing:', err)); } else {
@@ -205,7 +239,3 @@
     </script>
 </body>
 </html>
-
-
-
-
