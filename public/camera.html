@@ -173,10 +173,19 @@
                 headerTitle: document.getElementById('header-title'), infoTitle: document.getElementById('info-title'), statusBadge: document.getElementById('status-badge'), category: document.getElementById('camera-category'), description: document.getElementById('camera-description'), mapLink: document.getElementById('map-link'), feed: document.getElementById('camera-feed'), loader: document.getElementById('loader'), error: document.getElementById('error-message'), shareButton: document.getElementById('share-button'),
             };
 
-            lucide.createIcons();
+  lucide.createIcons();
             if (!cameraCode) {
-                // ... (lógica de erro existente)
+                // --- CÓDIGO DE ERRO QUE FALTAVA ---
+                elements.headerTitle.textContent = "Erro";
+                elements.infoTitle.textContent = "Câmera não encontrada";
+                elements.loader.classList.add('hidden');
+                elements.error.textContent = 'Nenhum código de câmera foi fornecido na URL. Exemplo: /camera.html?code=001125';
+                elements.error.classList.remove('hidden');
+                
+                // Esconde a secção de comentários e informações
+                document.querySelector('.lg\\:col-span-2 + .space-y-8').style.display = 'none';
                 return;
+                // --- FIM DO CÓDIGO DE ERRO ---
             }
             
             // Esta função agora lida com 'user' podendo ser 'null'
@@ -212,7 +221,7 @@
                         elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
                         elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
                         updateFeed();
-                        setInterval(updateFeed, 2000); //
+                        setInterval(updateFeed, 5000); //
                     } else { 
                         // Se não encontrar a câmera (pode ser privada ou não existir)
                         elements.headerTitle.textContent = `Câmera ${cameraCode}`; 
@@ -239,3 +248,5 @@
     </script>
 </body>
 </html>
+
+
