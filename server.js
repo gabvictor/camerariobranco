@@ -12,6 +12,8 @@ try {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
         console.log("✔ Firebase Admin SDK a inicializar com credenciais de ambiente.");
     } else {
+        // Se estiver executando localmente sem a variável de ambiente,
+        // ele procurará por serviceAccountKey.json no diretório raiz.
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✔ Firebase Admin SDK a inicializar com ficheiro local.");
     }
@@ -58,9 +60,32 @@ let scanTimeoutOccurred = false;
 let cameraInfo = []; // Agora será preenchido pelo Firestore
 let cachedCameraStatus = [];
 
+
+// --- ROTA DE CORREÇÃO PARA ANDROID APP LINKS (ASSETLINKS.JSON) ---
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    // Define o caminho absoluto para o arquivo.
+    const filePath = path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json');
+    
+    // Força o Content-Type para garantir a compatibilidade com o Android App Links
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Envia o arquivo
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('[ASSETLINKS_ERROR] Falha ao enviar assetlinks.json:', err);
+            // Se o arquivo não puder ser lido, envia um 404
+            res.status(404).send('Not Found');
+        }
+    });
+});
+// --- FIM DA ROTA DE CORREÇÃO ---
+
+
 // --- Middlewares ---
 app.use(cors());
 app.use(express.json());
+// O express.static serve os arquivos da pasta 'public', incluindo o resto da pasta '.well-known' 
+// e os arquivos .html.
 app.use(express.static(PUBLIC_FOLDER));
 
 
