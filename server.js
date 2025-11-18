@@ -1,7 +1,8 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const fs = require('fs').promises;
+// Mudança: Usar o módulo fs normal, não o de promises
+const fs = require('fs'); 
 const path = require('path');
 const admin = require('firebase-admin');
 
@@ -62,21 +63,25 @@ let cachedCameraStatus = [];
 
 
 // --- ROTA DE CORREÇÃO PARA ANDROID APP LINKS (ASSETLINKS.JSON) ---
+// Tenta ler o arquivo diretamente e envia o conteúdo como JSON.
 app.get('/.well-known/assetlinks.json', (req, res) => {
-    // Define o caminho absoluto para o arquivo.
     const filePath = path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json');
     
-    // Força o Content-Type para garantir a compatibilidade com o Android App Links
-    res.setHeader('Content-Type', 'application/json');
-    
-    // Envia o arquivo
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error('[ASSETLINKS_ERROR] Falha ao enviar assetlinks.json:', err);
-            // Se o arquivo não puder ser lido, envia um 404
-            res.status(404).send('Not Found');
-        }
-    });
+    try {
+        // Leitura Síncrona (apenas para arquivos pequenos e estáticos de configuração)
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        
+        // Força o Content-Type para garantir a compatibilidade e o formato correto
+        res.setHeader('Content-Type', 'application/json');
+        
+        // Envia o conteúdo lido
+        res.status(200).send(fileContent);
+        
+    } catch (err) {
+        console.error('[ASSETLINKS_READ_ERROR] Falha ao ler assetlinks.json:', err.message);
+        // Retorna 404 se o arquivo não for encontrado ou não puder ser lido
+        res.status(404).send('Not Found');
+    }
 });
 // --- FIM DA ROTA DE CORREÇÃO ---
 
@@ -84,8 +89,7 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
 // --- Middlewares ---
 app.use(cors());
 app.use(express.json());
-// O express.static serve os arquivos da pasta 'public', incluindo o resto da pasta '.well-known' 
-// e os arquivos .html.
+// O express.static serve os arquivos da pasta 'public'
 app.use(express.static(PUBLIC_FOLDER));
 
 
