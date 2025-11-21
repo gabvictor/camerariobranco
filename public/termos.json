@@ -1,10 +1,10 @@
 {
   "version": 1.0,
-  "lastUpdated": "Setembro de 2025",
+  "lastUpdated": "Novembro de 2025",
   "content": [
     {
       "type": "date",
-      "text": "Última atualização: Setembro de 2025"
+      "text": "Última atualização: Novembro de 2025"
     },
     {
       "type": "paragraph",
@@ -156,6 +156,55 @@
     {
       "type": "paragraph",
       "text": "Dúvidas sobre estes Termos? Entre em contato: seu-email-de-contato@dominio.com."
+    }
+    ,
+    {
+      "type": "title",
+      "text": "14. Notificações"
+    },
+    {
+      "type": "paragraph",
+      "text": "O aplicativo pode enviar notificações para comunicar atualizações, manutenção, alertas ou novidades relacionadas ao serviço. Você pode ativar ou desativar essas notificações nas configurações do sistema do seu dispositivo e, quando disponível, dentro do próprio aplicativo."
+    },
+    {
+      "type": "listItem",
+      "text": "Dependem das permissões do sistema concedidas pelo Usuário."
+    },
+    {
+      "type": "listItem",
+      "text": "Podem incluir links ou imagens fornecidas por administradores via URL pública, cuja responsabilidade pelo conteúdo é de quem publica."
+    },
+    {
+      "type": "listItem",
+      "text": "Não há garantia de entrega, frequência ou tempo de envio; atrasos podem ocorrer."
+    },
+    {
+      "type": "listItem",
+      "text": "O Usuário pode desativá-las a qualquer momento sem prejuízo ao uso básico do serviço."
+    },
+    {
+      "type": "paragraph",
+      "text": "Mensagens administrativas destinam-se a informar e melhorar a experiência de uso; não constituem compromisso comercial, oferta ou garantia."
+    },
+    {
+      "type": "title",
+      "text": "15. Favoritos"
+    },
+    {
+      "type": "paragraph",
+      "text": "O Usuário pode marcar câmaras como favoritas para facilitar o acesso rápido ao conteúdo. Esta funcionalidade tem caráter pessoal e visa apenas organizar a navegação no aplicativo."
+    },
+    {
+      "type": "listItem",
+      "text": "Os favoritos são vinculados à experiência do Usuário e podem ser armazenados localmente e/ou associados à conta, conforme implementação vigente."
+    },
+    {
+      "type": "listItem",
+      "text": "A disponibilidade das câmaras favoritas depende das fontes públicas; remoções ou alterações externas podem tornar um favorito indisponível."
+    },
+    {
+      "type": "listItem",
+      "text": "A ordem, categorização e sincronização dos favoritos podem mudar ao longo do tempo sem aviso prévio."
     }
   ]
 }
