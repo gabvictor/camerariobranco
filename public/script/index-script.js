@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button title="Favoritar" class="favorite-btn ${isFavorite ? 'is-favorite' : ''} bg-black/50 p-2 rounded-full text-white hover:bg-black/75">
                         <i data-lucide="star" class="w-5 h-5 pointer-events-none"></i>
                     </button>
-                    <a href="/camera.html?code=${camera.codigo}" target="_blank" title="Abrir em nova aba" class="bg-black/50 p-2 rounded-full text-white hover:bg-black/75">
+                    <a href="/camera/${camera.codigo}" target="_blank" title="Abrir em nova aba" class="bg-black/50 p-2 rounded-full text-white hover:bg-black/75">
                         <i data-lucide="external-link" class="w-5 h-5 pointer-events-none"></i>
                     </a>
                 </div>
