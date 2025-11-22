@@ -65,23 +65,7 @@ let cachedCameraStatus = [];
 // --- ROTA DE CORREÇÃO PARA ANDROID APP LINKS (ASSETLINKS.JSON) ---
 // Tenta ler o arquivo diretamente e envia o conteúdo como JSON.
 app.get('/.well-known/assetlinks.json', (req, res) => {
-    const filePath = path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json');
-    
-    try {
-        // Leitura Síncrona (apenas para arquivos pequenos e estáticos de configuração)
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        
-        // Força o Content-Type para garantir a compatibilidade e o formato correto
-        res.setHeader('Content-Type', 'application/json');
-        
-        // Envia o conteúdo lido
-        res.status(200).send(fileContent);
-        
-    } catch (err) {
-        console.error('[ASSETLINKS_READ_ERROR] Falha ao ler assetlinks.json:', err.message);
-        // Retorna 404 se o arquivo não for encontrado ou não puder ser lido
-        res.status(404).send('Not Found');
-    }
+    res.sendFile(path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json'));
 });
 // --- FIM DA ROTA DE CORREÇÃO ---
 
