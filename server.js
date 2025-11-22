@@ -92,6 +92,27 @@ app.use(express.json());
 // O express.static serve os arquivos da pasta 'public'
 app.use(express.static(PUBLIC_FOLDER));
 
+// Rota de fallback para universal link deep-link
+app.get('/camera', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html'));
+});
+
+// Suporte a caminho /camera/:code redirecionando para query
+app.get('/camera/:code', (req, res) => {
+    const code = req.params.code;
+    if (!/^\d{6}$/.test(code)) return res.redirect('/camera');
+    res.redirect(`/camera?code=${code}`);
+});
+
+// Apple Universal Links: apple-app-site-association
+app.get(['/apple-app-site-association', '/.well-known/apple-app-site-association'], (req, res) => {
+    const teamId = process.env.APPLE_TEAM_ID;
+    const bundleId = process.env.IOS_BUNDLE_ID;
+    const details = (teamId && bundleId) ? [{ appID: `${teamId}.${bundleId}`, paths: ["/camera*", "/camera.html*", "/camerasite*"] }] : [];
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify({ applinks: { apps: [], details } }));
+});
+
 
 // --- Lógica de Carregamento de Metadados do FIRESTORE ---
 async function loadCameraInfoFromFirestore() {
