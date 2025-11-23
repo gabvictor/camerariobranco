@@ -64,8 +64,28 @@ let cachedCameraStatus = [];
 
 // --- ROTA DE CORREÇÃO PARA ANDROID APP LINKS (ASSETLINKS.JSON) ---
 // Tenta ler o arquivo diretamente e envia o conteúdo como JSON.
-app.get('/.well-known/assetlinks.json', (req, res) => {
-    res.sendFile(path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json'));
+app.get('/.well-known/assetlinks.json', async (req, res) => {
+    const filePath = path.join(PUBLIC_FOLDER, '.well-known', 'assetlinks.json');
+    try {
+        const content = await fs.readFile(filePath, 'utf8');
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).send(content);
+    } catch (e) {
+        const fallback = [
+            {
+                relation: ["delegate_permission/common.handle_all_urls"],
+                target: {
+                    namespace: "android_app",
+                    package_name: "com.gabvictor.camrb",
+                    sha256_cert_fingerprints: [
+                        "95:B7:14:22:06:61:38:B2:46:32:45:18:72:7B:B4:0F:85:4B:0C:24:CF:DE:2C:FD:E4:39:3F:BC:7A:88:8C:34"
+                    ]
+                }
+            }
+        ];
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).send(JSON.stringify(fallback));
+    }
 });
 // --- FIM DA ROTA DE CORREÇÃO ---
 
