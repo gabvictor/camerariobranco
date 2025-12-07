@@ -31,8 +31,8 @@ try {
 } catch (error) {
     console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.", error);
     process.exit(1);
-}
-const ADMIN_EMAIL = "vgabvictor@gmail.com";
+} 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "vgabvictor@gmail.com";
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
 
 
@@ -93,13 +93,130 @@ app.get('/.well-known/assetlinks.json', async (req, res) => {
 // --- Middlewares ---
 app.use(cors());
 app.use(express.json());
+
+// --- SSR: Renderização do Lado do Servidor para Câmeras ---
+const serveCameraPage = (req, res) => {
+    const code = req.query.code;
+    const filePath = path.join(PUBLIC_FOLDER, 'camera.html');
+    
+    fs.readFile(filePath, 'utf8', (err, html) => {
+        if (err) {
+             console.error('Erro ao ler camera.html:', err);
+             return res.status(500).send('Erro interno ao carregar a página.');
+        }
+        
+        // Tenta encontrar a câmera no cache ou na lista completa
+        const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code);
+        
+        if (camera) {
+            const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
+            const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre. Veja como está o fluxo agora!`;
+            const canonicalUrl = `https://cameras.riobranco.ac.gov.br/camera/${camera.codigo}`;
+            const imageUrl = camera.status === 'online' 
+                ? `https://cameras.riobranco.ac.gov.br/proxy/camera?code=${camera.codigo}&t=${Date.now()}` 
+                : `https://cameras.riobranco.ac.gov.br/assets/icone.png`;
+
+            // Substituição de Meta Tags Básicas e Open Graph
+            html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+            html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`);
+            html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`);
+            html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`);
+            html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`);
+            html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
+            
+            // Twitter Card
+            html = html.replace(/<meta property="twitter:title" content="[^"]*">/, `<meta property="twitter:title" content="${title}">`);
+            html = html.replace(/<meta property="twitter:description" content="[^"]*">/, `<meta property="twitter:description" content="${description}">`);
+            html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
+
+            // Canonical Tag (Adiciona se não existir ou substitui)
+            if (html.includes('<link rel="canonical"')) {
+                html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${canonicalUrl}">`);
+            } else {
+                html = html.replace('</head>', `<link rel="canonical" href="${canonicalUrl}">\n</head>`);
+            }
+
+            // Structured Data (JSON-LD) para VideoObject/LiveStream
+            const jsonLd = {
+                "@context": "https://schema.org",
+                "@type": "VideoObject",
+                "name": title,
+                "description": description,
+                "thumbnailUrl": [imageUrl],
+                "uploadDate": new Date().toISOString(),
+                "publication": {
+                    "@type": "BroadcastEvent",
+                    "isLiveBroadcast": true,
+                    "startDate": new Date().toISOString()
+                },
+                "contentUrl": canonicalUrl
+            };
+
+            html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n</head>`);
+        }
+        
+        res.send(html);
+    });
+};
+
+// Rotas que usam SSR (devem vir ANTES do express.static)
+app.get('/camera.html', serveCameraPage);
+app.get('/camera', serveCameraPage);
+
+// Rota para sitemap.xml dinâmico
+app.get('/sitemap.xml', (req, res) => {
+    res.header('Content-Type', 'application/xml');
+    
+    const baseUrl = 'https://cameras.riobranco.ac.gov.br';
+    const lastMod = new Date().toISOString().split('T')[0];
+    
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    
+    // Páginas estáticas
+    xml += `
+    <url>
+        <loc>${baseUrl}/</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/mapa.html</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+    
+    // Páginas dinâmicas das câmeras
+    // Prioriza câmeras do Cache (cachedCameraStatus) pois já contém o status online/offline atualizado e o merge com cameraInfo
+    const camerasToIndex = cachedCameraStatus.length > 0 ? cachedCameraStatus : cameraInfo;
+
+    camerasToIndex.forEach(camera => {
+        if (camera.codigo) {
+            const isOnline = camera.status === 'online';
+            const priority = isOnline ? '0.9' : '0.6';
+            const changefreq = isOnline ? 'always' : 'hourly';
+            
+            xml += `
+            <url>
+                <loc>${baseUrl}/camera/${camera.codigo}</loc>
+                <lastmod>${lastMod}</lastmod>
+                <changefreq>${changefreq}</changefreq>
+                <priority>${priority}</priority>
+            </url>`;
+        }
+    });
+    
+    xml += '</urlset>';
+    res.send(xml);
+});
+
 // O express.static serve os arquivos da pasta 'public'
 app.use(express.static(PUBLIC_FOLDER));
 
-// Rota de fallback para universal link deep-link
-app.get('/camera', (req, res) => {
-    res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html'));
-});
+// Rota de fallback para universal link deep-link (Removida pois agora é tratada pelo SSR acima)
+// app.get('/camera', (req, res) => { ... });
 
 // Suporte a caminho /camera/:code redirecionando para query
 app.get('/camera/:code', (req, res) => {

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cameras.riobranco.ac.gov.br/sitemap.xml

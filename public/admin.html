@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
     <title>Admin - Câmeras Rio Branco</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .form-input { background-color: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 0.375rem; padding: 0.5rem 0.75rem; width: 100%; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -32,7 +39,7 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
     
     <div id="content-wrapper">
         <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4 transition-opacity">
@@ -144,12 +151,7 @@
                 elements.toast.textContent = message; elements.toast.className = ``; elements.toast.classList.add(type, 'show');
                 setTimeout(() => { elements.toast.classList.remove('show'); }, 3000);
             };
-            const applyTheme = (isDark) => document.documentElement.classList.toggle('dark', isDark);
-            const initializeTheme = () => {
-                const savedTheme = localStorage.getItem('theme');
-                applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
-            };
-            elements.themeToggleButton.addEventListener('click', () => { const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); });
+            elements.themeToggleButton.addEventListener('click', () => { if (window.toggleTheme) window.toggleTheme(); });
             
             const openEditModal = (camera) => {
                 elements.modalForm.reset(); 
@@ -381,7 +383,6 @@
                 } catch (error) { showToast(error.message, 'error'); console.error(error); } finally { saveBtn.textContent = originalText; saveBtn.disabled = false; }
             });
 
-            initializeTheme();
             loadCameras();
             lucide.createIcons();
         }

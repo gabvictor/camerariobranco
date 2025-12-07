@@ -1,10 +1,10 @@
 {
-  "version": 1.1,
-  "lastUpdated": "Dezembro de 2025",
+  "version": 1.0,
+  "lastUpdated": "Setembro de 2025",
   "content": [
     {
       "type": "date",
-      "text": "Última atualização: Dezembro de 2025"
+      "text": "Última atualização: Setembro de 2025"
     },
     {
       "type": "paragraph",
@@ -16,7 +16,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Este aplicativo funciona como um agregador, utilizando URLs de acesso público para exibir um fluxo de imagens atualizadas de câmeras de monitoramento, simulando uma transmissão ao vivo. O desenvolvedor não possui, não opera e não tem qualquer afiliação com as câmeras ou com as entidades responsáveis pela sua operação."
+      "text": "Este aplicativo funciona como um agregador, utilizando URLs de acesso público para exibir um fluxo de imagens atualizadas de câmaras de monitorização, simulando uma transmissão em direto. O desenvolvedor não possui, não opera, e não tem qualquer afiliação com as câmaras ou com as entidades responsáveis pela sua operação."
     },
     {
       "type": "title",
@@ -24,7 +24,7 @@
     },
     {
       "type": "paragraph",
-      "text": "O desenvolvedor não tem controle sobre o conteúdo ou disponibilidade das transmissões. Portanto, não se responsabiliza por qualquer imagem ou evento visualizado. Este aplicativo não possui qualquer vínculo governamental ou com a Prefeitura de Rio Branco."
+      "text": "O desenvolvedor não tem controlo sobre o conteúdo ou disponibilidade das transmissões. Portanto, não se responsabiliza por qualquer imagem ou evento visualizado. Este aplicativo não possui qualquer vínculo governamental ou com a Prefeitura de Rio Branco."
     },
     {
       "type": "title",
@@ -40,7 +40,7 @@
     },
     {
       "type": "listItem",
-      "text": "Abusivo, odioso, assediante ou que promova discurso de ódio;"
+      "text": "Abusivo, odioso, assediante, ou que promova discurso de ódio;"
     },
     {
       "type": "listItem",
@@ -52,11 +52,11 @@
     },
     {
       "type": "listItem",
-      "text": "Ilegal, que promova atividades criminosas ou que infrinja direitos autorais."
+      "text": "Ilegal, que promova atividades ilegais ou que infrinja direitos de autor."
     },
     {
       "type": "paragraph",
-      "text": "Para promover a responsabilidade e a segurança na plataforma, a visualização do conteúdo pode incluir um identificador da sua conta (UID). O Usuário concorda em não tentar remover, ocultar ou alterar essa identificação."
+      "text": "Para promover a responsabilidade e a segurança na plataforma, a visualização do conteúdo pode incluir uma marca d'água discreta com um identificador de sua conta. O Usuário concorda em não tentar remover, ocultar ou alterar esta marca d'água."
     },
     {
       "type": "title",
@@ -80,26 +80,26 @@
     },
     {
       "type": "paragraph",
-      "text": "Nós levamos a sua privacidade a sério. As informações que coletamos são:"
+      "text": "Nós levamos a sua privacidade a sério. As informações que recolhemos são:"
     },
     {
       "type": "listItem",
       "boldPrefix": "Nickname:",
-      "text": "Utilizado para identificar você publicamente nos comentários e personalizar a experiência."
+      "text": "Utilizado para personalizar a sua experiência no aplicativo."
     },
     {
       "type": "listItem",
-      "boldPrefix": "E-mail e Senha:",
-      "text": "Utilizados exclusivamente para a criação, autenticação e recuperação da sua conta. A sua senha é armazenada de forma criptografada."
+      "boldPrefix": "E-mail e Palavra-passe:",
+      "text": "Utilizados exclusivamente para a criação e autenticação da sua conta. A sua palavra-passe é armazenada de forma encriptada."
     },
     {
       "type": "paragraph",
-      "text": "Todos os dados de autenticação são gerenciados de forma segura através do serviço Firebase Authentication da Google. Não compartilhamos as suas informações pessoais com terceiros, exceto quando exigido por lei."
+      "text": "Todos os dados de autenticação são geridos de forma segura através do serviço Firebase Authentication da Google. Não partilhamos as suas informações pessoais com terceiros."
     },
     {
       "type": "paragraph",
       "boldPrefix": "Exclusão de Dados:",
-      "text": "O Usuário pode solicitar a exclusão de sua conta e dados associados a qualquer momento através da opção 'Excluir minha conta' no perfil do aplicativo. A exclusão removerá permanentemente os dados de autenticação e anonimizará ou removerá seus comentários."
+      "text": "O Usuário pode solicitar a exclusão de sua conta e dados associados a qualquer momento através da tela de perfil no aplicativo. A exclusão da conta removerá permanentemente os dados de autenticação (e-mail, nickname). Comentários feitos pelo usuário serão anonimizados ou excluídos."
     },
     {
       "type": "title",
@@ -107,7 +107,7 @@
     },
     {
       "type": "paragraph",
-      "text": "O Usuário é responsável por manter a confidencialidade da sua senha e por todas as atividades que ocorram na sua conta. O desenvolvedor não será responsável por qualquer perda ou dano resultante do descumprimento desta obrigação de segurança."
+      "text": "O Usuário é responsável por manter a confidencialidade da sua palavra-passe e por todas as atividades que ocorram na sua conta. O desenvolvedor não será responsável por qualquer perda ou dano resultante do incumprimento desta obrigação de segurança."
     },
     {
       "type": "title",
@@ -115,7 +115,7 @@
     },
     {
       "type": "paragraph",
-      "text": "O serviço é fornecido \"como está\". Não há garantias de que os URLs de acesso às câmeras estarão sempre funcionais, pois dependem de fontes externas públicas."
+      "text": "O serviço é fornecido \"como está\". Não há garantias de que os URLs de acesso às câmaras estarão sempre funcionais."
     },
     {
       "type": "title",
@@ -123,7 +123,7 @@
     },
     {
       "type": "paragraph",
-      "text": "O software e o design deste aplicativo são propriedade do desenvolvedor. As imagens exibidas são propriedade dos seus respectivos operadores."
+      "text": "O software e o design deste aplicativo são propriedade do desenvolvedor. As imagens exibidas são propriedade dos seus respetivos operadores."
     },
     {
       "type": "title",
@@ -135,11 +135,11 @@
     },
     {
       "type": "title",
-      "text": "11. Encerramento de Acesso"
+      "text": "11. Rescisão de Acesso"
     },
     {
       "type": "paragraph",
-      "text": "O acesso de qualquer Usuário poderá ser bloqueado ou rescindido, sem aviso prévio, em caso de violação destes termos ou uso indevido da plataforma."
+      "text": "O acesso de qualquer Usuário poderá ser bloqueado ou rescindido, sem aviso prévio, em caso de violação destes termos."
     },
     {
       "type": "title",
@@ -155,23 +155,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Dúvidas sobre estes Termos? Entre em contato através do e-mail: suporte@camerasriobranco.site."
-    },
-    {
-      "type": "title",
-      "text": "14. Notificações"
-    },
-    {
-      "type": "paragraph",
-      "text": "O aplicativo pode enviar notificações para comunicar atualizações, manutenção ou alertas. Você pode gerenciar essas permissões nas configurações do seu dispositivo."
-    },
-    {
-      "type": "title",
-      "text": "15. Favoritos"
-    },
-    {
-      "type": "paragraph",
-      "text": "A funcionalidade de Favoritos permite salvar câmeras para acesso rápido. Estes dados são vinculados à sua conta para que você possa acessá-los em diferentes dispositivos."
+      "text": "Dúvidas sobre estes Termos? Entre em contato: seu-email-de-contato@dominio.com."
     }
   ]
 }

@@ -117,7 +117,8 @@
     "coords": [
       -9.97851195465759,
       -67.8045476298466
-    ]
+    ],
+    "level": 1
   },
   {
     "codigo": "001047",
@@ -127,7 +128,8 @@
     "coords": [
       -9.978606188824582,
       -67.80488081149336
-    ]
+    ],
+    "level": 1
   },
   {
     "codigo": "001048",
@@ -1613,5 +1615,21 @@
       -9.975295965926327,
       -67.81055017419496
     ]
+  },
+  {
+    "codigo": "001052",
+    "nome": "Câmera 001052",
+    "categoria": "Sem Categoria",
+    "descricao": "",
+    "coords": null,
+    "level": 1
+  },
+  {
+    "codigo": "001129",
+    "nome": "Câmera 001129",
+    "categoria": "Sem Categoria",
+    "descricao": "",
+    "coords": null,
+    "level": 1
   }
 ]

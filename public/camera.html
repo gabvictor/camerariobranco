@@ -3,20 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmera ao Vivo</title>
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <title>Câmera ao Vivo - Rio Branco | CamRB</title>
+    
+    <!-- Meta Tags Base (Serão atualizadas via JS) -->
+    <meta name="description" content="Assista a câmera ao vivo em Rio Branco. Monitoramento de trânsito e segurança pública.">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph (Placeholder) -->
+    <meta property="og:type" content="video.other">
+    <meta property="og:title" content="Câmera ao Vivo - Rio Branco">
+    <meta property="og:description" content="Assista agora em tempo real.">
+    <meta property="og:image" content="https://cameras.riobranco.ac.gov.br/assets/og-image.jpg">
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .loader { width: 48px; height: 48px; border: 5px solid; border-color: #4F46E5 transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #content-wrapper { display: none; }
-    </style>
+    <link rel="stylesheet" href="/css/global.css">
+    <script src="/script/theme.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
 
     <div id="content-wrapper">
+        <!-- Bottom Navigation (Mobile) -->
+        <nav class="bottom-nav sm:hidden">
+            <a href="/" class="nav-item">
+                <i data-lucide="home"></i>
+                <span>Início</span>
+            </a>
+            <a href="/mapa.html" class="nav-item">
+                <i data-lucide="map"></i>
+                <span>Mapa</span>
+            </a>
+            <a href="https://github.com/gabvictor/CamRB" target="_blank" class="nav-item">
+                <div class="bg-indigo-600 text-white p-2 rounded-full -mt-6 shadow-lg border-4 border-gray-100 dark:border-gray-900">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </div>
+                <span class="font-semibold text-indigo-600 dark:text-indigo-400">App</span>
+            </a>
+            <a href="#" class="nav-item active">
+                <i data-lucide="video"></i>
+                <span>Câmera</span>
+            </a>
+            <a href="/perfil.html" class="nav-item">
+                <i data-lucide="user"></i>
+                <span>Perfil</span>
+            </a>
+        </nav>
+
         <div class="container mx-auto p-4 md:p-8">
             <header class="flex items-center justify-between mb-6">
                 <a href="/" title="Voltar à página inicial" class="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
@@ -27,8 +66,19 @@
                 <div class="w-16"></div>
             </header>
             <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 bg-black rounded-lg shadow-lg flex items-center justify-center min-h-[250px]">
+                <div class="lg:col-span-2 bg-black rounded-lg shadow-lg flex items-center justify-center min-h-[250px] overflow-hidden relative group">
                     <div id="image-container" class="w-full h-full relative">
+                        <!-- Live Indicator -->
+                        <div class="absolute top-4 left-4 z-10 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
+                            <span class="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>
+                            <span class="text-white text-xs font-bold tracking-wider">AO VIVO</span>
+                        </div>
+                        
+                        <!-- Camera Date/Time Placeholder (Optional aesthetic) -->
+                        <div class="absolute top-4 right-4 z-10 text-white/70 text-xs font-mono hidden sm:block">
+                            CAM-RIO
+                        </div>
+
                         <img id="camera-feed" src="" alt="Visualização da Câmera" class="w-full h-full object-contain hidden">
                         <div id="loader" class="absolute inset-0 flex items-center justify-center"><div class="loader"></div></div>
                         <div id="error-message" class="absolute inset-0 flex items-center justify-center text-red-400 hidden p-4 text-center"></div>
@@ -69,182 +119,8 @@
         </div>
     </div>
     
-<script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
-            authDomain: "camerasriobranco.firebaseapp.com",
-            projectId: "camerasriobranco",
-            storageBucket: "camerasriobranco.appspot.com",
-            messagingSenderId: "84020805734",
-            appId: "1:84020805734:web:9904063112bd0b649f2da7",
-            measurementId: "G-Y6B72KFF66"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- MODIFICAÇÃO 1: Mostrar conteúdo imediatamente ---
-        // Não esperamos mais pelo login para mostrar a página.
-        document.getElementById('content-wrapper').style.display = 'block';
-
-        onAuthStateChanged(auth, (user) => {
-            // 'user' será 'null' se não estiver logado, ou o objeto do usuário se estiver.
-            // A lógica da câmera agora é chamada independentemente do login.
-            initializeCameraLogic(user);
-        });
-
-        function initializeComments(user, cameraCode) {
-            const commentsList = document.getElementById('comments-list');
-            const commentForm = document.getElementById('comment-form');
-            const commentInput = document.getElementById('comment-input');
-            const submitButton = commentForm.querySelector('button');
-
-            // --- MODIFICAÇÃO 2: Esconder o formulário se não houver usuário ---
-            if (!user) {
-                commentForm.style.display = 'none';
-            }
-
-            const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
-            const q = query(commentsColRef, orderBy('timestamp', 'desc'));
-
-            onSnapshot(q, (snapshot) => {
-                commentsList.innerHTML = ''; 
-                if (snapshot.empty) {
-                    commentsList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Nenhum comentário ainda. Seja o primeiro!</p>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    // ... (código para renderizar comentários, sem alteração) ...
-                    const comment = doc.data();
-                    const commentEl = document.createElement('div');
-                    commentEl.className = 'py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0';
-                    const date = comment.timestamp?.toDate().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) || 'agora';
-                    commentEl.innerHTML = `
-                        <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            <span class="font-semibold">${comment.userDisplayName || 'Anónimo'}</span>
-                            <span>${date.replace(',', ' às')}</span>
-                        </div>
-                        <p class="text-gray-800 dark:text-gray-200 break-words">${comment.text}</p>
-                    `;
-                    commentsList.appendChild(commentEl);
-                });
-            });
-
-            commentForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const text = commentInput.value.trim();
-                
-                // Esta verificação 'if (text && user)' já impede o envio se o 'user' for nulo
-                if (text && user) {
-                    commentInput.disabled = true;
-                    submitButton.disabled = true;
-                    try {
-                        await addDoc(commentsColRef, {
-                            text: text,
-                            userDisplayName: user.displayName,
-                            userId: user.uid,
-                            timestamp: serverTimestamp()
-                        });
-                        commentInput.value = '';
-                    } catch (error) {
-                        console.error("Erro ao adicionar comentário: ", error);
-                        alert("Não foi possível enviar o seu comentário. Tente novamente.");
-                    } finally {
-                        commentInput.disabled = false;
-                        submitButton.disabled = false;
-                        commentInput.focus();
-                    }
-                } else if (!user) {
-                    alert("Você precisa estar logado para enviar um comentário.");
-                }
-            });
-        }
-
-        // --- MODIFICAÇÃO 3: Tornar a função 'async' para aguardar o token ---
-        async function initializeCameraLogic(user) {
-            const params = new URLSearchParams(window.location.search);
-            const cameraCode = params.get('code');
-            const elements = {
-                headerTitle: document.getElementById('header-title'), infoTitle: document.getElementById('info-title'), statusBadge: document.getElementById('status-badge'), category: document.getElementById('camera-category'), description: document.getElementById('camera-description'), mapLink: document.getElementById('map-link'), feed: document.getElementById('camera-feed'), loader: document.getElementById('loader'), error: document.getElementById('error-message'), shareButton: document.getElementById('share-button'),
-            };
-
-  lucide.createIcons();
-            if (!cameraCode) {
-                // --- CÓDIGO DE ERRO QUE FALTAVA ---
-                elements.headerTitle.textContent = "Erro";
-                elements.infoTitle.textContent = "Câmera não encontrada";
-                elements.loader.classList.add('hidden');
-                elements.error.textContent = 'Nenhum código de câmera foi fornecido na URL. Exemplo: /camera/001125';
-                elements.error.classList.remove('hidden');
-                
-                // Esconde a secção de comentários e informações
-                document.querySelector('.lg\\:col-span-2 + .space-y-8').style.display = 'none';
-                return;
-                // --- FIM DO CÓDIGO DE ERRO ---
-            }
-            
-            // Esta função agora lida com 'user' podendo ser 'null'
-            initializeComments(user, cameraCode);
-
-            const setCameraInfo = (camera) => {
-                document.title = `${camera.nome} - Câmera ao Vivo`;
-                elements.headerTitle.textContent = camera.nome;
-                elements.infoTitle.textContent = camera.nome;
-                elements.category.textContent = camera.categoria || 'Não disponível';
-                elements.description.textContent = camera.descricao || 'Não disponível';
-                const isOnline = camera.status === 'online';
-                elements.statusBadge.innerHTML = `<span class="px-3 py-1 text-sm font-semibold rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">${isOnline ? 'Online' : 'Offline'}</span>`;
-                if (camera.coords) { elements.mapLink.href = `https://www.google.com/maps?q=${camera.coords[0]},${camera.coords[1]}`; elements.mapLink.removeAttribute('aria-disabled'); } else { elements.mapLink.setAttribute('aria-disabled', 'true'); }
-            };
-
-            // --- MODIFICAÇÃO 4: Enviar token de autenticação (se existir) ---
-            // Isto permite que administradores vejam câmeras privadas no site
-            const idToken = user ? await user.getIdToken() : null;
-            const headers = {};
-            if (idToken) {
-                headers['Authorization'] = `Bearer ${idToken}`;
-            }
-
-            fetch('/status-cameras', { headers: headers })
-                .then(res => res.json())
-                .then(cameras => {
-                    const camera = cameras.find(c => c.codigo === cameraCode);
-                    if (camera) { 
-                        setCameraInfo(camera); 
-                        // Inicia o feed da câmera apenas se ela for encontrada
-                        const updateFeed = () => { elements.feed.src = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`; };
-                        elements.feed.onload = () => { elements.loader.classList.add('hidden'); elements.error.classList.add('hidden'); elements.feed.classList.remove('hidden'); };
-                        elements.feed.onerror = () => { elements.loader.classList.add('hidden'); elements.feed.classList.add('hidden'); elements.error.textContent = `Erro ao carregar câmera.`; elements.error.classList.remove('hidden'); }
-                        updateFeed();
-                        setInterval(updateFeed, 5000); //
-                    } else { 
-                        // Se não encontrar a câmera (pode ser privada ou não existir)
-                        elements.headerTitle.textContent = `Câmera ${cameraCode}`; 
-                        elements.infoTitle.textContent = `Câmera ${cameraCode}`;
-                        elements.loader.classList.add('hidden');
-                        elements.error.textContent = 'Câmera não encontrada ou acesso negado.';
-                        elements.error.classList.remove('hidden');
-                    }
-                });
-
-            // O botão de partilha continua a partilhar o URL do site (correto)
-            elements.shareButton.addEventListener('click', async () => {
-                const shareData = { title: `Câmera: ${elements.infoTitle.textContent}`, text: `Confira a transmissão ao vivo da câmera "${elements.infoTitle.textContent}"`, url: window.location.href };
-                if (navigator.share) { await navigator.share(shareData).catch(err => console.error('Error sharing:', err)); } else {
-                    await navigator.clipboard.writeText(window.location.href).then(() => {
-                        const originalText = elements.shareButton.innerHTML;
-                        elements.shareButton.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Link Copiado!`;
-                        lucide.createIcons();
-                        setTimeout(() => { elements.shareButton.innerHTML = originalText; lucide.createIcons(); }, 500);
-                    }).catch(err => console.error('Failed to copy:', err));
-                }
-            });
-        }
-    </script>
+<script type="module" src="/script/camera-script.js"></script>
 </body>
 </html>
+
+

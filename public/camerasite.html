@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <title>Câmera ao Vivo - CamRB</title>
+    
+    <meta property="og:title" content="Câmera ao Vivo de Rio Branco" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="" id="ogImage" />
+    <meta property="og:description" content="Veja em tempo real uma câmera pública de Rio Branco através do app CamRB." />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="icon" type="image/png" href="https://caminho-para-seu/favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --light-gray: #f3f4f6;
+            --dark-gray: #374151;
+            --text-color: #111827;
+        }
+
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        #cameraName {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: var(--dark-gray);
+        }
+
+        .description {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        #cameraImage {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            background-color: #e5e7eb;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="cameraName">Carregando...</h1>
+        <p class="description">Você foi convidado para visualizar esta câmera em tempo real.</p>
+        <img id="cameraImage" src="" alt="Imagem da Câmera">
+        <a id="deepLink" href="#" class="button">Ver ao vivo no App CamRB</a>
+    </div>
+
+    <footer>
+        Desenvolvido por CamRB
+    </footer>
+
+    <script>
+        // Pega os parâmetros da URL
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const name = params.get('name');
+        const imageUrl = params.get('imageUrl');
+
+        if (name && imageUrl && code) {
+            // Atualiza a página com os dados
+            document.getElementById('cameraName').innerText = name;
+            document.getElementById('cameraImage').src = imageUrl;
+            document.getElementById('deepLink').href = `camrb://tabs/${code}`;
+            
+            // Atualiza a meta tag para a prévia do link
+            document.querySelector("meta[property='og:image']").setAttribute("content", imageUrl);
+        } else {
+            document.getElementById('cameraName').innerText = "Câmera não encontrada";
+            document.querySelector(".description").innerText = "O link parece estar inválido ou incompleto.";
+        }
+    </script>
+</body>
+</html>
