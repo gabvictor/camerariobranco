@@ -109,10 +109,10 @@ const serveCameraPage = (req, res) => {
         if (camera) {
             const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
             const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre. Veja como está o fluxo agora!`;
-            const canonicalUrl = `https://cameras.riobranco.ac.gov.br/camera/${camera.codigo}`;
+            const canonicalUrl = `https://camerasriobranco.site/camera/${camera.codigo}`;
             const imageUrl = camera.status === 'online' 
-                ? `https://cameras.riobranco.ac.gov.br/proxy/camera?code=${camera.codigo}&t=${Date.now()}` 
-                : `https://cameras.riobranco.ac.gov.br/assets/icone.png`;
+                ? `https://camerasriobranco.site/proxy/camera?code=${camera.codigo}&t=${Date.now()}` 
+                : `https://camerasriobranco.site/assets/icone.png`;
 
             // Substituição de Meta Tags Básicas e Open Graph
             html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
@@ -165,7 +165,7 @@ app.get('/camera', serveCameraPage);
 app.get('/sitemap.xml', (req, res) => {
     res.header('Content-Type', 'application/xml');
     
-    const baseUrl = 'https://cameras.riobranco.ac.gov.br';
+    const baseUrl = 'https://camerasriobranco.site/';
     const lastMod = new Date().toISOString().split('T')[0];
     
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -489,3 +489,4 @@ async function startServer() {
 }
 
 startServer();
+
