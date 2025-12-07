@@ -8,16 +8,14 @@ const admin = require('firebase-admin');
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 try {
-    let serviceAccount;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-        console.log("✔ Firebase Admin SDK a inicializar com credenciais de ambiente.");
-    } else {
-        // Se estiver executando localmente sem a variável de ambiente,
-        // ele procurará por serviceAccountKey.json no diretório raiz.
-        serviceAccount = require('./serviceAccountKey.json');
-        console.log("✔ Firebase Admin SDK a inicializar com ficheiro local.");
-    }
+    // Verifica se está rodando no Render (onde o arquivo fica em /etc/secrets/) 
+    // Se não achar lá, procura na pasta local (./) 
+    const secretPath = fs.existsSync('/etc/secrets/serviceAccountKey.json') 
+        ? '/etc/secrets/serviceAccountKey.json' 
+        : './serviceAccountKey.json'; 
+    
+    console.log(`✔ Carregando credenciais do Firebase de: ${secretPath}`);
+    const serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8')); 
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
