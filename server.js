@@ -2,20 +2,21 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 // Mudança: Usar o módulo fs normal, não o de promises
-const fs = require('fs'); 
+const fs = require('fs');
 const path = require('path');
+const helmet = require('helmet');
 const admin = require('firebase-admin');
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 try {
     // Verifica se está rodando no Render (onde o arquivo fica em /etc/secrets/) 
     // Se não achar lá, procura na pasta local (./) 
-    const secretPath = fs.existsSync('/etc/secrets/serviceAccountKey.json') 
-        ? '/etc/secrets/serviceAccountKey.json' 
-        : './serviceAccountKey.json'; 
-    
+    const secretPath = fs.existsSync('/etc/secrets/serviceAccountKey.json')
+        ? '/etc/secrets/serviceAccountKey.json'
+        : './serviceAccountKey.json';
+
     console.log(`✔ Carregando credenciais do Firebase de: ${secretPath}`);
-    const serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8')); 
+    const serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
@@ -29,7 +30,7 @@ try {
 } catch (error) {
     console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.", error);
     process.exit(1);
-} 
+}
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "vgabvictor@gmail.com";
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
 
@@ -89,72 +90,129 @@ app.get('/.well-known/assetlinks.json', async (req, res) => {
 
 
 // --- Middlewares ---
+// Forçar HTTPS em produção
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(`https://${req.headers.host}${req.url}`);
+    }
+    next();
+});
+
+// Configuração de Segurança com Helmet (CORRIGIDA)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'", 
+                "'unsafe-inline'", 
+                "'unsafe-eval'", 
+                "https://cdn.tailwindcss.com", 
+                "https://unpkg.com", 
+                "https://www.gstatic.com", 
+                "https://cdnjs.cloudflare.com", 
+                "https://fonts.googleapis.com",
+                "https://apis.google.com" // ADICIONADO: Necessário para Auth do Firebase
+            ],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            imgSrc: ["'self'", "data:", "https://*"],
+            connectSrc: [
+                "'self'", 
+                "https://securetoken.googleapis.com", 
+                "https://identitytoolkit.googleapis.com", 
+                "https://firestore.googleapis.com", 
+                "https://cameras.riobranco.ac.gov.br", 
+                "https://unpkg.com", 
+                "https://www.gstatic.com",
+                "https://apis.google.com" // ADICIONADO: Necessário para Auth do Firebase
+            ],
+            // ADICIONADO: Permite iframes do Google para o fluxo de login
+            frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+}));
+
 app.use(cors());
 app.use(express.json());
 
 // --- SSR: Renderização do Lado do Servidor para Câmeras ---
+// OTIMIZAÇÃO: Ler o template apenas uma vez na inicialização para performance
+let cameraTemplate = '';
+try {
+    cameraTemplate = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8');
+} catch (err) {
+    console.error('Erro fatal ao ler o template camera.html na inicialização:', err);
+}
+
 const serveCameraPage = (req, res) => {
     const code = req.query.code;
-    const filePath = path.join(PUBLIC_FOLDER, 'camera.html');
     
-    fs.readFile(filePath, 'utf8', (err, html) => {
-        if (err) {
-             console.error('Erro ao ler camera.html:', err);
-             return res.status(500).send('Erro interno ao carregar a página.');
+    // Se o template não carregou na inicialização, tenta ler agora (fallback)
+    let html = cameraTemplate;
+    if (!html) {
+        try {
+            html = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8');
+        } catch (err) {
+            return res.status(500).send('Erro interno ao carregar a página.');
         }
-        
-        // Tenta encontrar a câmera no cache ou na lista completa
-        const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code);
-        
-        if (camera) {
-            const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
-            const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre. Veja como está o fluxo agora!`;
-            const canonicalUrl = `https://camerasriobranco.site/camera/${camera.codigo}`;
-            const imageUrl = camera.status === 'online' 
-                ? `https://camerasriobranco.site/proxy/camera?code=${camera.codigo}&t=${Date.now()}` 
-                : `https://camerasriobranco.site/assets/icone.png`;
+    }
 
-            // Substituição de Meta Tags Básicas e Open Graph
-            html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
-            html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`);
-            html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`);
-            html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`);
-            html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`);
-            html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
-            
-            // Twitter Card
-            html = html.replace(/<meta property="twitter:title" content="[^"]*">/, `<meta property="twitter:title" content="${title}">`);
-            html = html.replace(/<meta property="twitter:description" content="[^"]*">/, `<meta property="twitter:description" content="${description}">`);
-            html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
+    // Tenta encontrar a câmera no cache ou na lista completa
+    const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code);
 
-            // Canonical Tag (Adiciona se não existir ou substitui)
-            if (html.includes('<link rel="canonical"')) {
-                html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${canonicalUrl}">`);
-            } else {
-                html = html.replace('</head>', `<link rel="canonical" href="${canonicalUrl}">\n</head>`);
-            }
+    if (camera) {
+        const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
+        const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre. Veja como está o fluxo agora!`;
+        const canonicalUrl = `https://camerasriobranco.site/camera/${camera.codigo}`;
+        const imageUrl = camera.status === 'online'
+            ? `https://camerasriobranco.site/proxy/camera?code=${camera.codigo}&t=${Date.now()}`
+            : `https://camerasriobranco.site/assets/icone.png`;
 
-            // Structured Data (JSON-LD) para VideoObject/LiveStream
-            const jsonLd = {
-                "@context": "https://schema.org",
-                "@type": "VideoObject",
-                "name": title,
-                "description": description,
-                "thumbnailUrl": [imageUrl],
-                "uploadDate": new Date().toISOString(),
-                "publication": {
-                    "@type": "BroadcastEvent",
-                    "isLiveBroadcast": true,
-                    "startDate": new Date().toISOString()
-                },
-                "contentUrl": canonicalUrl
-            };
+        // Substituição de Meta Tags Básicas e Open Graph
+        html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+        html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`);
+        html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`);
+        html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`);
+        html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`);
+        html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
 
-            html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n</head>`);
+        // Twitter Card
+        html = html.replace(/<meta property="twitter:title" content="[^"]*">/, `<meta property="twitter:title" content="${title}">`);
+        html = html.replace(/<meta property="twitter:description" content="[^"]*">/, `<meta property="twitter:description" content="${description}">`);
+        html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
+
+        // Canonical Tag (Adiciona se não existir ou substitui)
+        if (html.includes('<link rel="canonical"')) {
+            html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${canonicalUrl}">`);
+        } else {
+            html = html.replace('</head>', `<link rel="canonical" href="${canonicalUrl}">\n</head>`);
         }
-        
-        res.send(html);
-    });
+
+        // Structured Data (JSON-LD) para VideoObject/LiveStream
+        const jsonLd = {
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            "name": title,
+            "description": description,
+            "thumbnailUrl": [imageUrl],
+            "uploadDate": new Date().toISOString(),
+            "publication": {
+                "@type": "BroadcastEvent",
+                "isLiveBroadcast": true,
+                "startDate": new Date().toISOString()
+            },
+            "contentUrl": canonicalUrl
+        };
+
+        html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n</head>`);
+    }
+
+    res.send(html);
 };
 
 // Rotas que usam SSR (devem vir ANTES do express.static)
@@ -164,13 +222,13 @@ app.get('/camera', serveCameraPage);
 // Rota para sitemap.xml dinâmico
 app.get('/sitemap.xml', (req, res) => {
     res.header('Content-Type', 'application/xml');
-    
+
     const baseUrl = 'https://camerasriobranco.site/';
     const lastMod = new Date().toISOString().split('T')[0];
-    
+
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    
+
     // Páginas estáticas
     xml += `
     <url>
@@ -185,7 +243,7 @@ app.get('/sitemap.xml', (req, res) => {
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>`;
-    
+
     // Páginas dinâmicas das câmeras
     // Prioriza câmeras do Cache (cachedCameraStatus) pois já contém o status online/offline atualizado e o merge com cameraInfo
     const camerasToIndex = cachedCameraStatus.length > 0 ? cachedCameraStatus : cameraInfo;
@@ -195,7 +253,7 @@ app.get('/sitemap.xml', (req, res) => {
             const isOnline = camera.status === 'online';
             const priority = isOnline ? '0.9' : '0.6';
             const changefreq = isOnline ? 'always' : 'hourly';
-            
+
             xml += `
             <url>
                 <loc>${baseUrl}/camera/${camera.codigo}</loc>
@@ -205,7 +263,7 @@ app.get('/sitemap.xml', (req, res) => {
             </url>`;
         }
     });
-    
+
     xml += '</urlset>';
     res.send(xml);
 });
@@ -244,7 +302,7 @@ async function loadCameraInfoFromFirestore() {
             cameraInfo = [];
             return;
         }
-        
+
         cameraInfo = snapshot.docs.map(doc => doc.data());
         console.log(`✔ ${cameraInfo.length} informações de câmeras carregadas do Firestore.`);
 
@@ -330,11 +388,11 @@ app.get('/api/sync-info', (req, res) => {
 // --- ROTA DE ATUALIZAÇÃO MODIFICADA PARA USAR O FIRESTORE ---
 app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
     const { codigo, nome, categoria, descricao, coords, level } = req.body;
-    
+
     if (!codigo || !nome) {
         return res.status(400).json({ message: 'Código e nome são obrigatórios.' });
     }
-    
+
     try {
         const db = admin.firestore();
         const cameraRef = db.collection('cameras').doc(codigo);
@@ -347,13 +405,13 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
             coords,
             level: Number(level) || 1
         };
-        
+
         await cameraRef.set(updatedData, { merge: true });
-        
-        await loadCameraInfoFromFirestore(); 
+
+        await loadCameraInfoFromFirestore();
         const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
         updateStatusCache(currentStatuses);
-        
+
         res.status(200).json({ message: 'Informações da câmera atualizadas com sucesso!' });
 
     } catch (error) {
@@ -404,7 +462,7 @@ async function checkCameraStatus(code, signal) {
         return { codigo: code, status: isOnline ? 'online' : 'offline' };
     } catch (error) {
         if (error.name !== 'AbortError' && error.code !== 'ECONNABORTED') {
-           // console.error(`[CHECK_ERROR] Câmera ${code}: ${error.message}`);
+            // console.error(`[CHECK_ERROR] Câmera ${code}: ${error.message}`);
         }
         return { codigo: code, status: 'offline' };
     }
@@ -475,13 +533,13 @@ function runScheduledScan() {
 }
 
 async function startServer() {
-    await loadCameraInfoFromFirestore(); 
-    
+    await loadCameraInfoFromFirestore();
+
     const server = app.listen(CONFIG.PORT, () => {
         console.log(`Servidor executando em http://localhost:${CONFIG.PORT}`);
         runScheduledScan();
     });
-    
+
     process.on('SIGINT', () => {
         console.log('\nDesligando servidor...');
         server.close(() => process.exit(isScanning ? 1 : 0));
@@ -489,4 +547,3 @@ async function startServer() {
 }
 
 startServer();
-
