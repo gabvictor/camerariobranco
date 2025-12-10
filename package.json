@@ -5,6 +5,7 @@
     "express": "^5.1.0",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.5.0",
+    "helmet": "^8.1.0",
     "web-push": "^3.6.7"
   }
 }
