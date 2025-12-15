@@ -383,7 +383,7 @@ function startVideoFeed(el, cameraCode) {
     const updateImage = () => {
         // Tenta carregar via proxy primeiro
         // Adiciona timestamp para evitar cache do navegador
-        const proxyUrl = `/proxy/camera?code=${cameraCode}&t=${Date.now()}`;
+        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`;
         // console.log("Updating image source:", proxyUrl);
         
         // Se já estávamos tentando o link direto e funcionou, mantemos? 
@@ -668,7 +668,7 @@ async function setupFavoriteButton(btn, cameraCode, user) {
  */
 function updateMetaTags(camera, title) {
     const description = `Assista agora a câmera ao vivo de ${camera.nome}. ${camera.descricao || 'Monitoramento em tempo real.'}`;
-    const imageUrl = `/proxy/camera?code=${camera.codigo}&t=${Date.now()}`;
+    const imageUrl = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
     const shareUrl = `${location.origin}/camera/${camera.codigo}`;
     
     const setMeta = (selector, attr, value) => {

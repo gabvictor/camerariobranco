@@ -112,7 +112,7 @@ const loadFavorites = async () => {
             item.innerHTML = `
                 <div class="flex items-center gap-4">
                     <div class="relative w-16 h-10 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
-                        <img src="${isOnline ? `/proxy/camera?code=${cam.codigo}` : 'https://placehold.co/400x300/e0e0e0/757575?text=Offline'}" 
+                        <img src="${isOnline ? `/proxy/camera/${cam.codigo}` : 'https://placehold.co/400x300/e0e0e0/757575?text=Offline'}" 
                              class="w-full h-full object-cover" loading="lazy">
                     </div>
                     <div>

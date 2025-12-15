@@ -133,7 +133,7 @@ function initializeAppLogic() {
         card.dataset.status = camera.status;
         const isOnline = camera.status === 'online';
         const isFavorite = state.favorites.includes(camera.codigo);
-        const imageUrl = isOnline ? `/proxy/camera?code=${camera.codigo}` : `https://placehold.co/400x300/e0e0e0/757575?text=Offline`;
+        const imageUrl = isOnline ? `/proxy/camera/${camera.codigo}` : `https://placehold.co/400x300/e0e0e0/757575?text=Offline`;
 
         card.innerHTML = `
             <div class="relative group">
@@ -590,7 +590,7 @@ function initializeAppLogic() {
         elements.modalCameraFeed.style.visibility = 'hidden';
 
         const updateFeed = () => {
-            elements.modalCameraFeed.src = `/proxy/camera?code=${camera.codigo}&t=${Date.now()}`;
+            elements.modalCameraFeed.src = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
         };
 
         elements.modalCameraFeed.onload = () => {

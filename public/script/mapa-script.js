@@ -67,7 +67,7 @@ async function initializeMapLogic() {
             const color = categoryColors[camera.categoria] || categoryColors['default'];
             const icon = createPinIcon(color);
             const marker = L.marker(camera.coords, { icon: icon });
-            const popupContent = `<img src="/proxy/camera?code=${camera.codigo}&t=${Date.now()}" alt="Câmera ${camera.nome}"><div class="popup-info"><h3>${camera.nome}</h3><a href="/camera/${camera.codigo}" target="_blank">Ver em Tela Cheia</a></div>`;
+            const popupContent = `<img src="/proxy/camera/${camera.codigo}?t=${Date.now()}" alt="Câmera ${camera.nome}"><div class="popup-info"><h3>${camera.nome}</h3><a href="/camera/${camera.codigo}" target="_blank">Ver em Tela Cheia</a></div>`;
             marker.bindPopup(popupContent);
             markers.addLayer(marker);
 

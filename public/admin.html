@@ -308,7 +308,7 @@
                     }
 
                     const tempImg = new Image();
-                    const newSrc = `/proxy/camera?code=${code}&t=${Date.now()}`;
+                    const newSrc = `/proxy/camera/${code}?t=${Date.now()}`;
 
                     tempImg.onload = () => {
                         elements.modalPreviewImg.src = newSrc;
@@ -351,7 +351,7 @@
                 const levelText = camera.level === 3 ? ' (Privado)' : ' (Público)';
 
                 const cacheBuster = Math.round(Date.now() / 15000) * 15000;
-                const imageUrl = `/proxy/camera?code=${camera.codigo}&t=${cacheBuster}`;
+                const imageUrl = `/proxy/camera/${camera.codigo}?t=${cacheBuster}`;
 
                 div.innerHTML = `
                     <div class="flex items-center gap-4 overflow-hidden">

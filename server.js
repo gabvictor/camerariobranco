@@ -172,7 +172,7 @@ const serveCameraPage = (req, res) => {
         // 1. Se estiver ONLINE, usa o proxy com timestamp para "quebrar" o cache do WhatsApp/Telegram e mostrar a imagem atual.
         // 2. Se estiver OFFLINE, usa diretamente a imagem estática de erro, economizando requisições.
         const imageUrl = camera.status === 'online'
-            ? `${baseUrl}/proxy/camera?code=${camera.codigo}&t=${Date.now()}`
+            ? `${baseUrl}/proxy/camera/${camera.codigo}?t=${Date.now()}`
             : `${baseUrl}/assets/offline.png`;
 
         const imageAlt = `Ao Vivo: ${camera.nome}`;
@@ -230,7 +230,7 @@ const serveCameraPage = (req, res) => {
 
         // Injeta o src inicial do feed para evitar estado estranho no carregamento
         // Se estiver offline, já carrega a imagem offline direto
-        const initialFeedSrc = isOnline ? `/proxy/camera?code=${camera.codigo}` : `${baseUrl}/assets/offline.png`;
+        const initialFeedSrc = isOnline ? `/proxy/camera/${camera.codigo}` : `${baseUrl}/assets/offline.png`;
         html = html.replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${initialFeedSrc}"`);
     }
 
@@ -313,13 +313,7 @@ app.use(express.static(PUBLIC_FOLDER));
 // Rota de fallback para universal link deep-link (Removida pois agora é tratada pelo SSR acima)
 // app.get('/camera', (req, res) => { ... });
 
-// Suporte a caminho /camera/:code com SSR direto
-app.get('/camera/:code', (req, res) => {
-    const code = req.params.code;
-    if (!/^\d{6}$/.test(code)) return res.redirect('/camera');
-    req.query.code = code;
-    serveCameraPage(req, res);
-});
+
 
 // Apple Universal Links: apple-app-site-association
 app.get(['/apple-app-site-association', '/.well-known/apple-app-site-association'], (req, res) => {
@@ -393,14 +387,21 @@ const verifyOptionalAdmin = async (req, res, next) => {
 
 // --- Rotas da API ---
 
-app.get('/proxy/camera', async (req, res) => {
-    const { code } = req.query;
+const proxyCameraHandler = async (req, res) => {
+    const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) {
         return res.status(400).send('Código da câmera inválido.');
     }
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
     try {
-        const response = await axios.get(url, { responseType: 'stream', timeout: 8000 });
+        const response = await axios.get(url, { 
+            responseType: 'stream', 
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://cameras.riobranco.ac.gov.br/'
+            }
+        });
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
@@ -411,7 +412,10 @@ app.get('/proxy/camera', async (req, res) => {
         METRICS.lastProxyFailureAt = Date.now();
         res.status(502).sendFile(ERROR_IMAGE_PATH);
     }
-});
+};
+
+app.get('/proxy/camera', proxyCameraHandler);
+app.get('/proxy/camera/:code', proxyCameraHandler);
 
 // --- Endpoints de Monitoramento ---
 app.get('/health', (req, res) => {
