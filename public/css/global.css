@@ -1,0 +1,193 @@
+/* General body style */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Loader animation */
+.loader {
+    width: 48px;
+    height: 48px;
+    border: 5px solid;
+    border-color: #4F46E5 transparent;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Favorite button styles */
+.favorite-btn .lucide-star {
+    transition: all 0.2s ease-in-out;
+}
+
+.favorite-btn.is-favorite .lucide-star {
+    fill: #facc15; /* yellow-400 */
+    color: #facc15; /* yellow-400 */
+}
+
+/* Filter button styles */
+.filter-btn {
+    background-color: #E5E7EB; /* gray-200 */
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.dark .filter-btn {
+    background-color: #374151; /* gray-700 */
+}
+
+.filter-btn.active-filter {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1);
+}
+
+/* Filter Chip Styles (New) */
+.filter-chip {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px; /* rounded-full */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 500; /* font-medium */
+    background-color: #f3f4f6; /* gray-100 */
+    color: #374151; /* gray-700 */
+    border: 1px solid #e5e7eb; /* gray-200 */
+    white-space: nowrap;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.dark .filter-chip {
+    background-color: #1f2937; /* gray-800 */
+    color: #d1d5db; /* gray-300 */
+    border-color: #374151; /* gray-700 */
+}
+
+.filter-chip:hover {
+    background-color: #e5e7eb; /* gray-200 */
+}
+
+.dark .filter-chip:hover {
+    background-color: #374151; /* gray-700 */
+}
+
+.filter-chip.active-chip {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+    border-color: transparent;
+}
+
+.dark .filter-chip.active-chip {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+}
+
+/* Update progress bar styles */
+#update-progress-bar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    z-index: 9999;
+    background-color: transparent;
+}
+
+#update-progress-bar {
+    height: 100%;
+    background-color: #4f46e5; /* indigo-600 */
+    width: 0%;
+}
+
+/* Content Wrapper for Bottom Nav Spacing - handled in media query below */
+
+@media (max-width: 640px) {
+    #content-wrapper {
+        padding-bottom: 80px; /* Space for Bottom Nav only on mobile */
+    }
+}
+
+/* Bottom Navigation Bar (Mobile Only) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(229, 231, 235, 1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    z-index: 50;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.dark .bottom-nav {
+    background-color: rgba(17, 24, 39, 0.95);
+    border-top: 1px solid rgba(55, 65, 81, 1);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #6B7280;
+    font-size: 0.75rem;
+    text-decoration: none;
+    gap: 4px;
+    transition: color 0.2s;
+}
+
+.dark .nav-item {
+    color: #9CA3AF;
+}
+
+.nav-item.active {
+    color: #4F46E5;
+    font-weight: 500;
+}
+
+.dark .nav-item.active {
+    color: #818CF8;
+}
+
+.nav-item svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Custom Scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #d1d5db; /* gray-300 */
+    border-radius: 20px;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #4b5563; /* gray-600 */
+}

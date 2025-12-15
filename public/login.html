@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+
+    <title>Login Seguro | Câmeras Rio Branco</title>
+    <meta name="description" content="Acesse sua conta para salvar favoritos e comentar. Projeto independente.">
+    <link rel="canonical" href="https://camerasriobranco.site/login.html">
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6B72KFF66"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y6B72KFF66');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Animações Suaves */
+        .card-enter {
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Toast Styles */
+        .toast {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.4s ease-out forwards, fadeOut 0.4s ease-in 3.5s forwards;
+        }
+
+        .toast-info {
+            background-color: #3b82f6;
+        }
+
+        .toast-success {
+            background-color: #22c55e;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 min-h-screen flex items-center justify-center p-4">
+
+    <div class="card-enter w-full max-w-md">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+
+            <header class="text-center mb-8">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl mb-4 text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="camera" class="w-8 h-8"></i>
+                </div>
+                <h1 id="form-title" class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Bem-vindo(a)
+                </h1>
+                <p id="form-subtitle" class="text-sm text-gray-500 dark:text-gray-400 mt-2">Faça login para acessar o
+                    sistema.</p>
+            </header>
+
+            <div id="error-container"
+                class="hidden mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 flex items-start gap-2">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5"></i>
+                <p id="error-message" class="text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div class="relative group">
+                    <i data-lucide="mail"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                    <input type="email" id="login-email"
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        placeholder="Seu e-mail" autocomplete="username" required>
+                </div>
+                <div class="relative group">
+                    <i data-lucide="lock"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                    <input type="password" id="login-password"
+                        class="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        placeholder="Sua senha" autocomplete="current-password" required>
+                    <button type="button"
+                        class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        data-target="login-password">
+                        <i data-lucide="eye" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="show-reset-btn"
+                        class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Esqueceu
+                        a senha?</button>
+                </div>
+                <button type="submit"
+                    class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <span class="btn-text">Entrar</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </form>
+
+            <form id="register-form" class="space-y-4 hidden">
+                <div class="relative group">
+                    <i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    <input type="text" id="register-nickname"
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="Como quer ser chamado?" required>
+                </div>
+                <div class="relative group">
+                    <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    <input type="email" id="register-email"
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="Seu melhor e-mail" required>
+                </div>
+                <div class="relative group">
+                    <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    <input type="password" id="register-password"
+                        class="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="Senha (mín. 6 caracteres)" required>
+                    <button type="button"
+                        class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        data-target="register-password">
+                        <i data-lucide="eye" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="relative group">
+                    <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    <input type="password" id="register-password-confirm"
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="Confirme a senha" required>
+                </div>
+
+                <div class="flex items-start gap-2 px-1">
+                    <input type="checkbox" id="register-terms"
+                        class="mt-1 w-4 h-4 text-indigo-600 bg-gray-50 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+                        required>
+                    <label for="register-terms" class="text-xs text-gray-500 dark:text-gray-400">
+                        Li e concordo com os <button type="button"
+                            class="open-terms-modal text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 font-medium hover:underline">Termos
+                            de Uso</button> e <button type="button"
+                            class="open-terms-modal text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 font-medium hover:underline">Política
+                            de Privacidade</button>.
+                    </label>
+                </div>
+
+                <button type="submit"
+                    class="w-full mt-2 bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                    <span class="btn-text">Criar Conta Grátis</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </form>
+
+            <form id="reset-form" class="space-y-4 hidden">
+                <div
+                    class="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-sm rounded-lg mb-4">
+                    Digite o e-mail associado à sua conta e enviaremos um link para redefinir sua senha.
+                </div>
+                <div class="relative group">
+                    <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    <input type="email" id="reset-email"
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="E-mail cadastrado" required>
+                </div>
+                <button type="submit"
+                    class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                    <span class="btn-text">Enviar Link</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </form>
+
+            <div id="verification-view" class="hidden text-center py-4">
+                <div
+                    class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="mail-check" class="w-8 h-8 text-green-600 dark:text-green-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold mb-2">Verifique seu E-mail</h3>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Enviamos um link de confirmação. Após
+                    confirmar, clique abaixo para tentar novamente.</p>
+                <div class="space-y-3">
+                    <button id="verification-login-btn"
+                        class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition-all">Já
+                        confirmei, entrar</button>
+                    <button id="resend-verification-btn"
+                        class="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Reenviar
+                        E-mail</button>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                <div
+                    class="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 p-3 rounded-lg flex gap-3 items-start">
+                    <i data-lucide="info" class="w-4 h-4 text-gray-400 mt-0.5 shrink-0"></i>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <strong>Nota de Isenção:</strong> Este é um projeto independente de monitoramento (CamRB) e
+                        <span class="text-gray-700 dark:text-gray-300 font-semibold">não possui vínculo oficial</span>
+                        com a Prefeitura de Rio Branco ou órgãos governamentais.
+                    </p>
+                </div>
+
+                <footer id="toggle-forms-footer" class="text-center text-sm text-gray-500 mt-4">
+                    <p>Ainda não tem uma conta? <button id="show-register-btn"
+                            class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Crie
+                            grátis</button></p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3 pointer-events-none"></div>
+
+    <!-- Terms Modal -->
+    <div id="terms-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity opacity-0" id="terms-overlay">
+        </div>
+        <div class="relative bg-white dark:bg-gray-800 w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col transform scale-95 opacity-0 transition-all duration-300 m-4"
+            id="terms-panel">
+            <div
+                class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white/50 dark:bg-gray-800/50 rounded-t-2xl">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Termos de Uso e Privacidade</h2>
+                <button id="close-modal-btn"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="terms-content"
+                class="p-6 overflow-y-auto text-gray-600 dark:text-gray-300 space-y-4 text-sm leading-relaxed scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                <div class="flex flex-col items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+                    <p class="text-gray-500">Carregando termos...</p>
+                </div>
+            </div>
+            <div
+                class="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-end bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
+                <button id="accept-modal-btn"
+                    class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition-all font-medium shadow-lg shadow-indigo-500/20 active:scale-95">
+                    Entendi e Concordo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // CONFIGURAÇÃO DO FIREBASE (MANTIDA)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+            authDomain: "camerasriobranco.firebaseapp.com",
+            projectId: "camerasriobranco",
+            storageBucket: "camerasriobranco.appspot.com",
+            messagingSenderId: "84020805734",
+            appId: "1:84020805734:web:9904063112bd0b649f2da7",
+            measurementId: "G-Y6B72KFF66"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // UI Helpers
+        const elements = {
+            forms: {
+                login: document.getElementById('login-form'),
+                register: document.getElementById('register-form'),
+                reset: document.getElementById('reset-form'),
+                verification: document.getElementById('verification-view')
+            },
+            titles: {
+                main: document.getElementById('form-title'),
+                sub: document.getElementById('form-subtitle')
+            },
+            error: {
+                container: document.getElementById('error-container'),
+                msg: document.getElementById('error-message')
+            },
+            footer: document.getElementById('toggle-forms-footer'),
+            toastContainer: document.getElementById('toast-container')
+        };
+
+        let userForVerification = null;
+
+        // --- SISTEMA DE SENHA VISÍVEL ---
+        document.querySelectorAll('.toggle-password').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const inputId = btn.getAttribute('data-target');
+                const input = document.getElementById(inputId);
+                const icon = btn.querySelector('i'); // Elemento do Lucide é substituído por SVG, então buscamos o SVG depois
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    // Nota: Lucide substitui <i> por <svg>, então na prática teríamos que recriar o ícone
+                    // Maneira simplificada: alterar classes ou usar SVG direto
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
+                } else {
+                    input.type = 'password';
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+                }
+            });
+        });
+
+        const showError = (msg) => {
+            elements.error.msg.textContent = msg;
+            elements.error.container.classList.remove('hidden');
+        };
+
+        const hideError = () => {
+            elements.error.container.classList.add('hidden');
+        };
+
+        const showToast = (message, type = 'info') => {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type} mb-3 bg-opacity-90 backdrop-blur-sm`;
+            toast.textContent = message;
+            elements.toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        };
+
+        // --- NAVEGAÇÃO ENTRE FORMULÁRIOS ---
+        const switchView = (viewName) => {
+            hideError();
+            Object.values(elements.forms).forEach(el => el.classList.add('hidden'));
+
+            const viewConfig = {
+                login: {
+                    title: 'Bem-vindo(a)',
+                    sub: 'Faça login para acessar o sistema.',
+                    footer: 'Ainda não tem uma conta? <button id="show-register-btn" class="font-semibold text-indigo-600 hover:text-indigo-500">Crie grátis</button>'
+                },
+                register: {
+                    title: 'Criar Conta',
+                    sub: 'Junte-se a nós para monitorar a cidade.',
+                    footer: 'Já tem conta? <button id="show-login-btn" class="font-semibold text-indigo-600 hover:text-indigo-500">Fazer login</button>'
+                },
+                reset: {
+                    title: 'Recuperar Senha',
+                    sub: 'Não se preocupe, vamos resolver isso.',
+                    footer: '<button id="show-login-btn" class="font-semibold text-indigo-600 hover:text-indigo-500 flex items-center justify-center gap-2 mx-auto"><i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para login</button>'
+                },
+                verification: {
+                    title: 'Verificação',
+                    sub: 'Confirme sua identidade.',
+                    footer: '<button id="show-login-btn" class="text-sm text-gray-500 hover:text-gray-700">Voltar para login</button>'
+                }
+            };
+
+            const config = viewConfig[viewName];
+            elements.forms[viewName].classList.remove('hidden');
+            elements.titles.main.textContent = config.title;
+            elements.titles.main.classList.add('fade-in'); // simples animação
+            elements.titles.sub.textContent = config.sub;
+            elements.footer.innerHTML = config.footer;
+
+            // Re-render icons for dynamic footer content
+            lucide.createIcons();
+        };
+
+        // Event Delegation para navegação
+        document.body.addEventListener('click', (e) => {
+            if (e.target.id === 'show-register-btn') switchView('register');
+            if (e.target.id === 'show-reset-btn') switchView('reset');
+            if (e.target.id === 'show-login-btn') switchView('login');
+            if (e.target.id === 'verification-login-btn') {
+                window.location.reload(); // Recarrega para forçar check de auth
+            }
+        });
+
+        // --- AUTH ACTIONS ---
+        const handleAuth = async (form, actionPromise) => {
+            const btn = form.querySelector('button[type="submit"]');
+            const loader = btn.querySelector('.loader');
+            const text = btn.querySelector('.btn-text');
+
+            hideError();
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            text.classList.add('hidden');
+
+            try {
+                await actionPromise();
+            } catch (error) {
+                console.error(error);
+                let msg = "Ocorreu um erro inesperado.";
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') msg = "E-mail ou senha incorretos.";
+                if (error.code === 'auth/email-already-in-use') msg = "Este e-mail já está cadastrado.";
+                if (error.code === 'auth/weak-password') msg = "A senha deve ter pelo menos 6 caracteres.";
+                if (error.code === 'auth/too-many-requests') msg = "Muitas tentativas. Tente novamente mais tarde.";
+                showError(msg);
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+                text.classList.remove('hidden');
+            }
+        };
+
+        // Login Submit
+        elements.forms.login.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            handleAuth(elements.forms.login, async () => {
+                const cred = await signInWithEmailAndPassword(auth, email, password);
+                if (cred.user.emailVerified) {
+                    window.location.href = '/index.html';
+                } else {
+                    userForVerification = cred.user;
+                    switchView('verification');
+                }
+            });
+        });
+
+        // Register Submit
+        elements.forms.register.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nickname = document.getElementById('register-nickname').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirm = document.getElementById('register-password-confirm').value;
+            const termsAccepted = document.getElementById('register-terms').checked;
+
+            if (password !== confirm) {
+                showError('As senhas não coincidem.');
+                return;
+            }
+
+            if (!termsAccepted) {
+                showError('Você precisa aceitar os Termos de Uso para criar uma conta.');
+                return;
+            }
+
+            handleAuth(elements.forms.register, async () => {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(cred.user, { displayName: nickname });
+                await sendEmailVerification(cred.user);
+                showToast('Conta criada! Verifique seu e-mail.', 'success');
+                userForVerification = cred.user;
+                switchView('verification');
+            });
+        });
+
+        // Reset Submit
+        elements.forms.reset.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+
+            handleAuth(elements.forms.reset, async () => {
+                await sendPasswordResetEmail(auth, email);
+                showToast('Email de recuperação enviado!', 'success');
+                switchView('login');
+            });
+        });
+
+        // Auth Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.emailVerified) {
+                window.location.href = '/index.html';
+            }
+        });
+
+        // Resend Verification
+        document.getElementById('resend-verification-btn').addEventListener('click', async function () {
+            if (!userForVerification && auth.currentUser) userForVerification = auth.currentUser;
+
+            if (userForVerification) {
+                this.disabled = true;
+                this.textContent = "Enviando...";
+                try {
+                    await sendEmailVerification(userForVerification);
+                    showToast('Novo link enviado!', 'success');
+                } catch (e) {
+                    showError('Aguarde um momento antes de reenviar.');
+                } finally {
+                    this.disabled = false;
+                    this.textContent = "Reenviar E-mail";
+                }
+            }
+        });
+
+        // --- TERMOS MODAL LOGIC ---
+        const modal = document.getElementById('terms-modal');
+        const modalOverlay = document.getElementById('terms-overlay');
+        const modalPanel = document.getElementById('terms-panel');
+        const termsContent = document.getElementById('terms-content');
+
+        const openModal = () => {
+            modal.classList.remove('hidden');
+            // Small delay to allow display:flex to apply before opacity transition
+            requestAnimationFrame(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalPanel.classList.remove('opacity-0', 'scale-95');
+                modalPanel.classList.add('scale-100');
+            });
+
+            if (termsContent.children.length <= 1) {
+                fetchTerms();
+            }
+        };
+
+        const closeModal = () => {
+            modalOverlay.classList.add('opacity-0');
+            modalPanel.classList.add('opacity-0', 'scale-95');
+            modalPanel.classList.remove('scale-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        };
+
+        document.querySelectorAll('.open-terms-modal').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal();
+            });
+        });
+
+        const closeBtn = document.getElementById('close-modal-btn');
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+        const acceptBtn = document.getElementById('accept-modal-btn');
+        if (acceptBtn) acceptBtn.addEventListener('click', closeModal);
+
+        if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+
+        async function fetchTerms() {
+            try {
+                const response = await fetch('/termos.json');
+                if (!response.ok) throw new Error('Falha ao carregar');
+                const data = await response.json();
+
+                termsContent.innerHTML = '';
+                let currentList = null;
+
+                data.content.forEach(item => {
+                    if (item.type === 'listItem') {
+                        if (!currentList) {
+                            currentList = document.createElement('ul');
+                            currentList.className = "list-disc pl-6 space-y-2 mb-4";
+                            termsContent.appendChild(currentList);
+                        }
+                        const li = document.createElement('li');
+                        if (item.boldPrefix) {
+                            li.innerHTML = `<span class="font-semibold text-gray-900 dark:text-white">${item.boldPrefix}</span> ${item.text}`;
+                        } else {
+                            li.textContent = item.text;
+                        }
+                        currentList.appendChild(li);
+                    } else {
+                        currentList = null;
+                        if (item.type === 'title') {
+                            const h2 = document.createElement('h2');
+                            h2.className = "text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4";
+                            h2.textContent = item.text;
+                            termsContent.appendChild(h2);
+                        } else if (item.type === 'paragraph') {
+                            const p = document.createElement('p');
+                            if (item.boldPrefix) {
+                                p.innerHTML = `<span class="font-semibold text-gray-900 dark:text-white">${item.boldPrefix}</span> ${item.text}`;
+                            } else {
+                                p.textContent = item.text;
+                            }
+                            termsContent.appendChild(p);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                termsContent.innerHTML = '<p class="text-center text-red-500 py-4">Erro ao carregar termos.</p>';
+            }
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

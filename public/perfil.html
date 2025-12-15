@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <title>Meu Perfil | CamRB</title>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6B72KFF66"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y6B72KFF66');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css">
+    <script src="/script/theme.js"></script>
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div id="content-wrapper" class="min-h-screen flex flex-col">
+        <div class="container mx-auto px-4 py-8 max-w-2xl flex-grow">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">Meu Perfil</h1>
+                <p class="text-gray-500 dark:text-gray-400">Gerencie suas preferências e favoritos.</p>
+            </header>
+
+            <!-- Settings Section -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+                    <h2 class="font-semibold text-lg flex items-center gap-2">
+                        <i data-lucide="settings" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        Configurações
+                    </h2>
+                </div>
+
+                <div class="p-4 space-y-4">
+                    <!-- Theme Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Modo Escuro</p>
+                                <p class="text-sm text-gray-500">Alternar entre tema claro e escuro</p>
+                            </div>
+                        </div>
+                        <button id="theme-toggle-switch"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 bg-gray-200 dark:bg-indigo-600">
+                            <span class="sr-only">Ativar modo escuro</span>
+                            <span id="theme-toggle-thumb"
+                                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1 dark:translate-x-6"></span>
+                        </button>
+                    </div>
+
+                    <!-- Admin Link (Hidden by default) -->
+                    <div id="admin-section" class="hidden border-t border-gray-100 dark:border-gray-700 pt-4 mt-4">
+                        <a href="/admin.html" class="flex items-center justify-between w-full group">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                                    <i data-lucide="shield" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-indigo-600 dark:text-indigo-400">Painel Administrativo
+                                    </p>
+                                    <p class="text-sm text-gray-500">Gerenciar câmeras e configurações</p>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-right"
+                                class="w-5 h-5 text-gray-400 group-hover:text-indigo-600 transition-colors"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Favorites Section -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+                    <h2 class="font-semibold text-lg flex items-center gap-2">
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-500"></i>
+                        Câmeras Favoritas
+                    </h2>
+                </div>
+                <div id="favorites-list" class="divide-y divide-gray-100 dark:divide-gray-700">
+                    <div class="p-8 text-center text-gray-500">
+                        <div class="loader mb-4"></div>
+                        <p>Carregando favoritos...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <button id="logout-btn"
+                    class="text-red-500 hover:text-red-700 font-medium text-sm flex items-center justify-center gap-2 mx-auto hidden">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    Sair da conta
+                </button>
+                <a href="/login.html" id="login-link"
+                    class="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center justify-center gap-2 mx-auto hidden">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    Fazer Login
+                </a>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav
+            class="bottom-nav sm:hidden fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 flex justify-around items-center pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <a href="/"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Início</span>
+            </a>
+            <a href="/mapa.html"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Mapa</span>
+            </a>
+            <a href="https://github.com/gabvictor/CamRB" target="_blank" class="nav-item relative group -top-5">
+                <div
+                    class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
+                    <i data-lucide="github" class="w-6 h-6"></i>
+                </div>
+                <span
+                    class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">App</span>
+            </a>
+            <a href="/#search-input"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="search" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Buscar</span>
+            </a>
+            <a href="/perfil.html" class="nav-item active flex flex-col items-center p-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Perfil</span>
+            </a>
+        </nav>
+
+        <footer
+            class="mt-auto w-full border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 transition-colors">
+            <div class="container mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+
+                    <div class="col-span-1 md:col-span-2">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="bg-indigo-600 p-1.5 rounded-lg">
+                                <i data-lucide="video" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <span
+                                class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">CamRB</span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
+                            Conectando Rio Branco em tempo real. Uma iniciativa para democratizar o acesso à
+                            informação de trânsito e segurança urbana através da tecnologia.
+                        </p>
+
+                        <div class="flex gap-4 mt-6">
+                            <a href="https://github.com/gabvictor/CamRB" target="_blank"
+                                class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <span class="sr-only">GitHub</span> <i data-lucide="github" class="w-5 h-5"></i>
+                            </a>
+                            <a href="https://www.instagram.com/gabv_ctor/" target="_blank"
+                                class="text-gray-400 hover:text-pink-600 transition-colors">
+                                <span class="sr-only">Instagram</span>
+                                <i data-lucide="instagram" class="w-5 h-5"></i>
+                            </a>
+                            <a href="mailto:contato@camerasriobranco.site"
+                                class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <span class="sr-only">Email</span>
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2 md:text-right">
+                        <h3
+                            class="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
+                            Links Úteis</h3>
+                        <ul class="space-y-3 text-sm inline-block text-left md:text-right">
+                            <li><a href="https://github.com/gabvictor/CamRB" target="_blank"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Código
+                                    Fonte</a></li>
+                            <li><a href="/termos.html"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos
+                                    de Uso e Privacidade</a></li>
+                            <li><a id="admin-link" href="/admin.html"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden">Área
+                                    Admin</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div
+                    class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                        &copy; 2025 <span class="font-medium text-gray-900 dark:text-white">CamRB</span>. Todos os
+                        direitos reservados.
+                    </p>
+                    <div class="flex items-center gap-1 text-xs text-gray-400">
+                        <span>Desenvolvido com</span>
+                        <i data-lucide="heart" class="w-3 h-3 text-red-500 fill-red-500"></i>
+                        <span>em Rio Branco - AC</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="/script/perfil-script.js"></script>
+</body>
+
+</html>

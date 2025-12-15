@@ -1,0 +1,8 @@
+serviceAccountKey.json
+.env
+*.env
+/public/assets/*.psd
+/public/assets/*.ai
+/public/assets/*.xcf
+node_modules/
+*.log

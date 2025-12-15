@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <title>Dashboard - Câmeras Rio Branco</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid;
+            border-color: #4F46E5 transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #content-wrapper {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8">
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <h1 class="text-3xl font-bold">Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/metrics.html" title="Métricas do sistema"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="activity" class="w-5 h-5"></i>
+                    </a>
+                    <a href="/admin.html" title="Voltar ao painel de câmeras"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    </a>
+                    <a href="/" title="Voltar à página inicial"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="home" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Grid de Estatísticas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Card Total de Usuários -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
+                        <i data-lucide="users" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Usuários</p>
+                        <div id="total-users-stat-container">
+                            <h2 id="total-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="total-users-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Outros cards de estatísticas podem ser adicionados aqui -->
+                <!-- Acesso às Métricas -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center justify-between gap-6">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
+                            <i data-lucide="activity" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Métricas do Sistema</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Uptime, requisições, proxy e scanner</p>
+                        </div>
+                    </div>
+                    <a href="/metrics.html" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
+                        Abrir
+                    </a>
+                </div>
+            </div>
+
+            <!-- Gráfico -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4">Novos Cadastros (Últimos 7 dias)</h2>
+                <div class="h-80">
+                    <canvas id="signups-chart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { auth } from "/script/firebase-config.js";
+
+        const ADMIN_EMAIL = "vgabvictor@gmail.com";
+        // ALTERAÇÃO: A URL do backend é agora relativa, pois a página é servida pelo mesmo servidor.
+        const BACKEND_URL = '';
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === ADMIN_EMAIL) {
+                document.getElementById('content-wrapper').style.display = 'block';
+                initializeDashboardLogic(user);
+            } else if (user) {
+                // Non-admin user, do nothing, page remains blank.
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+
+        function initializeDashboardLogic(user) {
+            const applyTheme = (isDark) => document.documentElement.classList.toggle('dark', isDark);
+
+            const initializeTheme = () => {
+                const savedTheme = localStorage.getItem('theme');
+                applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
+            };
+
+            document.getElementById('toggle-theme').addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                // Recarregar o gráfico com as cores do novo tema
+                loadStats();
+            });
+
+            async function loadStats() {
+                try {
+                    // Pega o token de autenticação do usuário logado
+                    const token = await user.getIdToken();
+
+                    // Faz a chamada para a API do backend, enviando o token para verificação
+                    const response = await fetch(`${BACKEND_URL}/api/dashboard-data`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Falha ao buscar dados.');
+                    }
+
+                    const stats = await response.json();
+
+                    document.getElementById('total-users-stat').textContent = stats.totalUsers;
+                    renderChart(stats.signupsByDay);
+
+                } catch (error) {
+                    console.error("Falha ao carregar estatísticas:", error);
+                    document.getElementById('total-users-stat').textContent = 'Erro';
+                    // Poderia adicionar uma mensagem de erro mais explícita na UI aqui
+                } finally {
+                    document.getElementById('total-users-loader').style.display = 'none';
+                    document.getElementById('total-users-stat').style.display = 'block';
+                }
+            }
+
+            function renderChart(data) {
+                const ctx = document.getElementById('signups-chart').getContext('2d');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                // Destruir gráfico antigo se existir, para evitar sobreposição ao trocar de tema, etc.
+                if (window.mySignupsChart) {
+                    window.mySignupsChart.destroy();
+                }
+
+                window.mySignupsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Novos Usuários',
+                            data: data.values,
+                            borderColor: '#4F46E5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, stepSize: 1 }
+                            },
+                            x: {
+                                grid: { color: 'transparent' },
+                                ticks: { color: textColor }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            initializeTheme();
+            loadStats();
+            lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

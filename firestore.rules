@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- FUNÇÕES AUXILIARES ---
+    // Verifica se o usuário autenticado tem o role 'admin'
+    function isAdmin() {
+      return request.auth != null &&
+             // 1. Verifica se o documento do usuário existe
+             exists(/databases/$(database)/documents/userData/$(request.auth.uid)) &&
+             // 2. Apenas se existir, verifica o campo 'role'
+             get(/databases/$(database)/documents/userData/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // 1. REGRAS PARA DADOS DO USUÁRIO (Onde o 'role' está)
+    // Permite que um usuário leia e escreva apenas o seu próprio documento.
+    match /userData/{userId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      // Usuário só pode alterar campos não sensíveis do próprio documento
+      // Impede alterar 'role' e restringe a alteração aos campos permitidos
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && !('role' in request.resource.data)
+                   && !request.resource.data.diff(resource.data).changedKeys().hasAny(['role'])
+                   && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                       'nickname',
+                       'favoriteCameras',
+                       'favorites',
+                       'theme',
+                       'lastLoginAt'
+                   ]);
+    }
+
+    // 2. REGRAS PARA DADOS DA CÂMERA
+    // Permite a leitura por qualquer um.
+    match /cameras/{cameraCode} {
+      allow read: if true;
+      allow write: if false; 
+    }
+
+    // 3. REGRAS PARA OS COMENTÁRIOS (Admin/Moderação)
+    match /cameras/{cameraCode}/comments/{commentId} {
+      
+      // ✅ PERMISSÃO DE LEITURA (Coleção de Grupo e Tela Normal):
+      // Permite a leitura se for Admin (para CollectionGroup) OU se for um usuário autenticado normal.
+      allow read: if isAdmin() || request.auth != null;
+
+      // PERMISSÃO DE CRIAÇÃO (mantém a validação de dados)
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.userDisplayName == request.auth.token.name
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500;
+      
+      // PERMISSÃO DE EXCLUSÃO (DELETE):
+      // Permite a exclusão se o usuário for o dono OU se o usuário for Admin.
+      allow delete: if request.auth.uid == resource.data.userId || isAdmin();
+      
+      // Impede a atualização de comentários.
+      allow update: if false;
+    }
+
+  }
+}

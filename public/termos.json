@@ -1,0 +1,177 @@
+{
+  "version": 1.0,
+  "lastUpdated": "Setembro de 2025",
+  "content": [
+    {
+      "type": "date",
+      "text": "Última atualização: Setembro de 2025"
+    },
+    {
+      "type": "paragraph",
+      "text": "Este aplicativo é um projeto independente. Ao criar uma conta e utilizar este serviço, você (\"Usuário\") concorda com os seguintes Termos e a nossa Política de Privacidade."
+    },
+    {
+      "type": "title",
+      "text": "1. Natureza do Serviço"
+    },
+    {
+      "type": "paragraph",
+      "text": "Este aplicativo funciona como um agregador, utilizando URLs de acesso público para exibir um fluxo de imagens atualizadas de câmaras de monitorização, simulando uma transmissão em direto. O desenvolvedor não possui, não opera, e não tem qualquer afiliação com as câmaras ou com as entidades responsáveis pela sua operação."
+    },
+    {
+      "type": "title",
+      "text": "2. Isenção de Responsabilidade"
+    },
+    {
+      "type": "paragraph",
+      "text": "O desenvolvedor não tem controlo sobre o conteúdo ou disponibilidade das transmissões. Portanto, não se responsabiliza por qualquer imagem ou evento visualizado. Este aplicativo não possui qualquer vínculo governamental ou com a Prefeitura de Rio Branco."
+    },
+    {
+      "type": "title",
+      "text": "3. Responsabilidade e Conduta do Usuário"
+    },
+    {
+      "type": "paragraph",
+      "text": "O Usuário assume total responsabilidade pelo uso das imagens e por todo o conteúdo que publicar na plataforma, como comentários. É estritamente proibido o uso das imagens para fins ilícitos, difamatórios, comerciais ou que violem a privacidade de terceiros."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ao utilizar a funcionalidade de comentários, o Usuário concorda em não publicar conteúdo que seja:"
+    },
+    {
+      "type": "listItem",
+      "text": "Abusivo, odioso, assediante, ou que promova discurso de ódio;"
+    },
+    {
+      "type": "listItem",
+      "text": "Spam, publicidade não solicitada ou correntes;"
+    },
+    {
+      "type": "listItem",
+      "text": "Que contenha informações pessoais de terceiros sem consentimento;"
+    },
+    {
+      "type": "listItem",
+      "text": "Ilegal, que promova atividades ilegais ou que infrinja direitos de autor."
+    },
+    {
+      "type": "paragraph",
+      "text": "Para promover a responsabilidade e a segurança na plataforma, a visualização do conteúdo pode incluir uma marca d'água discreta com um identificador de sua conta. O Usuário concorda em não tentar remover, ocultar ou alterar esta marca d'água."
+    },
+    {
+      "type": "title",
+      "text": "4. Direito de Remoção de Conteúdo"
+    },
+    {
+      "type": "paragraph",
+      "text": "O desenvolvedor reserva-se o direito de remover qualquer comentário ou conteúdo gerado pelo usuário, sem aviso prévio, por qualquer motivo, incluindo, mas não se limitando a, violações destes termos."
+    },
+    {
+      "type": "title",
+      "text": "5. Restrição de Idade"
+    },
+    {
+      "type": "paragraph",
+      "text": "Para criar uma conta e utilizar este serviço, o Usuário deve ter pelo menos 18 anos de idade ou a idade de maioridade legal na sua jurisdição."
+    },
+    {
+      "type": "title",
+      "text": "6. Política de Privacidade"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nós levamos a sua privacidade a sério. As informações que recolhemos são:"
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Nickname:",
+      "text": "Utilizado para personalizar a sua experiência no aplicativo."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "E-mail e Palavra-passe:",
+      "text": "Utilizados exclusivamente para a criação e autenticação da sua conta. A sua palavra-passe é armazenada de forma encriptada."
+    },
+    {
+      "type": "paragraph",
+      "text": "Todos os dados de autenticação são geridos de forma segura através do serviço Firebase Authentication da Google. Não partilhamos as suas informações pessoais com terceiros."
+    },
+    {
+      "type": "title",
+      "text": "7. Publicidade e Cookies"
+    },
+    {
+      "type": "paragraph",
+      "text": "Este site utiliza o Google AdSense para exibir anúncios. O Google, como fornecedor terceirizado, utiliza cookies para exibir anúncios com base nas suas visitas anteriores a este site ou a outros sites na Internet."
+    },
+    {
+      "type": "paragraph",
+      "text": "Os usuários podem desativar a publicidade personalizada visitando as Configurações de Anúncios do Google."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ao utilizar este serviço, você reconhece e aceita que os anúncios exibidos ajudam a manter o projeto no ar gratuitamente."
+    },
+    {
+      "type": "paragraph",
+      "boldPrefix": "Exclusão de Dados:",
+      "text": "O Usuário pode solicitar a exclusão de sua conta e dados associados a qualquer momento através da tela de perfil no aplicativo. A exclusão da conta removerá permanentemente os dados de autenticação (e-mail, nickname). Comentários feitos pelo usuário serão anonimizados ou excluídos."
+    },
+    {
+      "type": "title",
+      "text": "8. Segurança da Conta"
+    },
+    {
+      "type": "paragraph",
+      "text": "O Usuário é responsável por manter a confidencialidade da sua palavra-passe e por todas as atividades que ocorram na sua conta. O desenvolvedor não será responsável por qualquer perda ou dano resultante do incumprimento desta obrigação de segurança."
+    },
+    {
+      "type": "title",
+      "text": "9. Disponibilidade do Serviço"
+    },
+    {
+      "type": "paragraph",
+      "text": "O serviço é fornecido \"como está\". Não há garantias de que os URLs de acesso às câmaras estarão sempre funcionais."
+    },
+    {
+      "type": "title",
+      "text": "10. Propriedade Intelectual"
+    },
+    {
+      "type": "paragraph",
+      "text": "O software e o design deste aplicativo são propriedade do desenvolvedor. As imagens exibidas são propriedade dos seus respetivos operadores."
+    },
+    {
+      "type": "title",
+      "text": "11. Modificações nos Termos"
+    },
+    {
+      "type": "paragraph",
+      "text": "O desenvolvedor reserva-se o direito de modificar estes termos a qualquer momento. A continuação do uso do aplicativo após qualquer alteração constitui a sua aceitação dos novos termos."
+    },
+    {
+      "type": "title",
+      "text": "12. Rescisão de Acesso"
+    },
+    {
+      "type": "paragraph",
+      "text": "O acesso de qualquer Usuário poderá ser bloqueado ou rescindido, sem aviso prévio, em caso de violação destes termos."
+    },
+    {
+      "type": "title",
+      "text": "13. Lei Aplicável"
+    },
+    {
+      "type": "paragraph",
+      "text": "Estes termos serão regidos pelas leis da República Federativa do Brasil."
+    },
+    {
+      "type": "title",
+      "text": "14. Contato"
+    },
+    {
+      "type": "paragraph",
+      "text": "Dúvidas sobre estes Termos? Entre em contato: seu-email-de-contato@dominio.com."
+    }
+  ]
+}
