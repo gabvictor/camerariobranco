@@ -172,7 +172,7 @@ const serveCameraPage = (req, res) => {
         // 1. Se estiver ONLINE, usa o proxy com timestamp para "quebrar" o cache do WhatsApp/Telegram e mostrar a imagem atual.
         // 2. Se estiver OFFLINE, usa diretamente a imagem estática de erro, economizando requisições.
         const imageUrl = camera.status === 'online'
-            ? `${baseUrl}/proxy/camera?code=${camera.codigo}&t=${Date.now()}`
+            ? `${baseUrl}/proxy/camera/${camera.codigo}?t=${Date.now()}`
             : `${baseUrl}/assets/offline.png`;
 
         const imageAlt = `Ao Vivo: ${camera.nome}`;
@@ -188,22 +188,35 @@ const serveCameraPage = (req, res) => {
         const pingClass = isOnline ? 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75' : 'hidden';
 
         // Substituição Simples de Meta Tags
-        html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
-        html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`);
-        html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${canonicalUrl}">`);
-        html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`);
-        html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`);
-        html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`);
-        html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
-        html = html.replace(/<meta property="og:image:secure_url" content="[^"]*">/, `<meta property="og:image:secure_url" content="${imageUrl}">`);
-        html = html.replace(/<meta property="og:image:type" content="[^"]*">/, `<meta property="og:image:type" content="${imageType}">`);
-        html = html.replace(/<meta property="og:image:width" content="[^"]*">/, `<meta property="og:image:width" content="${imageWidth}">`);
-        html = html.replace(/<meta property="og:image:height" content="[^"]*">/, `<meta property="og:image:height" content="${imageHeight}">`);
-        html = html.replace(/<meta property="twitter:title" content="[^"]*">/, `<meta property="twitter:title" content="${title}">`);
-        html = html.replace(/<meta property="twitter:description" content="[^"]*">/, `<meta property="twitter:description" content="${description}">`);
-        html = html.replace(/<meta property="twitter:url" content="[^"]*">/, `<meta property="twitter:url" content="${canonicalUrl}">`);
-        html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
-        html = html.replace(/<meta name="twitter:image:alt" content="[^"]*">/, `<meta name="twitter:image:alt" content="${imageAlt}">`);
+        // Uso de regex mais flexível para garantir substituição mesmo com variações de espaçamento
+        html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);
+        html = html.replace(/<meta name="description" content="[\s\S]*?">/, `<meta name="description" content="${description}">`);
+        html = html.replace(/<link rel="canonical" href="[\s\S]*?">/, `<link rel="canonical" href="${canonicalUrl}">`);
+        
+        const replaceMeta = (property, content) => {
+            const regex = new RegExp(`<meta property="${property}" content="[\\s\\S]*?">`);
+            html = html.replace(regex, `<meta property="${property}" content="${content}">`);
+        };
+
+        const replaceName = (name, content) => {
+            const regex = new RegExp(`<meta name="${name}" content="[\\s\\S]*?">`);
+            html = html.replace(regex, `<meta name="${name}" content="${content}">`);
+        };
+
+        replaceMeta('og:title', title);
+        replaceMeta('og:description', description);
+        replaceMeta('og:url', canonicalUrl);
+        replaceMeta('og:image', imageUrl);
+        replaceMeta('og:image:secure_url', imageUrl);
+        replaceMeta('og:image:type', imageType);
+        replaceMeta('og:image:width', imageWidth);
+        replaceMeta('og:image:height', imageHeight);
+        
+        replaceMeta('twitter:title', title);
+        replaceMeta('twitter:description', description);
+        replaceMeta('twitter:url', canonicalUrl);
+        replaceMeta('twitter:image', imageUrl);
+        replaceName('twitter:image:alt', imageAlt);
 
         // INJEÇÃO DE STATUS NO HTML (SSR)
         // Substitui o texto "Verificando status..."
@@ -230,7 +243,7 @@ const serveCameraPage = (req, res) => {
 
         // Injeta o src inicial do feed para evitar estado estranho no carregamento
         // Se estiver offline, já carrega a imagem offline direto
-        const initialFeedSrc = isOnline ? `/proxy/camera?code=${camera.codigo}` : `${baseUrl}/assets/offline.png`;
+        const initialFeedSrc = isOnline ? `/proxy/camera/${camera.codigo}` : `${baseUrl}/assets/offline.png`;
         html = html.replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${initialFeedSrc}"`);
     }
 
@@ -238,8 +251,21 @@ const serveCameraPage = (req, res) => {
 };
 
 // Rotas que usam SSR (devem vir ANTES do express.static)
-app.get('/camera.html', serveCameraPage);
-app.get('/camera', serveCameraPage);
+// Redireciona acesso direto a .html com query params para a rota limpa
+app.get('/camera.html', (req, res) => {
+    if (req.query.code && /^\d{6}$/.test(req.query.code)) {
+        return res.redirect(301, `/camera/${req.query.code}`);
+    }
+    serveCameraPage(req, res);
+});
+
+// Redireciona /camera?code=XXXXXX para /camera/XXXXXX (Canonicalização)
+app.get('/camera', (req, res) => {
+    if (req.query.code && /^\d{6}$/.test(req.query.code)) {
+        return res.redirect(301, `/camera/${req.query.code}`);
+    }
+    serveCameraPage(req, res);
+});
 
 // Suporte a caminho /camera/:code com SSR direto (Sem redirect para query)
 // Isso melhora o SEO ao manter a URL limpa e única.
@@ -393,14 +419,21 @@ const verifyOptionalAdmin = async (req, res, next) => {
 
 // --- Rotas da API ---
 
-app.get('/proxy/camera', async (req, res) => {
-    const { code } = req.query;
+const proxyCameraHandler = async (req, res) => {
+    const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) {
         return res.status(400).send('Código da câmera inválido.');
     }
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
     try {
-        const response = await axios.get(url, { responseType: 'stream', timeout: 8000 });
+        const response = await axios.get(url, { 
+            responseType: 'stream', 
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://cameras.riobranco.ac.gov.br/'
+            }
+        });
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
@@ -411,7 +444,10 @@ app.get('/proxy/camera', async (req, res) => {
         METRICS.lastProxyFailureAt = Date.now();
         res.status(502).sendFile(ERROR_IMAGE_PATH);
     }
-});
+};
+
+app.get('/proxy/camera', proxyCameraHandler);
+app.get('/proxy/camera/:code', proxyCameraHandler);
 
 // --- Endpoints de Monitoramento ---
 app.get('/health', (req, res) => {

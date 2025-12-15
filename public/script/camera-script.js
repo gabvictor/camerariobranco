@@ -668,7 +668,7 @@ async function setupFavoriteButton(btn, cameraCode, user) {
  */
 function updateMetaTags(camera, title) {
     const description = `Assista agora a câmera ao vivo de ${camera.nome}. ${camera.descricao || 'Monitoramento em tempo real.'}`;
-    const imageUrl = `/proxy/camera?code=${camera.codigo}`;
+    const imageUrl = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
     const shareUrl = `${location.origin}/camera/${camera.codigo}`;
     
     const setMeta = (selector, attr, value) => {
