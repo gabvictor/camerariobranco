@@ -248,6 +248,25 @@ const serveCameraPage = (req, res) => {
             html = html.replace('</head>', `<meta name="twitter:image:alt" content="${imageAlt}">\n</head>`);
         }
 
+        // INJEÇÃO DE JSON-LD ESTRUTURADO PARA VÍDEO/LOCAL
+        const jsonLd = {
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            "name": title,
+            "description": description,
+            "thumbnailUrl": [imageUrl],
+            "uploadDate": new Date().toISOString(),
+            "contentUrl": `${baseUrl}/proxy/camera/${camera.codigo}`,
+            "embedUrl": canonicalUrl,
+            "interactionStatistic": {
+                "@type": "InteractionCounter",
+                "interactionType": { "@type": "WatchAction" },
+                "userInteractionCount": 1000
+            }
+        };
+        
+        html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n</head>`);
+
         // Injeta o src inicial 
         // Nota: O uso de baseUrl aqui na string garante caminho absoluto 
         const initialFeedSrc = isOnline ? `${baseUrl}/proxy/camera/${camera.codigo}` : `${baseUrl}/assets/offline.png`; 
@@ -312,6 +331,9 @@ app.get('/sitemap.xml', (req, res) => {
     const camerasToIndex = cachedCameraStatus.length > 0 ? cachedCameraStatus : cameraInfo;
 
     camerasToIndex.forEach(camera => {
+        // Ignora câmeras de Nível 3 (Privadas) no Sitemap
+        if (camera.level === 3) return;
+
         if (camera.codigo) {
             const isOnline = camera.status === 'online';
             const priority = isOnline ? '0.9' : '0.6';
