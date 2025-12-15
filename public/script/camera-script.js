@@ -469,15 +469,7 @@ function setupActionButtons(el, cameraCode, user) {
     if (el.fullscreenBtn && el.playerWrapper) {
         el.fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                el.playerWrapper.requestFullscreen().then(() => {
-                    // Tenta forçar modo paisagem em dispositivos móveis
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(err => {
-                            // Ignora erros de bloqueio (comum em desktops ou se não permitido)
-                            console.warn('Orientação paisagem não pôde ser ativada:', err);
-                        });
-                    }
-                }).catch(err => {
+                el.playerWrapper.requestFullscreen().catch(err => {
                     console.error(`Erro ao entrar em tela cheia: ${err.message}`);
                 });
             } else {
@@ -492,10 +484,6 @@ function setupActionButtons(el, cameraCode, user) {
                 icon.setAttribute('data-lucide', 'minimize');
             } else {
                 icon.setAttribute('data-lucide', 'maximize');
-                // Destrava a orientação ao sair do modo tela cheia
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
             }
             if(window.lucide) window.lucide.createIcons();
         });

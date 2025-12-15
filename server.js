@@ -167,11 +167,25 @@ const serveCameraPage = (req, res) => {
         const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`;
         const canonicalUrl = `${baseUrl}/camera/${camera.codigo}`;
         const requestedUrl = `${baseUrl}${req.originalUrl}`;
-        const imageUrl = `${baseUrl}/proxy/camera?code=${camera.codigo}`;
+        
+        // Lógica Inteligente de Imagem:
+        // 1. Se estiver ONLINE, usa o proxy com timestamp para "quebrar" o cache do WhatsApp/Telegram e mostrar a imagem atual.
+        // 2. Se estiver OFFLINE, usa diretamente a imagem estática de erro, economizando requisições.
+        const imageUrl = camera.status === 'online'
+            ? `${baseUrl}/proxy/camera?code=${camera.codigo}&t=${Date.now()}`
+            : `${baseUrl}/assets/offline.png`;
+
         const imageAlt = `Ao Vivo: ${camera.nome}`;
         const imageWidth = '1280';
         const imageHeight = '720';
         const imageType = 'image/jpeg';
+        
+        // Determina o status para injeção no HTML
+        const isOnline = camera.status === 'online';
+        const statusText = isOnline ? 'Online' : 'Offline';
+        const statusColorClass = isOnline ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-bold';
+        const dotColorClass = isOnline ? 'bg-emerald-500' : 'bg-red-500';
+        const pingClass = isOnline ? 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75' : 'hidden';
 
         // Substituição Simples de Meta Tags
         html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
@@ -191,6 +205,16 @@ const serveCameraPage = (req, res) => {
         html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
         html = html.replace(/<meta name="twitter:image:alt" content="[^"]*">/, `<meta name="twitter:image:alt" content="${imageAlt}">`);
 
+        // INJEÇÃO DE STATUS NO HTML (SSR)
+        // Substitui o texto "Verificando status..."
+        html = html.replace('Verificando status...', statusText);
+        // Substitui a classe do subtítulo (cor do texto)
+        html = html.replace('text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide', `text-sm font-medium ${statusColorClass} tracking-wide`);
+        // Substitui a classe do ponto de status (dot)
+        html = html.replace('bg-gray-300 dark:bg-gray-600', dotColorClass);
+        // Substitui a classe do ping (mostra se online)
+        html = html.replace('animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden', pingClass);
+
         if (!/og:image:type/.test(html)) {
             html = html.replace('</head>', `<meta property="og:image:type" content="${imageType}">\n</head>`);
         }
@@ -205,7 +229,8 @@ const serveCameraPage = (req, res) => {
         }
 
         // Injeta o src inicial do feed para evitar estado estranho no carregamento
-        const initialFeedSrc = `/proxy/camera?code=${camera.codigo}`;
+        // Se estiver offline, já carrega a imagem offline direto
+        const initialFeedSrc = isOnline ? `/proxy/camera?code=${camera.codigo}` : `${baseUrl}/assets/offline.png`;
         html = html.replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${initialFeedSrc}"`);
     }
 
@@ -213,14 +238,19 @@ const serveCameraPage = (req, res) => {
 };
 
 // Rotas que usam SSR (devem vir ANTES do express.static)
-app.get('/camera.html', (req, res) => {
-    const code = req.query.code;
-    if (code && /^\d{6}$/.test(code)) {
-        return res.redirect(301, `/camera/${code}`);
-    }
+app.get('/camera.html', serveCameraPage);
+app.get('/camera', serveCameraPage);
+
+// Suporte a caminho /camera/:code com SSR direto (Sem redirect para query)
+// Isso melhora o SEO ao manter a URL limpa e única.
+app.get('/camera/:code', (req, res) => {
+    const code = req.params.code;
+    if (!/^\d{6}$/.test(code)) return res.redirect('/camera');
+
+    // Injeta o código na query para reutilizar a lógica de serveCameraPage
+    req.query.code = code;
     serveCameraPage(req, res);
 });
-app.get('/camera', serveCameraPage);
 
 // Rota para sitemap.xml dinâmico
 app.get('/sitemap.xml', (req, res) => {
