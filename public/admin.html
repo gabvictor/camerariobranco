@@ -308,7 +308,9 @@
                     }
 
                     const tempImg = new Image();
-                    const newSrc = `/proxy/camera/${code}?t=${Date.now()}`;
+                    // Adiciona o token na URL de preview também
+                    const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
+                    const newSrc = `/proxy/camera/${code}?t=${Date.now()}${tokenParam}`;
 
                     tempImg.onload = () => {
                         elements.modalPreviewImg.src = newSrc;
@@ -351,7 +353,16 @@
                 const levelText = camera.level === 3 ? ' (Privado)' : ' (Público)';
 
                 const cacheBuster = Math.round(Date.now() / 15000) * 15000;
-                const imageUrl = `/proxy/camera/${camera.codigo}?t=${cacheBuster}`;
+                // CORREÇÃO: Adiciona o token do admin para permitir visualização de câmeras privadas (nível 3)
+                // O token é obtido de forma síncrona se já estiver carregado, ou pode ser passado como argumento.
+                // Como createCameraRow é chamado após o loadCameras que verifica auth, o auth.currentUser deve estar disponível.
+                // Mas para garantir o token atualizado, idealmente deveríamos pegar antes. 
+                // Simplificação: vamos assumir que o usuário está logado e injetar um token global ou pegar via promise (mas src é string).
+                // Solução: O script já tem o token no escopo se passarmos para createCameraRow ou usarmos uma variável global.
+                
+                // Vamos usar window.adminToken que definiremos no loadCameras
+                const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
+                const imageUrl = `/proxy/camera/${camera.codigo}?t=${cacheBuster}${tokenParam}`;
 
                 div.innerHTML = `
                     <div class="flex items-center gap-4 overflow-hidden">
@@ -455,6 +466,8 @@
                     if (!user) throw new Error("Utilizador não autenticado.");
 
                     const idToken = await user.getIdToken();
+                    window.adminToken = idToken; // Armazena o token globalmente para uso nas imagens
+
                     const response = await fetch('/status-cameras', {
                         headers: { 'Authorization': `Bearer ${idToken}` }
                     });

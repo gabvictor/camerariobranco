@@ -169,6 +169,11 @@ const serveCameraPage = (req, res) => {
     // Tenta encontrar a câmera no cache ou na lista completa 
     const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code);
 
+    // SEGURANÇA: Bloquear acesso a câmeras de nível 3 (ocultas/privadas)
+    if (camera && camera.level === 3) {
+        return res.redirect('/');
+    }
+
     if (camera) {
         const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
         const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`;
@@ -411,6 +416,31 @@ const proxyCameraHandler = async (req, res) => {
     if (!code || !/^\d{6}$/.test(code)) {
         return res.status(400).send('Código da câmera inválido.');
     }
+
+    // SEGURANÇA: Verificar se a câmera é restrita (Nível 3)
+    // Busca nas informações carregadas (cameraInfo)
+    const camera = cameraInfo.find(c => c.codigo === code);
+    if (camera && camera.level === 3) {
+        // Se a câmera for restrita, verificamos se há um token de admin na query
+        const token = req.query.token;
+        let isAdmin = false;
+
+        if (token) {
+            try {
+                const decodedToken = await admin.auth().verifyIdToken(token);
+                if (decodedToken.email === ADMIN_EMAIL) {
+                    isAdmin = true;
+                }
+            } catch (error) {
+                // Token inválido, mantém isAdmin = false
+            }
+        }
+
+        if (!isAdmin) {
+            return res.status(403).send('Acesso negado a esta câmera.');
+        }
+    }
+
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
     try {
         const response = await axios.get(url, { 
