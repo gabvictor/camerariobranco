@@ -197,12 +197,13 @@ async function initializeCameraLogic(user) {
     const params = new URLSearchParams(window.location.search);
     let cameraCode = params.get('code');
 
-    // Fallback: Tenta extrair da URL path se não houver query param (ex: /camera/001048)
+    // Se não encontrou na query string, tenta extrair da URL amigável /camera/:code
     if (!cameraCode) {
-        const pathSegments = window.location.pathname.split('/');
-        const lastSegment = pathSegments[pathSegments.length - 1];
-        if (/^\d{6}$/.test(lastSegment)) {
-            cameraCode = lastSegment;
+        const pathParts = window.location.pathname.split('/');
+        // Procura por um segmento que seja exatamente 6 dígitos
+        const codeInPath = pathParts.find(part => /^\d{6}$/.test(part));
+        if (codeInPath) {
+            cameraCode = codeInPath;
         }
     }
 
