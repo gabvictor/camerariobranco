@@ -131,89 +131,126 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- SSR: Renderização do Lado do Servidor para Câmeras --- 
- // OTIMIZAÇÃO: Ler o template apenas uma vez na inicialização para performance 
- // NOTA: Para desenvolvimento, vamos ler sempre o arquivo para refletir mudanças 
- let cameraTemplate = ''; 
- try { 
-     cameraTemplate = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8'); 
- } catch (err) { 
-     console.error('Erro fatal ao ler o template camera.html na inicialização:', err); 
- } 
- 
- const serveCameraPage = (req, res) => { 
-     const code = req.query.code; 
- 
-     // Determinar a URL base dinamicamente (para suportar localhost e produção) 
-     const protocol = req.headers['x-forwarded-proto'] || req.protocol; 
-     const host = req.get('host'); 
-     const baseUrl = `${protocol}://${host}`; 
- 
-     // SEMPRE ler o arquivo atualizado para garantir que mudanças no HTML sejam refletidas 
-     // Em produção, isso poderia ser revertido para usar o cache 'cameraTemplate' 
-     let html = ''; 
-     try { 
-         html = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8'); 
-     } catch (err) { 
-         console.error('Erro ao ler camera.html:', err); 
-         return res.status(500).send('Erro interno ao carregar a página.'); 
-     } 
- 
-     // Tenta encontrar a câmera no cache ou na lista completa 
-     const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code); 
- 
-     if (camera) { 
-         const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`; 
-         const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`; 
-         const canonicalUrl = `${baseUrl}/camera/${camera.codigo}`; 
-         
-         // Lógica preferida: Verifica status e adiciona timestamp para evitar cache da imagem no Zap/Telegram 
-         const imageUrl = camera.status === 'online' 
-             ? `${baseUrl}/proxy/camera?code=${camera.codigo}&t=${Date.now()}` 
-             : `${baseUrl}/assets/icone.png`; 
- 
-         // Substituição Simples de Meta Tags 
-         html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`); 
-         html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`); 
-         html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`); 
-         html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`); 
-         html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`); 
-         html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
+// --- SSR: Renderização do Lado do Servidor para Câmeras ---
+// OTIMIZAÇÃO: Ler o template apenas uma vez na inicialização para performance
+// NOTA: Para desenvolvimento, vamos ler sempre o arquivo para refletir mudanças
+let cameraTemplate = '';
+try {
+    cameraTemplate = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8');
+} catch (err) {
+    console.error('Erro fatal ao ler o template camera.html na inicialização:', err);
+}
 
-         // --- INJEÇÃO DE STATUS NO HTML (SSR) - MANTIDO PARA CORRIGIR STATUS OFFLINE ---
+const serveCameraPage = (req, res) => {
+    const code = req.query.code;
+
+    // Determinar a URL base dinamicamente (para suportar localhost e produção)
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+
+    // SEMPRE ler o arquivo atualizado para garantir que mudanças no HTML sejam refletidas
+    // Em produção, isso poderia ser revertido para usar o cache 'cameraTemplate'
+    let html = '';
+    try {
+        html = fs.readFileSync(path.join(PUBLIC_FOLDER, 'camera.html'), 'utf8');
+    } catch (err) {
+        console.error('Erro ao ler camera.html:', err);
+        return res.status(500).send('Erro interno ao carregar a página.');
+    }
+
+    // Tenta encontrar a câmera no cache ou na lista completa
+    const camera = cachedCameraStatus.find(c => c.codigo === code) || cameraInfo.find(c => c.codigo === code);
+
+    if (camera) {
+        const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
+        const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`;
+        const canonicalUrl = `${baseUrl}/camera/${camera.codigo}`;
+        const requestedUrl = `${baseUrl}${req.originalUrl}`;
+        
+        // Lógica Inteligente de Imagem:
+        // 1. Se estiver ONLINE, usa o proxy com timestamp para "quebrar" o cache do WhatsApp/Telegram e mostrar a imagem atual.
+        // 2. Se estiver OFFLINE, usa diretamente a imagem estática de erro, economizando requisições.
+        const imageUrl = camera.status === 'online'
+            ? `${baseUrl}/proxy/camera?code=${camera.codigo}&t=${Date.now()}`
+            : `${baseUrl}/assets/offline.png`;
+
+        const imageAlt = `Ao Vivo: ${camera.nome}`;
+        const imageWidth = '1280';
+        const imageHeight = '720';
+        const imageType = 'image/jpeg';
+        
+        // Determina o status para injeção no HTML
         const isOnline = camera.status === 'online';
         const statusText = isOnline ? 'Online' : 'Offline';
         const statusColorClass = isOnline ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-bold';
         const dotColorClass = isOnline ? 'bg-emerald-500' : 'bg-red-500';
         const pingClass = isOnline ? 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75' : 'hidden';
 
+        // Substituição Simples de Meta Tags
+        html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+        html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`);
+        html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${canonicalUrl}">`);
+        html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${title}">`);
+        html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${description}">`);
+        html = html.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${canonicalUrl}">`);
+        html = html.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${imageUrl}">`);
+        html = html.replace(/<meta property="og:image:secure_url" content="[^"]*">/, `<meta property="og:image:secure_url" content="${imageUrl}">`);
+        html = html.replace(/<meta property="og:image:type" content="[^"]*">/, `<meta property="og:image:type" content="${imageType}">`);
+        html = html.replace(/<meta property="og:image:width" content="[^"]*">/, `<meta property="og:image:width" content="${imageWidth}">`);
+        html = html.replace(/<meta property="og:image:height" content="[^"]*">/, `<meta property="og:image:height" content="${imageHeight}">`);
+        html = html.replace(/<meta property="twitter:title" content="[^"]*">/, `<meta property="twitter:title" content="${title}">`);
+        html = html.replace(/<meta property="twitter:description" content="[^"]*">/, `<meta property="twitter:description" content="${description}">`);
+        html = html.replace(/<meta property="twitter:url" content="[^"]*">/, `<meta property="twitter:url" content="${canonicalUrl}">`);
+        html = html.replace(/<meta property="twitter:image" content="[^"]*">/, `<meta property="twitter:image" content="${imageUrl}">`);
+        html = html.replace(/<meta name="twitter:image:alt" content="[^"]*">/, `<meta name="twitter:image:alt" content="${imageAlt}">`);
+
+        // INJEÇÃO DE STATUS NO HTML (SSR)
+        // Substitui o texto "Verificando status..."
         html = html.replace('Verificando status...', statusText);
+        // Substitui a classe do subtítulo (cor do texto)
         html = html.replace('text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide', `text-sm font-medium ${statusColorClass} tracking-wide`);
+        // Substitui a classe do ponto de status (dot)
         html = html.replace('bg-gray-300 dark:bg-gray-600', dotColorClass);
+        // Substitui a classe do ping (mostra se online)
         html = html.replace('animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden', pingClass);
-        
+
+        if (!/og:image:type/.test(html)) {
+            html = html.replace('</head>', `<meta property="og:image:type" content="${imageType}">\n</head>`);
+        }
+        if (!/og:image:width/.test(html)) {
+            html = html.replace('</head>', `<meta property="og:image:width" content="${imageWidth}">\n</head>`);
+        }
+        if (!/og:image:height/.test(html)) {
+            html = html.replace('</head>', `<meta property="og:image:height" content="${imageHeight}">\n</head>`);
+        }
+        if (!/twitter:image:alt/.test(html)) {
+            html = html.replace('</head>', `<meta name="twitter:image:alt" content="${imageAlt}">\n</head>`);
+        }
+
         // Injeta o src inicial do feed para evitar estado estranho no carregamento
-        const initialFeedSrc = isOnline ? `/proxy/camera?code=${camera.codigo}` : `${baseUrl}/assets/icone.png`;
+        // Se estiver offline, já carrega a imagem offline direto
+        const initialFeedSrc = isOnline ? `/proxy/camera?code=${camera.codigo}` : `${baseUrl}/assets/offline.png`;
         html = html.replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${initialFeedSrc}"`);
-     } 
- 
-     res.send(html); 
- }; 
- 
- // Rotas que usam SSR (devem vir ANTES do express.static) 
- app.get('/camera.html', serveCameraPage); 
- app.get('/camera', serveCameraPage); 
- 
- // Suporte a caminho /camera/:code com SSR direto (Sem redirect para query) 
- // Isso melhora o SEO ao manter a URL limpa e única. 
- app.get('/camera/:code', (req, res) => { 
-     const code = req.params.code; 
-     if (!/^\d{6}$/.test(code)) return res.redirect('/camera'); 
- 
-     // Injeta o código na query para reutilizar a lógica de serveCameraPage 
-     req.query.code = code; 
-     serveCameraPage(req, res); 
- });
+    }
+
+    res.send(html);
+};
+
+// Rotas que usam SSR (devem vir ANTES do express.static)
+app.get('/camera.html', serveCameraPage);
+app.get('/camera', serveCameraPage);
+
+// Suporte a caminho /camera/:code com SSR direto (Sem redirect para query)
+// Isso melhora o SEO ao manter a URL limpa e única.
+app.get('/camera/:code', (req, res) => {
+    const code = req.params.code;
+    if (!/^\d{6}$/.test(code)) return res.redirect('/camera');
+
+    // Injeta o código na query para reutilizar a lógica de serveCameraPage
+    req.query.code = code;
+    serveCameraPage(req, res);
+});
 
 // Rota para sitemap.xml dinâmico
 app.get('/sitemap.xml', (req, res) => {
@@ -356,21 +393,14 @@ const verifyOptionalAdmin = async (req, res, next) => {
 
 // --- Rotas da API ---
 
-const proxyCameraHandler = async (req, res) => {
-    const code = req.params.code || req.query.code;
+app.get('/proxy/camera', async (req, res) => {
+    const { code } = req.query;
     if (!code || !/^\d{6}$/.test(code)) {
         return res.status(400).send('Código da câmera inválido.');
     }
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
     try {
-        const response = await axios.get(url, { 
-            responseType: 'stream', 
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://cameras.riobranco.ac.gov.br/'
-            }
-        });
+        const response = await axios.get(url, { responseType: 'stream', timeout: 8000 });
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
@@ -381,10 +411,7 @@ const proxyCameraHandler = async (req, res) => {
         METRICS.lastProxyFailureAt = Date.now();
         res.status(502).sendFile(ERROR_IMAGE_PATH);
     }
-};
-
-app.get('/proxy/camera', proxyCameraHandler);
-app.get('/proxy/camera/:code', proxyCameraHandler);
+});
 
 // --- Endpoints de Monitoramento ---
 app.get('/health', (req, res) => {
