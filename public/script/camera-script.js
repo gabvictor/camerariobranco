@@ -194,10 +194,11 @@ function initializeComments(user, cameraCode) {
  * Lógica Principal da Câmera
  */
 async function initializeCameraLogic(user) {
-    const params = new URLSearchParams(window.location.search);
-    let cameraCode = params.get('code');
+    // --- 0. Obtenção do Código da Câmera (Prioridade: Injeção do Servidor > Query Param > URL Path) --- 
+    const urlParams = new URLSearchParams(window.location.search);
+    let cameraCode = window.SERVER_CAM_CODE || urlParams.get('code');
 
-    // Se não encontrou na query string, tenta extrair da URL amigável /camera/:code
+    // Se não encontrou na variável global nem na query string, tenta extrair da URL amigável /camera/:code
     if (!cameraCode) {
         const pathParts = window.location.pathname.split('/');
         // Procura por um segmento que seja exatamente 6 dígitos
