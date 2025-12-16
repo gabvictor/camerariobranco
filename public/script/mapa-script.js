@@ -27,17 +27,48 @@ async function initializeMapLogic() {
 
     // Locate Me Logic
     const locateBtn = document.getElementById('locate-btn');
+    let locationMarker = null;
+    let locationCircle = null;
+    let locationTimeout = null;
+
     if (locateBtn) {
         locateBtn.addEventListener('click', () => {
+            // Clear existing timeout if user clicks again
+            if (locationTimeout) {
+                clearTimeout(locationTimeout);
+                locationTimeout = null;
+            }
             map.locate({ setView: true, maxZoom: 16 });
         });
         
         map.on('locationfound', (e) => {
-            // Remove existing location markers if any (optional, but good practice)
-            // For simplicity, we just add new ones
-            L.marker(e.latlng).addTo(map)
+            // Remove existing location markers if any
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+                locationMarker = null;
+            }
+            if (locationCircle) {
+                map.removeLayer(locationCircle);
+                locationCircle = null;
+            }
+
+            locationMarker = L.marker(e.latlng).addTo(map)
                 .bindPopup("Você está aqui").openPopup();
-            L.circle(e.latlng, e.accuracy).addTo(map);
+            locationCircle = L.circle(e.latlng, e.accuracy).addTo(map);
+
+            // Remove location after 1 minute (60000 ms)
+            locationTimeout = setTimeout(() => {
+                if (locationMarker) {
+                    map.removeLayer(locationMarker);
+                    locationMarker = null;
+                }
+                if (locationCircle) {
+                    map.removeLayer(locationCircle);
+                    locationCircle = null;
+                }
+                // Optional: reset view or notify user? 
+                // For now, just silently remove as requested.
+            }, 60000);
         });
 
         map.on('locationerror', (e) => {

@@ -69,7 +69,7 @@ function initializeComments(user, cameraCode) {
         commentForm.style.display = 'none';
         const loginMsg = document.createElement('div');
         loginMsg.className = "p-4 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700";
-        loginMsg.innerHTML = "<a href='/login.html' class='text-indigo-600 hover:underline font-medium'>Faça login</a> para participar do chat.";
+        loginMsg.innerHTML = "<a href='/login' class='text-indigo-600 hover:underline font-medium'>Faça login</a> para participar do chat.";
         commentForm.parentNode.appendChild(loginMsg);
     }
 
@@ -330,7 +330,7 @@ function setupCameraInterface(camera, el, cameraCode) {
     // Link do Mapa
     if(el.mapLink) {
         if (camera.coords) { 
-            el.mapLink.href = `/mapa.html?code=${cameraCode}`; 
+            el.mapLink.href = `/mapa?code=${cameraCode}`; 
             el.mapLink.removeAttribute('disabled');
             el.mapLink.classList.remove('opacity-50', 'cursor-not-allowed');
         } else { 

@@ -1,177 +1,134 @@
 {
-  "version": 1.0,
-  "lastUpdated": "Setembro de 2025",
+  "version": 2.0,
+  "lastUpdated": "Dezembro de 2025",
   "content": [
     {
       "type": "date",
-      "text": "Última atualização: Setembro de 2025"
+      "text": "Última atualização: Dezembro de 2025"
     },
     {
       "type": "paragraph",
-      "text": "Este aplicativo é um projeto independente. Ao criar uma conta e utilizar este serviço, você (\"Usuário\") concorda com os seguintes Termos e a nossa Política de Privacidade."
+      "text": "O CamRB é um projeto independente de utilidade pública. Ao acessar, criar uma conta ou utilizar este serviço, você (\"Usuário\") concorda integralmente com os Termos de Uso e Política de Privacidade descritos abaixo."
     },
     {
       "type": "title",
-      "text": "1. Natureza do Serviço"
+      "text": "1. Natureza do Serviço e Fonte das Imagens"
     },
     {
       "type": "paragraph",
-      "text": "Este aplicativo funciona como um agregador, utilizando URLs de acesso público para exibir um fluxo de imagens atualizadas de câmaras de monitorização, simulando uma transmissão em direto. O desenvolvedor não possui, não opera, e não tem qualquer afiliação com as câmaras ou com as entidades responsáveis pela sua operação."
-    },
-    {
-      "type": "title",
-      "text": "2. Isenção de Responsabilidade"
+      "text": "O CamRB funciona exclusivamente como um AGREGADOR TECNOLÓGICO. Nós não possuímos, não operamos, não mantemos e não temos controle direto sobre nenhuma das câmeras exibidas."
     },
     {
       "type": "paragraph",
-      "text": "O desenvolvedor não tem controlo sobre o conteúdo ou disponibilidade das transmissões. Portanto, não se responsabiliza por qualquer imagem ou evento visualizado. Este aplicativo não possui qualquer vínculo governamental ou com a Prefeitura de Rio Branco."
-    },
-    {
-      "type": "title",
-      "text": "3. Responsabilidade e Conduta do Usuário"
-    },
-    {
-      "type": "paragraph",
-      "text": "O Usuário assume total responsabilidade pelo uso das imagens e por todo o conteúdo que publicar na plataforma, como comentários. É estritamente proibido o uso das imagens para fins ilícitos, difamatórios, comerciais ou que violem a privacidade de terceiros."
-    },
-    {
-      "type": "paragraph",
-      "text": "Ao utilizar a funcionalidade de comentários, o Usuário concorda em não publicar conteúdo que seja:"
+      "text": "Todas as imagens são de domínio público e são retransmitidas diretamente dos portais oficiais da Prefeitura de Rio Branco e órgãos competentes, incluindo, mas não se limitando a:"
     },
     {
       "type": "listItem",
-      "text": "Abusivo, odioso, assediante, ou que promova discurso de ódio;"
+      "text": "Portal De Olho no Trânsito (deolhonotransito.riobranco.ac.gov.br)"
     },
     {
       "type": "listItem",
-      "text": "Spam, publicidade não solicitada ou correntes;"
+      "text": "Portal De Olho no Rio (deolhonorio.riobranco.ac.gov.br)"
     },
     {
       "type": "listItem",
-      "text": "Que contenha informações pessoais de terceiros sem consentimento;"
+      "text": "Portal De Olho na Obra (deolhonaobra.riobranco.ac.gov.br)"
+    },
+    {
+      "type": "paragraph",
+      "text": "O CamRB atua apenas facilitando o acesso a essas informações que já são públicas, organizando-as em uma interface unificada."
+    },
+    {
+      "type": "title",
+      "text": "2. Isenção de Responsabilidade e Disponibilidade"
+    },
+    {
+      "type": "paragraph",
+      "text": "Como o CamRB apenas retransmite sinais de terceiros, não garantimos a disponibilidade contínua das imagens. Falhas de energia, manutenção técnica ou interrupções de internet na fonte original (Prefeitura) resultarão na indisponibilidade da câmera em nossa plataforma."
+    },
+    {
+      "type": "paragraph",
+      "text": "O desenvolvedor não se responsabiliza por:"
     },
     {
       "type": "listItem",
-      "text": "Ilegal, que promova atividades ilegais ou que infrinja direitos de autor."
-    },
-    {
-      "type": "paragraph",
-      "text": "Para promover a responsabilidade e a segurança na plataforma, a visualização do conteúdo pode incluir uma marca d'água discreta com um identificador de sua conta. O Usuário concorda em não tentar remover, ocultar ou alterar esta marca d'água."
-    },
-    {
-      "type": "title",
-      "text": "4. Direito de Remoção de Conteúdo"
-    },
-    {
-      "type": "paragraph",
-      "text": "O desenvolvedor reserva-se o direito de remover qualquer comentário ou conteúdo gerado pelo usuário, sem aviso prévio, por qualquer motivo, incluindo, mas não se limitando a, violações destes termos."
-    },
-    {
-      "type": "title",
-      "text": "5. Restrição de Idade"
-    },
-    {
-      "type": "paragraph",
-      "text": "Para criar uma conta e utilizar este serviço, o Usuário deve ter pelo menos 18 anos de idade ou a idade de maioridade legal na sua jurisdição."
-    },
-    {
-      "type": "title",
-      "text": "6. Política de Privacidade"
-    },
-    {
-      "type": "paragraph",
-      "text": "Nós levamos a sua privacidade a sério. As informações que recolhemos são:"
+      "text": "Conteúdo visualizado nas transmissões;"
     },
     {
       "type": "listItem",
-      "boldPrefix": "Nickname:",
-      "text": "Utilizado para personalizar a sua experiência no aplicativo."
+      "text": "Decisões tomadas com base nas imagens (ex: rotas de trânsito);"
     },
     {
       "type": "listItem",
-      "boldPrefix": "E-mail e Palavra-passe:",
-      "text": "Utilizados exclusivamente para a criação e autenticação da sua conta. A sua palavra-passe é armazenada de forma encriptada."
-    },
-    {
-      "type": "paragraph",
-      "text": "Todos os dados de autenticação são geridos de forma segura através do serviço Firebase Authentication da Google. Não partilhamos as suas informações pessoais com terceiros."
+      "text": "Interrupções no serviço causadas por terceiros."
     },
     {
       "type": "title",
-      "text": "7. Publicidade e Cookies"
+      "text": "3. Uso Aceitável e Proibições"
     },
     {
       "type": "paragraph",
-      "text": "Este site utiliza o Google AdSense para exibir anúncios. O Google, como fornecedor terceirizado, utiliza cookies para exibir anúncios com base nas suas visitas anteriores a este site ou a outros sites na Internet."
+      "text": "O Usuário concorda em utilizar o serviço apenas para fins informativos pessoais. É estritamente proibido:"
     },
     {
-      "type": "paragraph",
-      "text": "Os usuários podem desativar a publicidade personalizada visitando as Configurações de Anúncios do Google."
+      "type": "listItem",
+      "text": "Utilizar as imagens para fins comerciais sem autorização;"
     },
     {
-      "type": "paragraph",
-      "text": "Ao utilizar este serviço, você reconhece e aceita que os anúncios exibidos ajudam a manter o projeto no ar gratuitamente."
+      "type": "listItem",
+      "text": "Utilizar as imagens para perseguir, assediar ou monitorar ilegalmente indivíduos;"
     },
     {
-      "type": "paragraph",
-      "boldPrefix": "Exclusão de Dados:",
-      "text": "O Usuário pode solicitar a exclusão de sua conta e dados associados a qualquer momento através da tela de perfil no aplicativo. A exclusão da conta removerá permanentemente os dados de autenticação (e-mail, nickname). Comentários feitos pelo usuário serão anonimizados ou excluídos."
+      "type": "listItem",
+      "text": "Tentar contornar as proteções de segurança do site;"
+    },
+    {
+      "type": "listItem",
+      "text": "Realizar engenharia reversa ou sobrecarregar nossos servidores (DDoS)."
     },
     {
       "type": "title",
-      "text": "8. Segurança da Conta"
+      "text": "4. Privacidade e Dados (LGPD)"
     },
     {
       "type": "paragraph",
-      "text": "O Usuário é responsável por manter a confidencialidade da sua palavra-passe e por todas as atividades que ocorram na sua conta. O desenvolvedor não será responsável por qualquer perda ou dano resultante do incumprimento desta obrigação de segurança."
+      "text": "Respeitamos sua privacidade e operamos em conformidade com as boas práticas de proteção de dados:"
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Não Gravamos:",
+      "text": "O CamRB não armazena histórico de vídeos ou imagens das câmeras. O serviço é estritamente 'ao vivo'."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Dados de Cadastro:",
+      "text": "Se você criar uma conta, armazenamos apenas seu e-mail e nome para autenticação via Google Firebase. Não compartilhamos esses dados com terceiros."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Cookies e Analytics:",
+      "text": "Utilizamos cookies básicos para lembrar suas preferências (como tema escuro) e Google Analytics para estatísticas anônimas de acesso."
     },
     {
       "type": "title",
-      "text": "9. Disponibilidade do Serviço"
+      "text": "5. Contato e Suporte"
     },
     {
       "type": "paragraph",
-      "text": "O serviço é fornecido \"como está\". Não há garantias de que os URLs de acesso às câmaras estarão sempre funcionais."
+      "text": "Para reportar falhas, solicitar a remoção de conteúdo, esclarecer dúvidas ou tratar de assuntos relacionados à LGPD, entre em contato exclusivamente pelo e-mail oficial:"
+    },
+    {
+      "type": "paragraph",
+      "boldPrefix": "E-mail:",
+      "text": "suportecamrb@gmail.com"
     },
     {
       "type": "title",
-      "text": "10. Propriedade Intelectual"
+      "text": "6. Alterações nos Termos"
     },
     {
       "type": "paragraph",
-      "text": "O software e o design deste aplicativo são propriedade do desenvolvedor. As imagens exibidas são propriedade dos seus respetivos operadores."
-    },
-    {
-      "type": "title",
-      "text": "11. Modificações nos Termos"
-    },
-    {
-      "type": "paragraph",
-      "text": "O desenvolvedor reserva-se o direito de modificar estes termos a qualquer momento. A continuação do uso do aplicativo após qualquer alteração constitui a sua aceitação dos novos termos."
-    },
-    {
-      "type": "title",
-      "text": "12. Rescisão de Acesso"
-    },
-    {
-      "type": "paragraph",
-      "text": "O acesso de qualquer Usuário poderá ser bloqueado ou rescindido, sem aviso prévio, em caso de violação destes termos."
-    },
-    {
-      "type": "title",
-      "text": "13. Lei Aplicável"
-    },
-    {
-      "type": "paragraph",
-      "text": "Estes termos serão regidos pelas leis da República Federativa do Brasil."
-    },
-    {
-      "type": "title",
-      "text": "14. Contato"
-    },
-    {
-      "type": "paragraph",
-      "text": "Dúvidas sobre estes Termos? Entre em contato: seu-email-de-contato@dominio.com."
+      "text": "Reservamo-nos o direito de atualizar estes termos a qualquer momento para refletir mudanças na legislação ou no serviço. O uso continuado da plataforma implica na aceitação dos novos termos."
     }
   ]
 }

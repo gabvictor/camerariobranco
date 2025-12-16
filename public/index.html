@@ -87,11 +87,11 @@
                 <i data-lucide="home"></i>
                 <span>Início</span>
             </a>
-            <a href="/mapa.html" class="nav-item">
+            <a href="/mapa" class="nav-item">
                 <i data-lucide="map"></i>
                 <span>Mapa</span>
             </a>
-            <a href="https://github.com/gabvictor/CamRB" target="_blank" class="nav-item">
+            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="nav-item">
                 <div
                     class="bg-indigo-600 text-white p-2 rounded-full -mt-6 shadow-lg border-4 border-gray-100 dark:border-gray-900">
                     <i data-lucide="github" class="w-5 h-5"></i>
@@ -102,7 +102,7 @@
                 <i data-lucide="search"></i>
                 <span>Buscar</span>
             </a>
-            <a href="/perfil.html" class="nav-item">
+            <a href="/perfil" class="nav-item">
                 <i data-lucide="user"></i>
                 <span>Perfil</span>
             </a>
@@ -139,17 +139,22 @@
         <div class="container mx-auto px-4 py-8 flex-grow">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Câmeras de Rio Branco
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">CamRB
                     </h1>
-                    <p class="text-gray-500 dark:text-gray-400 mt-1">Bem-vindo(a), <span id="username-display"
+                    <div class="flex items-center gap-2 mt-1">
+                        <p class="text-gray-500 dark:text-gray-400">Bem-vindo(a), <span id="username-display"
                             class="font-semibold text-indigo-600 dark:text-indigo-400">Visitante</span>!</p>
+                        <div id="weather-widget" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 ml-2 animate-fade-in">
+                            <!-- Weather injected via JS -->
+                        </div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4">
                     <span id="last-updated" class="text-xs text-gray-400 whitespace-nowrap hidden sm:inline"></span>
-                    <a href="/mapa.html" title="Ver no mapa"
+                    <a href="/mapa" title="Ver no mapa"
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all hover:text-indigo-600 dark:text-gray-200"><i
                             data-lucide="map" class="w-5 h-5"></i></a>
-                    <a id="dashboard-link" href="/dashboard.html" title="Dashboard"
+                    <a id="dashboard-link" href="/dashboard" title="Dashboard"
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all hidden text-indigo-600">
                         <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                     </a>
@@ -175,7 +180,7 @@
                         <p class="text-indigo-100 text-sm">Acesso mais rápido, notificações e mapa exclusivo.</p>
                     </div>
                 </div>
-                <a href="https://github.com/gabvictor/CamRB" target="_blank"
+                <a href="https://github.com/gabvictor/CamRB/releases" target="_blank"
                     class="px-6 py-2 bg-white text-indigo-600 font-bold rounded-lg shadow hover:bg-indigo-50 transition-colors whitespace-nowrap">
                     Ver no GitHub
                 </a>
@@ -304,7 +309,7 @@
                             </p>
 
                             <div class="flex gap-4 mt-6">
-                                <a href="https://github.com/gabvictor/CamRB" target="_blank"
+                                <a href="https://github.com/gabvictor/camerariobranco" target="_blank"
                                     class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     <span class="sr-only">GitHub</span> <i data-lucide="github" class="w-5 h-5"></i>
                                 </a>
@@ -313,7 +318,7 @@
                                     <span class="sr-only">Instagram</span>
                                     <i data-lucide="instagram" class="w-5 h-5"></i>
                                 </a>
-                                <a href="mailto:contato@camerasriobranco.site"
+                                <a href="mailto:suportecamrb@gmail.com"
                                     class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     <span class="sr-only">Email</span>
                                     <i data-lucide="mail" class="w-5 h-5"></i>
@@ -326,13 +331,15 @@
                                 class="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
                                 Links Úteis</h3>
                             <ul class="space-y-3 text-sm inline-block text-left md:text-right">
-                                <li><a href="https://github.com/gabvictor/CamRB" target="_blank"
+                                <li><a href="https://github.com/gabvictor/camerariobranco" target="_blank"
                                         class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Código
                                         Fonte</a></li>
-                                <li><a href="/termos.html"
+                                <li><a href="/sobre"
+                                        class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a></li>
+                                <li><a href="/termos"
                                         class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos
                                         de Uso e Privacidade</a></li>
-                                <li><a id="admin-link" href="/admin.html"
+                                <li><a id="admin-link" href="/admin"
                                         class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden">Área
                                         Admin</a></li>
                             </ul>

@@ -8,7 +8,7 @@
 
     <title>Login Seguro | Câmeras Rio Branco</title>
     <meta name="description" content="Acesse sua conta para salvar favoritos e comentar. Projeto independente.">
-    <link rel="canonical" href="https://camerasriobranco.site/login.html">
+    <link rel="canonical" href="https://camerasriobranco.site/login">
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6B72KFF66"></script>
@@ -271,6 +271,12 @@
                             class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Crie
                             grátis</button></p>
                 </footer>
+                
+                <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400 flex justify-center gap-4">
+                    <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
+                    <span>&bull;</span>
+                    <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
+                </div>
             </div>
         </div>
     </div>
@@ -470,7 +476,7 @@
             handleAuth(elements.forms.login, async () => {
                 const cred = await signInWithEmailAndPassword(auth, email, password);
                 if (cred.user.emailVerified) {
-                    window.location.href = '/index.html';
+                    window.location.href = '/';
                 } else {
                     userForVerification = cred.user;
                     switchView('verification');
@@ -522,7 +528,7 @@
         // Auth Listener
         onAuthStateChanged(auth, (user) => {
             if (user && user.emailVerified) {
-                window.location.href = '/index.html';
+                window.location.href = '/';
             }
         });
 

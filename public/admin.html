@@ -237,6 +237,19 @@
                     <div class="loader mx-auto"></div>
                 </div>
             </div>
+
+            <footer class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6 pb-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
+                        <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
+                        <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        &copy; 2025 CamRB.
+                    </p>
+                </div>
+            </footer>
         </div>
         <div id="toast"></div>
     </div>
@@ -250,7 +263,7 @@
                 document.getElementById('content-wrapper').style.display = 'block';
                 initializeAdminLogic();
             } else {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
             }
         });
 

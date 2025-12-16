@@ -54,11 +54,11 @@
                         <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
                         <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
                     </button>
-                    <a href="/metrics.html" title="Métricas do sistema"
+                    <a href="/metrics" title="Métricas do sistema"
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i data-lucide="activity" class="w-5 h-5"></i>
                     </a>
-                    <a href="/admin.html" title="Voltar ao painel de câmeras"
+                    <a href="/admin" title="Voltar ao painel de câmeras"
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i data-lucide="camera" class="w-5 h-5"></i>
                     </a>
@@ -96,20 +96,32 @@
                             <p class="text-xs text-gray-500 dark:text-gray-400">Uptime, requisições, proxy e scanner</p>
                         </div>
                     </div>
-                    <a href="/metrics.html" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
+                    <a href="/metrics" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
                         Abrir
                     </a>
                 </div>
             </div>
 
-            <!-- Gráfico -->
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">Novos Cadastros (Últimos 7 dias)</h2>
-                <div class="h-80">
+            <!-- Gráfico de Cadastros -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-lg font-bold mb-4">Novos Usuários (Últimos 7 dias)</h2>
+                <div class="relative h-64">
                     <canvas id="signups-chart"></canvas>
                 </div>
             </div>
 
+            <footer class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6 pb-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
+                        <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
+                        <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        &copy; 2025 CamRB.
+                    </p>
+                </div>
+            </footer>
         </div>
     </div>
 
@@ -128,7 +140,7 @@
             } else if (user) {
                 // Non-admin user, do nothing, page remains blank.
             } else {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
             }
         });
 

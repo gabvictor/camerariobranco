@@ -324,6 +324,12 @@ app.get('/sitemap.xml', (req, res) => {
         <lastmod>${lastMod}</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/sobre.html</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
     </url>`;
 
     // Páginas dinâmicas das câmeras
@@ -515,7 +521,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.get('/metrics', (req, res) => {
+app.get('/api/simple-metrics', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json(METRICS);
 });
@@ -708,6 +714,24 @@ function runScheduledScan() {
         setTimeout(runScheduledScan, delay);
     });
 }
+
+// --- Clean URL Routes ---
+app.get('/camera/:code', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html')));
+app.get('/camera', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html')));
+app.get('/sobre', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'sobre.html')));
+app.get('/mapa', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'mapa.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'admin.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'login.html')));
+app.get('/metrics', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'metrics.html')));
+app.get('/termos', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'termos.html')));
+app.get('/perfil', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'perfil.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'dashboard.html')));
+app.get('/index', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'index.html')));
+
+// --- 404 Handler (Catch-all) ---
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(PUBLIC_FOLDER, '404.html'));
+});
 
 async function startServer() {
     await loadCameraInfoFromFirestore();
