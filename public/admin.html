@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="icon" href="https://camerasriobranco.site/assets/icone.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://camerasriobranco.site/assets/icone.png">
     <title>Painel Administrativo Segura | Câmeras Rio Branco</title>
     <meta name="robots" content="noindex, nofollow">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -337,7 +338,7 @@
                     };
 
                     tempImg.onerror = () => {
-                        elements.modalPreviewImg.src = 'https://placehold.co/400x300/e0e0e0/757575?text=Offline';
+                        elements.modalPreviewImg.src = '/assets/offline.png';
                         if (isFirstLoad) {
                             elements.modalLoader.classList.add('hidden');
                             elements.modalPreviewImg.style.display = 'block';

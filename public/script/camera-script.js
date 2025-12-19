@@ -1,4 +1,5 @@
 import { auth, db } from "./firebase-config.js";
+import { fetchWeather } from "./weather.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, addDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -52,6 +53,9 @@ onAuthStateChanged(auth, (user) => {
     // console.log("Auth State Changed:", user ? "Logged In" : "Logged Out");
     initializeCameraLogic(user);
 });
+
+// Inicializa widget de clima
+fetchWeather();
 
 /**
  * Gerencia a lógica de comentários (Firestore)

@@ -138,14 +138,14 @@
             </div>
         </div>
         <div class="container mx-auto px-4 py-8 flex-grow">
-            <header class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <header class="flex flex-row flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">CamRB
                     </h1>
                     <div class="flex items-center gap-2 mt-1">
-                        <p class="text-gray-500 dark:text-gray-400">Bem-vindo(a), <span id="username-display"
-                            class="font-semibold text-indigo-600 dark:text-indigo-400">Visitante</span>!</p>
-                        <div id="weather-widget" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 ml-2 animate-fade-in">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Bem-vindo(a)<span id="username-display"
+                            class="font-semibold text-indigo-600 dark:text-indigo-400"></span>!</p>
+                        <div id="weather-widget" style="display: none;" class="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 ml-2 animate-fade-in">
                             <!-- Weather injected via JS -->
                         </div>
                     </div>
@@ -163,11 +163,37 @@
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200"><i
                             data-lucide="sun" class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon"
                             class="w-5 h-5 hidden dark:block"></i></button>
+                    
+                    <!-- Logout Button (Shown when logged in) -->
                     <button id="logout-btn" title="Sair"
-                        class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><i
+                        class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hidden"><i
                             data-lucide="log-out" class="w-5 h-5"></i></button>
+                    
+                    <!-- Login Button (Shown when logged out) -->
+                    <a id="login-btn" href="/login" title="Entrar"
+                        class="p-2.5 rounded-full bg-indigo-600 shadow-sm hover:shadow-md transition-all text-white hover:bg-indigo-700 hidden">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
+                    </a>
                 </div>
             </header>
+
+            <!-- Login Benefits Banner -->
+            <div id="login-benefits-banner" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 hidden">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                         <div class="bg-blue-100 dark:bg-blue-800 p-2 rounded-full text-blue-600 dark:text-blue-300">
+                            <i data-lucide="info" class="w-6 h-6"></i>
+                         </div>
+                         <div>
+                             <h3 class="font-bold text-blue-800 dark:text-blue-200">Faça login para uma experiência completa!</h3>
+                             <p class="text-sm text-blue-600 dark:text-blue-300">Salve suas câmeras favoritas e personalize sua visualização.</p>
+                         </div>
+                    </div>
+                    <a href="/login" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                        Fazer Login
+                    </a>
+                </div>
+            </div>
 
             <!-- App Download Banner -->
             <div

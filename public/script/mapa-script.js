@@ -1,4 +1,5 @@
 import { auth } from "./firebase-config.js";
+import { fetchWeather } from "./weather.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 onAuthStateChanged(auth, (user) => {
@@ -6,6 +7,7 @@ onAuthStateChanged(auth, (user) => {
     const mapWrapper = document.getElementById('map-wrapper');
     if (mapWrapper) mapWrapper.style.display = 'flex'; // Usando flex para layout correto
     initializeMapLogic();
+    fetchWeather();
 });
 
 async function initializeMapLogic() {

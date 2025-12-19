@@ -99,6 +99,7 @@ app.get('/.well-known/assetlinks.json', async (req, res) => {
         res.status(200).send(JSON.stringify(fallback));
     }
 });
+
 // --- FIM DA ROTA DE CORREÇÃO ---
 
 
