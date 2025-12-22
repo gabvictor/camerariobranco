@@ -17,18 +17,22 @@ service cloud.firestore {
     // Permite que um usuário leia e escreva apenas o seu próprio documento.
     match /userData/{userId} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
-      // Usuário só pode alterar campos não sensíveis do próprio documento
-      // Impede alterar 'role' e restringe a alteração aos campos permitidos
-      allow write: if request.auth != null
+      
+      // CREATE: Permite criar o documento se for o próprio usuário
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // UPDATE: Permite atualizar apenas campos permitidos
+      allow update: if request.auth != null
                    && request.auth.uid == userId
                    && !('role' in request.resource.data)
-                   && !request.resource.data.diff(resource.data).changedKeys().hasAny(['role'])
                    && request.resource.data.diff(resource.data).changedKeys().hasOnly([
                        'nickname',
                        'favoriteCameras',
                        'favorites',
                        'theme',
-                       'lastLoginAt'
+                       'lastLoginAt',
+                       'email',
+                       'photoURL'
                    ]);
     }
 

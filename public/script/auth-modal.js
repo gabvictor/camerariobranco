@@ -384,7 +384,7 @@ export function initAuthModal() {
             const userRef = doc(db, 'userData', user.uid);
             await setDoc(userRef, {
                 email: user.email,
-                lastLogin: serverTimestamp(),
+                lastLoginAt: serverTimestamp(),
                 // Only set these if they don't exist
             }, { merge: true });
 
