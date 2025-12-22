@@ -107,7 +107,35 @@
                         </div>
                     </div>
                 </div>
-                <!-- Outros cards de estatísticas podem ser adicionados aqui -->
+
+                <!-- Card Câmeras Totais -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full">
+                        <i data-lucide="camera" class="w-8 h-8 text-emerald-600 dark:text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Câmeras Totais</p>
+                        <div id="total-cameras-stat-container">
+                            <h2 id="total-cameras-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="total-cameras-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Usuários Ativos (24h) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-blue-100 dark:bg-blue-900/50 p-4 rounded-full">
+                        <i data-lucide="user-check" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Usuários Cadastrados Ativos (24h)</p>
+                <div id="active-users-stat-container">
+                    <h2 id="active-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="active-users-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Acesso às Métricas -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
@@ -123,6 +151,34 @@
                         Abrir
                     </a>
                 </div>
+
+                <!-- Card Visualizações (Hoje) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full">
+                        <i data-lucide="eye" class="w-8 h-8 text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Hoje)</p>
+                        <div id="views-today-stat-container">
+                            <h2 id="views-today-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="views-today-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Visualizações (Total) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-orange-100 dark:bg-orange-900/50 p-4 rounded-full">
+                        <i data-lucide="bar-chart-2" class="w-8 h-8 text-orange-600 dark:text-orange-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Total)</p>
+                        <div id="views-total-stat-container">
+                            <h2 id="views-total-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="views-total-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Gráfico de Cadastros -->
@@ -130,6 +186,25 @@
                 <h2 class="text-lg font-bold mb-4">Novos Usuários (Últimos 7 dias)</h2>
                 <div class="relative h-64">
                     <canvas id="signups-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Últimos Usuários Cadastrados -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-lg font-bold mb-4">Últimos Usuários Cadastrados</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Email</th>
+                                <th scope="col" class="px-6 py-3">Data de Cadastro</th>
+                                <th scope="col" class="px-6 py-3">Último Login</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-users-table-body">
+                            <!-- Rows will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -227,15 +302,46 @@
                     const stats = await response.json();
 
                     document.getElementById('total-users-stat').textContent = stats.totalUsers;
+                    document.getElementById('total-cameras-stat').textContent = stats.totalCameras;
+                    document.getElementById('active-users-stat').textContent = stats.activeUsers24h;
+                    document.getElementById('views-today-stat').textContent = stats.viewsToday;
+                    document.getElementById('views-total-stat').textContent = stats.totalViews;
+
+                    // Render Recent Users Table
+                    const tableBody = document.getElementById('recent-users-table-body');
+                    tableBody.innerHTML = '';
+                    stats.recentUsers.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600";
+                        row.innerHTML = `
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${user.email}</td>
+                            <td class="px-6 py-4">${new Date(user.creationTime).toLocaleString('pt-BR')}</td>
+                            <td class="px-6 py-4">${user.lastSignInTime ? new Date(user.lastSignInTime).toLocaleString('pt-BR') : 'Nunca'}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
                     renderChart(stats.signupsByDay);
 
                 } catch (error) {
                     console.error("Falha ao carregar estatísticas:", error);
                     document.getElementById('total-users-stat').textContent = 'Erro';
-                    // Poderia adicionar uma mensagem de erro mais explícita na UI aqui
+                    document.getElementById('total-cameras-stat').textContent = 'Erro';
+                    document.getElementById('active-users-stat').textContent = 'Erro';
+                    document.getElementById('views-today-stat').textContent = 'Erro';
+                    document.getElementById('views-total-stat').textContent = 'Erro';
                 } finally {
                     document.getElementById('total-users-loader').style.display = 'none';
                     document.getElementById('total-users-stat').style.display = 'block';
+                    document.getElementById('total-cameras-loader').style.display = 'none';
+                    document.getElementById('total-cameras-stat').style.display = 'block';
+                    document.getElementById('active-users-loader').style.display = 'none';
+                    document.getElementById('active-users-stat').style.display = 'block';
+                    
+                    document.getElementById('views-today-loader').style.display = 'none';
+                    document.getElementById('views-today-stat').style.display = 'block';
+                    document.getElementById('views-total-loader').style.display = 'none';
+                    document.getElementById('views-total-stat').style.display = 'block';
                 }
             }
 

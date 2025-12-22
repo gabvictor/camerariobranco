@@ -116,6 +116,11 @@
                 <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
                 <span class="text-[10px] font-medium">Admin</span>
             </a>
+            <a href="/dashboard"
+                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Dash</span>
+            </a>
         </nav>
 
         <div class="container mx-auto p-4 md:p-6 lg:max-w-7xl pb-20 sm:pb-6 flex-grow">
@@ -157,6 +162,11 @@
                 </div>
 
                 <div class="flex items-center gap-3 self-end md:self-auto">
+                    <a href="/dashboard" aria-label="Dashboard"
+                        class="admin-only hidden flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Dash</span>
+                    </a>
                     <button onclick="window.location.reload()" aria-label="Atualizar Câmera"
                         class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm hover:shadow-md active:scale-95">
                         <i data-lucide="refresh-cw" class="w-4 h-4"></i>

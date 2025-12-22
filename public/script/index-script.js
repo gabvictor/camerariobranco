@@ -8,6 +8,10 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/
 fetchWeather();
 initGlobalAuthUI();
 
+// Track Visit
+fetch('/api/track-visit', { method: 'POST' })
+    .catch(err => console.error('Error tracking visit:', err));
+
 // Check for login query param
 const params = new URLSearchParams(window.location.search);
 if (params.get('login') === 'true') {

@@ -8,6 +8,8 @@ const helmet = require('helmet');
 const admin = require('firebase-admin');
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
+let db; // Declare db in the outer scope
+
 try {
     // Verifica se está rodando no Render (onde o arquivo fica em /etc/secrets/) 
     // Se não achar lá, procura na pasta local (./) 
@@ -24,7 +26,7 @@ try {
     console.log("✔ Firebase Admin SDK inicializado com sucesso.");
 
     // Inicializa o Firestore
-    const db = admin.firestore();
+    db = admin.firestore();
     console.log("✔ Firebase Firestore inicializado.");
 
 } catch (error) {
@@ -609,28 +611,100 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
 });
 
 
+// --- ROTA DE RASTREAMENTO DE VISITAS ---
+app.post('/api/track-visit', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const statsRef = db.collection('stats').doc('traffic');
+        const dailyRef = statsRef.collection('daily').doc(today);
+
+        await db.runTransaction(async (t) => {
+            const statsDoc = await t.get(statsRef);
+            const dailyDoc = await t.get(dailyRef);
+
+            // Update Total Views
+            const currentTotal = statsDoc.exists ? (statsDoc.data().totalViews || 0) : 0;
+            t.set(statsRef, { totalViews: currentTotal + 1 }, { merge: true });
+
+            // Update Daily Views
+            const currentDaily = dailyDoc.exists ? (dailyDoc.data().views || 0) : 0;
+            t.set(dailyRef, { views: currentDaily + 1 }, { merge: true });
+        });
+
+        res.status(200).send();
+    } catch (error) {
+        console.error('Erro ao registrar visita:', error);
+        res.status(500).send();
+    }
+});
+
 // --- ROTA DE DADOS PARA O DASHBOARD (sem alterações) ---
 app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     try {
         const listUsersResult = await admin.auth().listUsers(1000);
-        const totalUsers = listUsersResult.users.length;
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
+        const users = listUsersResult.users;
+        const totalUsers = users.length;
+
+        // Traffic Stats
+        const today = new Date().toISOString().split('T')[0];
+        const statsRef = db.collection('stats').doc('traffic');
+        const dailyRef = statsRef.collection('daily').doc(today);
+        
+        const [statsSnap, dailySnap] = await Promise.all([
+            statsRef.get(),
+            dailyRef.get()
+        ]);
+
+        const totalViews = statsSnap.exists ? (statsSnap.data().totalViews || 0) : 0;
+        const viewsToday = dailySnap.exists ? (dailySnap.data().views || 0) : 0;
+
+        // Active Users (24h)
+        const now = new Date();
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const activeUsers24h = users.filter(user => {
+            if (!user.metadata.lastSignInTime) return false;
+            const lastSignIn = new Date(user.metadata.lastSignInTime);
+            return lastSignIn > oneDayAgo;
+        }).length;
+
+        // Recent Users (Top 5)
+        const recentUsers = users.sort((a, b) => {
+            return new Date(b.metadata.creationTime) - new Date(a.metadata.creationTime);
+        }).slice(0, 5).map(user => ({
+            uid: user.uid,
+            email: user.email,
+            creationTime: user.metadata.creationTime,
+            lastSignInTime: user.metadata.lastSignInTime
+        }));
+
+        const totalCameras = cameraInfo.length;
+
+        const todayDate = new Date();
+        todayDate.setHours(23, 59, 59, 999);
         const signupsByDay = { labels: [], values: Array(7).fill(0) };
         for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - i);
+            const date = new Date(todayDate);
+            date.setDate(todayDate.getDate() - i);
             signupsByDay.labels.push(date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit' }));
         }
-        listUsersResult.users.forEach(user => {
+        users.forEach(user => {
             const creationTime = new Date(user.metadata.creationTime);
-            const diffDays = Math.floor((today - creationTime) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor((todayDate - creationTime) / (1000 * 60 * 60 * 24));
             if (diffDays >= 0 && diffDays < 7) {
                 const index = 6 - diffDays;
                 signupsByDay.values[index]++;
             }
         });
-        res.json({ totalUsers, signupsByDay });
+        
+        res.json({ 
+            totalUsers, 
+            activeUsers24h, 
+            totalCameras, 
+            recentUsers, 
+            signupsByDay,
+            totalViews,
+            viewsToday
+        });
     } catch (error) {
         console.error('Erro ao buscar estatísticas de usuários:', error);
         res.status(500).json({ message: "Não foi possível carregar as estatísticas." });

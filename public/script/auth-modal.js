@@ -17,8 +17,12 @@ export const initGlobalAuthUI = () => {
     onAuthStateChanged(auth, (user) => {
         // Toggle Admin Elements
         const adminElements = document.querySelectorAll('.admin-only');
-        const isAdmin = user && user.email === ADMIN_EMAIL;
+        const userEmail = user ? user.email.toLowerCase().trim() : '';
+        const adminEmail = ADMIN_EMAIL.toLowerCase().trim();
+        const isAdmin = user && userEmail === adminEmail;
         
+        // console.log(`[AUTH] Check Admin: ${userEmail} vs ${adminEmail} = ${isAdmin}`);
+
         adminElements.forEach(el => {
             if (isAdmin) {
                 el.classList.remove('hidden');

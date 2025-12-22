@@ -18,22 +18,16 @@ service cloud.firestore {
     match /userData/{userId} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       
-      // CREATE: Permite criar o documento se for o próprio usuário
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // CREATE: Permite criar se for o próprio usuário E NÃO estiver definindo 'role'
+      allow create: if request.auth != null 
+                   && request.auth.uid == userId
+                   && !('role' in request.resource.data);
 
-      // UPDATE: Permite atualizar apenas campos permitidos
+      // UPDATE: Permite atualizar se for o próprio usuário E NÃO estiver alterando 'role'
       allow update: if request.auth != null
                    && request.auth.uid == userId
-                   && !('role' in request.resource.data)
-                   && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-                       'nickname',
-                       'favoriteCameras',
-                       'favorites',
-                       'theme',
-                       'lastLoginAt',
-                       'email',
-                       'photoURL'
-                   ]);
+                   && (!('role' in resource.data) || !('role' in request.resource.data) || resource.data.role == request.resource.data.role)
+                   && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
     }
 
     // 2. REGRAS PARA DADOS DA CÂMERA
