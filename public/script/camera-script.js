@@ -1,7 +1,12 @@
 import { auth, db } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
+import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, addDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Inicializa o modal de autenticação
+initAuthModal();
+initGlobalAuthUI();
 
 let videoInterval = null;
 let commentsUnsubscribe = null;
@@ -73,8 +78,16 @@ function initializeComments(user, cameraCode) {
         commentForm.style.display = 'none';
         const loginMsg = document.createElement('div');
         loginMsg.className = "p-4 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700";
-        loginMsg.innerHTML = "<a href='/login' class='text-indigo-600 hover:underline font-medium'>Faça login</a> para participar do chat.";
+        loginMsg.innerHTML = "<button id='comment-login-btn' class='text-indigo-600 hover:underline font-medium bg-transparent border-0 p-0 cursor-pointer'>Faça login</button> para participar do chat.";
         commentForm.parentNode.appendChild(loginMsg);
+        
+        const loginBtn = document.getElementById('comment-login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleLoginModal(true);
+            });
+        }
     }
 
     // Se houver um listener anterior, remove
@@ -136,6 +149,28 @@ function initializeComments(user, cameraCode) {
         });
         
         if(window.lucide) window.lucide.createIcons();
+    }, (error) => {
+        console.error("Erro ao carregar comentários:", error);
+        if (error.code === 'permission-denied') {
+             commentsList.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 mt-8 space-y-2">
+                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-full">
+                        <i data-lucide="lock" class="w-6 h-6 text-red-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-center text-gray-500 dark:text-gray-400">Faça login para ver os comentários.</p>
+                     <button id='error-login-btn' class='mt-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium bg-transparent border-0 p-0 cursor-pointer transition-colors'>Entrar agora</button>
+                </div>
+            `;
+            if(window.lucide) window.lucide.createIcons();
+            
+            const loginBtn = document.getElementById('error-login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggleLoginModal(true);
+                });
+            }
+        }
     });
 
     // Event Delegation para Botões de Excluir
@@ -473,13 +508,19 @@ function setupActionButtons(el, cameraCode, user) {
 
     // 2. Fullscreen Button
     if (el.fullscreenBtn && el.playerWrapper) {
-        el.fullscreenBtn.addEventListener('click', () => {
+        el.fullscreenBtn.addEventListener('click', async () => {
             if (!document.fullscreenElement) {
-                el.playerWrapper.requestFullscreen().catch(err => {
+                try {
+                    await el.playerWrapper.requestFullscreen();
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape').catch(e => console.warn("Orientation lock failed:", e));
+                    }
+                } catch (err) {
                     console.error(`Erro ao entrar em tela cheia: ${err.message}`);
-                });
+                }
             } else {
-                document.exitFullscreen();
+                if (document.exitFullscreen) document.exitFullscreen();
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
             }
         });
 
@@ -490,6 +531,7 @@ function setupActionButtons(el, cameraCode, user) {
                 icon.setAttribute('data-lucide', 'minimize');
             } else {
                 icon.setAttribute('data-lucide', 'maximize');
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
             }
             if(window.lucide) window.lucide.createIcons();
         });
@@ -532,7 +574,6 @@ function setupShareButton(btn, imgElement, cameraCode) {
         const shareUrl = `${location.origin}/camera/${cameraCode}`;
         const shareData = {
             title: document.title,
-            text: `Confira esta câmera ao vivo em Rio Branco: ${document.title}`,
             url: shareUrl
         };
 
@@ -610,7 +651,7 @@ async function setupFavoriteButton(btn, cameraCode, user) {
 
     btn.addEventListener('click', async () => {
         if (!user) {
-            alert("Faça login para salvar favoritos.");
+            toggleLoginModal(true);
             return;
         }
 
@@ -713,3 +754,5 @@ function updateMetaTags(camera, title) {
     }
     canonical.setAttribute('href', shareUrl);
 }
+
+

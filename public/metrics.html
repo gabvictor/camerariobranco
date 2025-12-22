@@ -42,10 +42,30 @@
                 <h1 class="text-2xl md:text-3xl font-extrabold">Métricas do Sistema</h1>
             </div>
             <div class="flex items-center gap-2">
+                <!-- Auth Controls -->
+                <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
+                    class="logged-in-only hidden p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors shadow-sm hover:shadow-md">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </a>
+
+                <button id="nav-logout-btn" title="Sair"
+                    class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+
+                <button id="nav-login-btn" class="logged-out-only hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+                    Entrar
+                </button>
+
+                <button id="toggle-theme" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors">
+                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                </button>
+
                 <button id="refresh-btn" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold">
                     Atualizar
                 </button>
-                <span id="last-update" class="text-xs text-gray-500 dark:text-gray-400"></span>
+                <span id="last-update" class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400"></span>
             </div>
         </header>
         <main class="space-y-8">
@@ -136,6 +156,7 @@
                 <div class="flex gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                     <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
                 <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
+                <a href="/admin" class="admin-only hidden hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Área Admin</a>
                     <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
                 </div>
                 <p class="text-xs text-gray-400">

@@ -49,6 +49,10 @@ const CONFIG = {
 };
 
 const app = express();
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+});
 const PUBLIC_FOLDER = path.join(__dirname, 'public');
 const ASSETS_FOLDER = path.join(PUBLIC_FOLDER, 'assets');
 const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'offline.png');

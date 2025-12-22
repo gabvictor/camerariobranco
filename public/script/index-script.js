@@ -1,10 +1,20 @@
 import { auth, db } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Inicializa widget de clima imediatamente
 fetchWeather();
+initGlobalAuthUI();
+
+// Check for login query param
+const params = new URLSearchParams(window.location.search);
+if (params.get('login') === 'true') {
+    window.history.replaceState({}, document.title, "/");
+    // Small delay to ensure modal logic is ready
+    setTimeout(() => toggleLoginModal(true), 500);
+}
 
 const ADMIN_EMAIL = "vgabvictor@gmail.com";
 let currentUser = null;
@@ -56,23 +66,9 @@ onAuthStateChanged(auth, async (user) => {
     // UI Elements for Login/Logout state
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const banner = document.getElementById('login-benefits-banner');
 
     if (user) {
         document.getElementById('username-display').textContent = `, ${user.displayName || user.email}`;
-
-        if (user.email === ADMIN_EMAIL) {
-            const adminLink = document.getElementById('admin-link');
-            if (adminLink) adminLink.style.display = 'inline-block';
-
-            const dashboardLink = document.getElementById('dashboard-link');
-            if (dashboardLink) dashboardLink.classList.remove('hidden');
-        }
-        
-        // Logged in state UI
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-        if (loginBtn) loginBtn.classList.add('hidden');
-        if (banner) banner.classList.add('hidden');
 
         // Initialize logic after user is set, to load favorites
         if (!isAppInitialized) {
@@ -83,10 +79,6 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         // Logged out state UI
         document.getElementById('username-display').textContent = '';
-        
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (banner) banner.classList.remove('hidden');
         
         // Initialize logic for visitors too
         if (!isAppInitialized) {
@@ -109,7 +101,6 @@ function initializeAppLogic() {
         countFavorites: document.getElementById('count-favorites'),
         lastUpdatedSpan: document.getElementById('last-updated'),
         themeToggleButton: document.getElementById('toggle-theme'),
-        logoutBtn: document.getElementById('logout-btn'),
         modal: document.getElementById('camera-modal'),
         closeModalButton: document.getElementById('close-modal'),
         modalTitle: document.getElementById('modal-title'),
@@ -198,7 +189,7 @@ function initializeAppLogic() {
 
     const toggleFavorite = async (code, button) => {
         if (!currentUser) {
-            alert("Faça login para salvar favoritos.");
+            toggleLoginModal(true);
             return;
         }
 
@@ -651,3 +642,8 @@ function initializeAppLogic() {
 
     init();
 }
+
+// --- Login Modal Logic ---
+initAuthModal();
+
+

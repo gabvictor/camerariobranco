@@ -45,6 +45,24 @@
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
 
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8">Esta área é exclusiva para administradores.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div id="content-wrapper">
         <div class="container mx-auto p-4 md:p-8">
             <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -63,6 +81,10 @@
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i data-lucide="camera" class="w-5 h-5"></i>
                     </a>
+                    <button id="nav-logout-btn" title="Sair"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
                     <a href="/" title="Voltar à página inicial"
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i data-lucide="home" class="w-5 h-5"></i>
@@ -127,21 +149,46 @@
     </div>
 
     <script type="module">
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { auth } from "/script/firebase-config.js";
+        import { initAuthModal, toggleLoginModal, ADMIN_EMAIL } from "/script/auth-modal.js";
 
-        const ADMIN_EMAIL = "vgabvictor@gmail.com";
+        // Initialize Auth Modal
+        initAuthModal();
+
         // ALTERAÇÃO: A URL do backend é agora relativa, pois a página é servida pelo mesmo servidor.
         const BACKEND_URL = '';
 
+        const accessDeniedEl = document.getElementById('access-denied');
+        const contentWrapperEl = document.getElementById('content-wrapper');
+        const loginTriggerBtn = document.getElementById('login-trigger');
+        const logoutBtn = document.getElementById('nav-logout-btn');
+
+        if(loginTriggerBtn) {
+            loginTriggerBtn.addEventListener('click', () => toggleLoginModal(true));
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                window.location.reload();
+            });
+        }
+
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === ADMIN_EMAIL) {
-                document.getElementById('content-wrapper').style.display = 'block';
+                accessDeniedEl.classList.add('hidden');
+                contentWrapperEl.style.display = 'block';
                 initializeDashboardLogic(user);
             } else if (user) {
-                // Non-admin user, do nothing, page remains blank.
+                // Non-admin user
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                accessDeniedEl.querySelector('p').textContent = "Você não tem permissão de administrador.";
             } else {
-                window.location.href = '/login';
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                toggleLoginModal(true);
             }
         });
 

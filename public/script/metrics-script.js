@@ -1,3 +1,5 @@
+import { initAuthModal, initGlobalAuthUI } from "./auth-modal.js";
+
 const fmtTime = (ms) => {
     const s = Math.floor(ms / 1000);
     const d = Math.floor(s / 86400);
@@ -38,6 +40,18 @@ async function loadHealth() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Auth
+    initAuthModal();
+    initGlobalAuthUI();
+
+    // Theme Toggle
+    const themeToggleBtn = $('toggle-theme');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            if (window.toggleTheme) window.toggleTheme();
+        });
+    }
+
     loadHealth().catch(() => {});
     $('refresh-btn').addEventListener('click', () => loadHealth().catch(() => {}));
     setInterval(() => loadHealth().catch(() => {}), 5000);

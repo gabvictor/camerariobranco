@@ -1,31 +1,55 @@
 import { auth } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initAuthModal, initGlobalAuthUI, toggleLoginModal } from "./auth-modal.js";
+
+// Initialize Auth Logic
+initAuthModal();
+initGlobalAuthUI();
+
+// Theme Toggle Logic (Initialize once)
+const themeToggleBtn = document.getElementById('map-theme-toggle');
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.toggleTheme) {
+            window.toggleTheme();
+        }
+    });
+}
 
 onAuthStateChanged(auth, (user) => {
     // Mapa agora é público
     const mapWrapper = document.getElementById('map-wrapper');
     if (mapWrapper) mapWrapper.style.display = 'flex'; // Usando flex para layout correto
-    initializeMapLogic();
+    
+    // Only initialize map if not already initialized (simple check or idempotent function)
+    // For now, we assume initializeMapLogic handles map creation. 
+    // Leaflet map cannot be initialized twice on same container.
+    // We should check if map instance exists or clear it. 
+    // But looking at existing code: L.map('map') will throw if already initialized.
+    // So we need to prevent re-initialization.
+    
+    const mapContainer = document.getElementById('map');
+    if (mapContainer && !mapContainer._leaflet_id) {
+         initializeMapLogic();
+    }
     fetchWeather();
 });
 
 async function initializeMapLogic() {
     if (window.lucide) window.lucide.createIcons();
-    const map = L.map('map').setView([-9.9745, -67.8100], 14);
+    
+    // Ajuste de zoom responsivo: 13 para mobile (visão geral) e 14 para desktop
+    const initialZoom = window.innerWidth < 768 ? 13 : 14;
+    const map = L.map('map', { zoomControl: false }).setView([-9.9745, -67.8100], initialZoom);
+
+    // Reposiciona o controle de zoom para não ficar escondido pelo header no mobile
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-
-    // Theme Toggle Logic
-    const themeToggleBtn = document.getElementById('map-theme-toggle');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
-            if (window.toggleTheme) {
-                window.toggleTheme();
-            }
-        });
-    }
 
     // Locate Me Logic
     const locateBtn = document.getElementById('locate-btn');

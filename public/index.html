@@ -159,21 +159,24 @@
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all hidden text-indigo-600">
                         <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                     </a>
+                    <a href="/perfil" title="Meu Perfil"
+                        class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200 hover:text-indigo-600">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </a>
+                    
+                    <button id="logout-btn" title="Sair"
+                        class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+
                     <button id="toggle-theme" title="Alternar tema"
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200"><i
                             data-lucide="sun" class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon"
                             class="w-5 h-5 hidden dark:block"></i></button>
                     
-                    <!-- Logout Button (Shown when logged in) -->
-                    <button id="logout-btn" title="Sair"
-                        class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hidden"><i
-                            data-lucide="log-out" class="w-5 h-5"></i></button>
-                    
-                    <!-- Login Button (Shown when logged out) -->
-                    <a id="login-btn" href="/login" title="Entrar"
-                        class="p-2.5 rounded-full bg-indigo-600 shadow-sm hover:shadow-md transition-all text-white hover:bg-indigo-700 hidden">
-                        <i data-lucide="log-in" class="w-5 h-5"></i>
-                    </a>
+                    <button id="login-btn" class="logged-out-only hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                        Entrar
+                    </button>
                 </div>
             </header>
 
@@ -189,9 +192,9 @@
                              <p class="text-sm text-blue-600 dark:text-blue-300">Salve suas câmeras favoritas e personalize sua visualização.</p>
                          </div>
                     </div>
-                    <a href="/login" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                    <button id="banner-login-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
                         Fazer Login
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -367,7 +370,7 @@
                                         class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos
                                         de Uso e Privacidade</a></li>
                                 <li><a id="admin-link" href="/admin"
-                                        class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden">Área
+                                        class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden admin-only">Área
                                         Admin</a></li>
                             </ul>
                         </div>

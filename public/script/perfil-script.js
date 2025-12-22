@@ -1,75 +1,91 @@
 import { auth, db } from "./firebase-config.js";
+import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const ADMIN_EMAIL = "vgabvictor@gmail.com";
+// Initialize global auth UI (handles admin-only, logged-in/out classes)
+initGlobalAuthUI();
+
+// Initialize Auth Modal
+initAuthModal();
+
 let currentUser = null;
 
 // Initialize Icons
 if (window.lucide) window.lucide.createIcons();
 
-// Theme Logic
-const themeToggleBtn = document.getElementById('theme-toggle-switch');
-const themeThumb = document.getElementById('theme-toggle-thumb');
-
-const updateThemeUI = (isDark) => {
-    if (isDark) {
-        themeToggleBtn.classList.remove('bg-gray-200');
-        themeToggleBtn.classList.add('bg-indigo-600');
-        themeThumb.classList.remove('translate-x-1');
-        themeThumb.classList.add('translate-x-6');
-    } else {
-        themeToggleBtn.classList.add('bg-gray-200');
-        themeToggleBtn.classList.remove('bg-indigo-600');
-        themeThumb.classList.add('translate-x-1');
-        themeThumb.classList.remove('translate-x-6');
-    }
-};
-
-const initTheme = () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    updateThemeUI(isDark);
-};
-
-themeToggleBtn.addEventListener('click', () => {
-    if (window.toggleTheme) {
-        const newTheme = window.toggleTheme();
-        updateThemeUI(newTheme === 'dark');
-    }
-});
-
-// Auth & Favorites Logic
+// Elements
 const favoritesList = document.getElementById('favorites-list');
-const adminSection = document.getElementById('admin-section');
-const adminLinkFooter = document.getElementById('admin-link');
-const logoutBtn = document.getElementById('logout-btn');
-const loginLink = document.getElementById('login-link');
+const userNameDisplay = document.getElementById('user-name');
+const userEmailDisplay = document.getElementById('user-email');
 
+// Auth State Listener for Page Specific Logic (User Data & Favorites)
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
-        logoutBtn.classList.remove('hidden');
-        loginLink.classList.add('hidden');
+        // Update User Info
+        if (userEmailDisplay) userEmailDisplay.textContent = user.email;
+        if (userNameDisplay) userNameDisplay.textContent = user.displayName || user.email.split('@')[0];
         
-        if (user.email === ADMIN_EMAIL) {
-            if (adminSection) adminSection.classList.remove('hidden');
-            if (adminLinkFooter) adminLinkFooter.classList.remove('hidden');
-        }
         loadFavorites();
     } else {
-        logoutBtn.classList.add('hidden');
-        loginLink.classList.remove('hidden');
-        if (adminSection) adminSection.classList.add('hidden');
-        if (adminLinkFooter) adminLinkFooter.classList.add('hidden');
-        favoritesList.innerHTML = '<div class="p-8 text-center text-gray-500">Faça login para ver seus favoritos.</div>';
+        favoritesList.innerHTML = `
+            <div class="p-12 text-center text-gray-500">
+                <i data-lucide="lock" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
+                <p class="text-lg font-medium text-gray-900 dark:text-white mb-1">Acesso Restrito</p>
+                <p>Faça login para ver suas câmeras favoritas.</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
     }
 });
 
-logoutBtn.addEventListener('click', () => {
-    signOut(auth).then(() => {
-        window.location.reload();
+// Event Listeners
+
+// Profile Login Button (Visitor Card)
+const profileLoginBtn = document.getElementById('profile-login-btn');
+if (profileLoginBtn) {
+    profileLoginBtn.addEventListener('click', () => toggleLoginModal(true));
+}
+
+// Sidebar Logout Button
+const logoutBtnCard = document.getElementById('logout-btn-card');
+if (logoutBtnCard) {
+    logoutBtnCard.addEventListener('click', () => {
+        signOut(auth).then(() => window.location.reload());
     });
-});
+}
+
+// Theme Toggle (Card)
+const themeToggleCard = document.getElementById('theme-toggle-card');
+if (themeToggleCard) {
+    themeToggleCard.addEventListener('click', () => {
+        if (window.toggleTheme) window.toggleTheme();
+    });
+}
+
+// Theme Toggle (Navbar) - Robust Initialization
+const initThemeToggle = () => {
+    const themeToggleBtn = document.getElementById('toggle-theme');
+    if (themeToggleBtn) {
+        // Remove any existing listeners by cloning (optional, but ensures clean state if run multiple times)
+        // const newBtn = themeToggleBtn.cloneNode(true);
+        // themeToggleBtn.parentNode.replaceChild(newBtn, themeToggleBtn);
+        // But cloning destroys lucide icons inside if not careful. Let's just add listener.
+        
+        themeToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.toggleTheme) window.toggleTheme();
+        });
+    }
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initThemeToggle);
+} else {
+    initThemeToggle();
+}
+
 
 // Load Favorites
 const loadFavorites = async () => {
@@ -87,10 +103,13 @@ const loadFavorites = async () => {
     
         if (favorites.length === 0) {
             favoritesList.innerHTML = `
-                <div class="p-8 text-center text-gray-500">
+                <div class="p-12 text-center text-gray-500">
                     <i data-lucide="star-off" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
-                    <p>Você ainda não tem câmeras favoritas.</p>
-                    <a href="/" class="text-indigo-600 hover:underline text-sm mt-2 block">Explorar câmeras</a>
+                    <p class="text-lg font-medium text-gray-900 dark:text-white mb-1">Nenhum favorito</p>
+                    <p class="mb-4">Você ainda não favoritou nenhuma câmera.</p>
+                    <a href="/" class="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium">
+                        Explorar câmeras <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
                 </div>
             `;
             if (window.lucide) window.lucide.createIcons();
@@ -108,20 +127,27 @@ const loadFavorites = async () => {
         favoriteCameras.forEach(cam => {
             const isOnline = cam.status === 'online';
             const item = document.createElement('div');
-            item.className = 'p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
+            item.className = 'p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group';
             item.innerHTML = `
                 <div class="flex items-center gap-4">
-                    <div class="relative w-16 h-10 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
+                    <div class="relative w-20 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700">
                         <img src="${isOnline ? `/proxy/camera/${cam.codigo}` : '/assets/offline.png'}" 
-                             class="w-full h-full object-cover" loading="lazy">
+                             class="w-full h-full object-cover transition-transform group-hover:scale-110" loading="lazy">
                     </div>
                     <div>
-                        <h3 class="font-medium text-sm">${cam.nome}</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${cam.categoria} • ${isOnline ? '<span class="text-green-600 font-medium">Online</span>' : '<span class="text-red-500">Offline</span>'}</p>
+                        <h3 class="font-medium text-gray-900 dark:text-white">${cam.nome}</h3>
+                        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>${cam.categoria}</span>
+                            <span>•</span>
+                            <span class="${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-500'} flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}"></span>
+                                ${isOnline ? 'Online' : 'Offline'}
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <button class="remove-fav-btn p-2 text-gray-400 hover:text-red-500 transition-colors" data-code="${cam.codigo}" title="Remover dos favoritos">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <button class="remove-fav-btn p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" data-code="${cam.codigo}" title="Remover dos favoritos">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
                 </button>
             `;
             favoritesList.appendChild(item);
@@ -139,13 +165,20 @@ const loadFavorites = async () => {
 
     } catch (error) {
         console.error('Error loading favorites:', error);
-        favoritesList.innerHTML = '<div class="p-4 text-center text-red-500">Erro ao carregar favoritos.</div>';
+        favoritesList.innerHTML = `
+            <div class="p-8 text-center text-red-500">
+                <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                <p>Erro ao carregar favoritos.</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
     }
 };
 
 const removeFavorite = async (code) => {
     if (!currentUser) return;
 
+    // Optimistic UI update could be added here, but for now we reload
     try {
         const userRef = doc(db, 'userData', currentUser.uid);
         const userDoc = await getDoc(userRef);
@@ -163,7 +196,3 @@ const removeFavorite = async (code) => {
         alert("Erro ao remover favorito.");
     }
 };
-
-// Initialize
-initTheme();
-// loadFavorites call removed as it is called in auth state change

@@ -64,9 +64,25 @@
                 </a>
                 
                 <div class="flex items-center gap-4">
-                    <a href="/" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                        Voltar ao Início
+                    <a href="/" class="hidden sm:block text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        Voltar
                     </a>
+                    
+                    <!-- Auth Controls -->
+                    <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
+                        class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200 hover:text-indigo-600 border border-gray-100 dark:border-gray-700">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </a>
+                    
+                    <button id="nav-logout-btn" title="Sair"
+                        class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+
+                    <button id="nav-login-btn" class="logged-out-only hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                        Entrar
+                    </button>
+
                     <button id="toggle-theme" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors">
                         <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
                         <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
@@ -256,8 +272,8 @@
                             <li><a href="/termos"
                                     class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos
                                     de Uso e Privacidade</a></li>
-                            <li><a id="admin-link" href="/admin"
-                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden">Área
+                            <li><a href="/admin"
+                                    class="admin-only hidden text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Área
                                     Admin</a></li>
                         </ul>
                     </div>
@@ -278,20 +294,7 @@
         </footer>
     </div>
 
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Theme Toggle Logic
-        const themeToggleBtn = document.getElementById('toggle-theme');
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', () => {
-                if (window.toggleTheme) {
-                    window.toggleTheme();
-                }
-            });
-        }
-    </script>
+    <script type="module" src="/script/sobre-script.js"></script>
 </body>
 
 </html>

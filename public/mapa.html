@@ -170,6 +170,17 @@
 
                 <div id="weather-widget" style="display: none;" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 animate-fade-in"></div>
                 
+                <!-- Auth Controls -->
+                <button id="map-login-btn" title="Entrar" class="logged-out-only p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="log-in" class="w-5 h-5"></i>
+                </button>
+                <a href="/perfil" id="map-profile-btn" title="Meu Perfil" class="logged-in-only hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </a>
+                <button id="map-logout-btn" title="Sair" class="logged-in-only hidden p-2 rounded-xl transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+
                 <!-- Theme Toggle -->
                 <button id="map-theme-toggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
@@ -223,6 +234,11 @@
                 class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 <i data-lucide="user" class="w-6 h-6 mb-1"></i>
                 <span class="text-[10px] font-medium">Perfil</span>
+            </a>
+            <a href="/admin"
+                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Admin</span>
             </a>
         </nav>
     </div>
