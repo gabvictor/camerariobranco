@@ -278,7 +278,8 @@ async function initializeCameraLogic(user) {
         // Actions
         shareBtn: document.getElementById('share-button-main'),
         likeBtn: document.getElementById('like-btn'),
-        favoriteBtn: document.getElementById('favorite-btn')
+        favoriteBtn: document.getElementById('favorite-btn'),
+        reportBtn: document.getElementById('report-button')
     };
 
     if (window.lucide) window.lucide.createIcons();

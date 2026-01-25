@@ -98,31 +98,77 @@
                     <img src="/assets/icone.png" alt="Logo CamRB" class="w-24 h-24 object-contain">
                 </div>
                 <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">
-                    Conectando <span class="text-indigo-600 dark:text-indigo-400">Rio Branco</span>
+                    Monitoramento Urbano <span class="text-indigo-600 dark:text-indigo-400">Inteligente</span>
                 </h1>
-                <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed mb-8">
-                    Se você chegou aqui através de um dos nossos <strong>QR Codes</strong> espalhados pela cidade, seja bem-vindo! O CamRB centraliza as câmeras de trânsito públicas em um só lugar.
+                <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+                    O <strong>CamRB</strong> é uma plataforma independente dedicada a centralizar o acesso às câmeras públicas de Rio Branco. Simplificamos a visualização do trânsito e da segurança urbana, colocando a cidade na palma da sua mão, em tempo real e de forma gratuita.
                 </p>
+
+                <!-- Grid de Estatísticas em Tempo Real -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-10">
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="text-indigo-600 dark:text-indigo-400 mb-2 flex justify-center">
+                            <i data-lucide="video" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total-cameras">-</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Câmeras Totais</div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="text-emerald-500 dark:text-emerald-400 mb-2 flex justify-center">
+                            <i data-lucide="wifi" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-online-cameras">-</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Câmeras Online</div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="text-blue-500 dark:text-blue-400 mb-2 flex justify-center">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-uptime">-</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Tempo de Atividade</div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="text-purple-500 dark:text-purple-400 mb-2 flex justify-center">
+                            <i data-lucide="eye" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-requests">-</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Acessos Hoje</div>
+                    </div>
+                </div>
                 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-bounce-slow">
                     <a href="/" class="bg-indigo-600 text-white hover:bg-indigo-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl shadow-indigo-600/20 transform hover:-translate-y-1 transition-all flex items-center gap-2">
                         <i data-lucide="play-circle" class="w-6 h-6"></i>
-                        Acessar Câmeras
-                    </a>
-                    <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="bg-white text-gray-900 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 px-8 py-4 rounded-full font-bold text-lg border border-gray-200 dark:border-gray-700 transition-all flex items-center gap-2">
-                        <i data-lucide="download" class="w-6 h-6"></i>
-                        Baixar App Android
+                        Ver Câmeras Agora
                     </a>
                 </div>
             </header>
 
-            <!-- Live Preview Grid -->
-            <div id="live-cameras-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 min-h-[200px]">
-                 <!-- Loading Skeleton -->
-                 <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse"></div>
-                 <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden sm:block"></div>
-                 <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden lg:block"></div>
-            </div>
+            <!-- Câmeras Aleatórias (Novo) -->
+            <section class="mb-20">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        Ao Vivo Agora
+                    </h2>
+                    <a href="/" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
+                        Ver todas &rarr;
+                    </a>
+                </div>
+                
+                <div id="random-cameras-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Loading Skeletons -->
+                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse"></div>
+                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden sm:block"></div>
+                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden lg:block"></div>
+                </div>
+            </section>
 
             <!-- Grid de Recursos (Novo) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">

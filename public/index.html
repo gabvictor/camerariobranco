@@ -96,7 +96,7 @@
                 <i data-lucide="layout-dashboard"></i>
                 <span>Dash</span>
             </a>
-            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="nav-item">
+            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="nav-item app-banner-controlled">
                 <div
                     class="bg-indigo-600 text-white p-2 rounded-full -mt-6 shadow-lg border-4 border-gray-100 dark:border-gray-900">
                     <i data-lucide="github" class="w-5 h-5"></i>
@@ -204,7 +204,7 @@
 
             <!-- App Download Banner -->
             <div
-                class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-4 mb-8 shadow-lg text-white flex flex-col sm:flex-row items-center justify-between gap-4 transform transition-all hover:scale-[1.01]">
+                class="app-banner-controlled bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-4 mb-8 shadow-lg text-white flex flex-col sm:flex-row items-center justify-between gap-4 transform transition-all hover:scale-[1.01]">
                 <div class="flex items-center gap-4">
                     <div class="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
                         <i data-lucide="github" class="w-8 h-8 text-white"></i>
@@ -398,6 +398,18 @@
     </div>
 
     <script type="module" src="/script/index-script.js"></script>
+    <script>
+        // Fetch site config to toggle app banner visibility
+        (async function() {
+            try {
+                const response = await fetch('/api/site-config');
+                const config = await response.json();
+                if (config.showAppBanner === false) {
+                    document.querySelectorAll('.app-banner-controlled').forEach(el => el.style.display = 'none');
+                }
+            } catch (e) { console.error('Error loading config', e); }
+        })();
+    </script>
 </body>
 
 </html>

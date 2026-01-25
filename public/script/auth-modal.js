@@ -10,26 +10,40 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-export const ADMIN_EMAIL = "vgabvictor@gmail.com";
+export let ADMIN_EMAIL = "";
+
+// Fetch config immediately
+fetch('/api/config')
+    .then(res => res.json())
+    .then(data => {
+        ADMIN_EMAIL = data.adminEmail;
+        if (auth.currentUser) {
+             checkAdminStatus(auth.currentUser);
+        }
+    })
+    .catch(err => console.error("Error fetching config:", err));
+
+const checkAdminStatus = (user) => {
+    const adminElements = document.querySelectorAll('.admin-only');
+    const userEmail = user && user.email ? user.email.toLowerCase().trim() : '';
+    const targetAdminEmail = ADMIN_EMAIL ? ADMIN_EMAIL.toLowerCase().trim() : '';
+    
+    const isAdmin = user && targetAdminEmail && userEmail === targetAdminEmail;
+
+    adminElements.forEach(el => {
+        if (isAdmin) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+};
 
 export const initGlobalAuthUI = () => {
     // 1. Setup Auth State UI Changes
     onAuthStateChanged(auth, (user) => {
         // Toggle Admin Elements
-        const adminElements = document.querySelectorAll('.admin-only');
-        const userEmail = user ? user.email.toLowerCase().trim() : '';
-        const adminEmail = ADMIN_EMAIL.toLowerCase().trim();
-        const isAdmin = user && userEmail === adminEmail;
-        
-        // console.log(`[AUTH] Check Admin: ${userEmail} vs ${adminEmail} = ${isAdmin}`);
-
-        adminElements.forEach(el => {
-            if (isAdmin) {
-                el.classList.remove('hidden');
-            } else {
-                el.classList.add('hidden');
-            }
-        });
+        checkAdminStatus(user);
 
         // Toggle Login/Logout Elements
         const loggedInElements = document.querySelectorAll('.logged-in-only');

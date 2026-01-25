@@ -94,7 +94,7 @@
                 <i data-lucide="map" class="w-6 h-6 mb-1"></i>
                 <span class="text-[10px] font-medium">Mapa</span>
             </a>
-            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="nav-item relative group -top-5">
+            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="app-banner-controlled nav-item relative group -top-5">
                 <div
                     class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
                     <i data-lucide="github" class="w-6 h-6"></i>
@@ -442,6 +442,17 @@
     <script>
         // Ícones de fallback imediato
         if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Fetch site config to toggle app banner visibility
+        (async function() {
+            try {
+                const response = await fetch('/api/site-config');
+                const config = await response.json();
+                if (config.showAppBanner === false) {
+                    document.querySelectorAll('.app-banner-controlled').forEach(el => el.style.display = 'none');
+                }
+            } catch (e) { console.error('Error loading config', e); }
+        })();
     </script>
     <script type="module" src="/script/camera-script.js"></script>
 </body>

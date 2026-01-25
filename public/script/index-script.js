@@ -20,7 +20,6 @@ if (params.get('login') === 'true') {
     setTimeout(() => toggleLoginModal(true), 500);
 }
 
-const ADMIN_EMAIL = "vgabvictor@gmail.com";
 let currentUser = null;
 let isAppInitialized = false;
 

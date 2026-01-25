@@ -9,6 +9,7 @@ const admin = require('firebase-admin');
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 let db; // Declare db in the outer scope
+let serviceAccount = {};
 
 try {
     // Verifica se está rodando no Render (onde o arquivo fica em /etc/secrets/) 
@@ -18,7 +19,7 @@ try {
         : './serviceAccountKey.json';
 
     console.log(`✔ Carregando credenciais do Firebase de: ${secretPath}`);
-    const serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+    serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
@@ -33,7 +34,7 @@ try {
     console.error("[ERRO CRÍTICO] Falha ao inicializar o Firebase Admin SDK.", error);
     process.exit(1);
 }
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "vgabvictor@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || serviceAccount.admin_email;
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
 
 
@@ -65,6 +66,7 @@ let isScanning = false;
 let scanTimeoutOccurred = false;
 let cameraInfo = []; // Agora será preenchido pelo Firestore
 let cachedCameraStatus = [];
+let siteConfig = { showAppBanner: true }; // Default config
 
 // --- Métricas e Logs ---
 const METRICS = {
@@ -123,6 +125,12 @@ app.use(helmet({
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/config', (req, res) => {
+    res.json({
+        adminEmail: ADMIN_EMAIL
+    });
+});
 
 // Logging simples de requisições
 app.use((req, res, next) => {
@@ -399,6 +407,17 @@ async function loadCameraInfoFromFirestore() {
         cameraInfo = snapshot.docs.map(doc => doc.data());
         console.log(`✔ ${cameraInfo.length} informações de câmeras carregadas do Firestore.`);
 
+        // Carregar configurações do site
+        const configDoc = await db.collection('site_config').doc('global').get();
+        if (configDoc.exists) {
+            siteConfig = { ...siteConfig, ...configDoc.data() };
+            console.log("✔ Configurações do site carregadas:", siteConfig);
+        } else {
+            console.log("ℹ Nenhuma configuração salva encontrada. Usando padrão.");
+            // Criar documento padrão se não existir
+            await db.collection('site_config').doc('global').set(siteConfig);
+        }
+
     } catch (error) {
         console.error("[FIRESTORE_LOAD_ERROR] Não foi possível carregar informações do Firestore.", error);
         cameraInfo = [];
@@ -443,6 +462,32 @@ const verifyOptionalAdmin = async (req, res, next) => {
     next();
 };
 
+
+// --- Rotas de Configuração (Site Config) ---
+app.get('/api/site-config', (req, res) => {
+    res.json(siteConfig);
+});
+
+app.post('/api/site-config', verifyAdmin, async (req, res) => {
+    try {
+        const newConfig = req.body;
+        // Validar campos permitidos
+        if (typeof newConfig.showAppBanner === 'boolean') {
+            siteConfig.showAppBanner = newConfig.showAppBanner;
+            
+            // Persistir no Firestore
+            await db.collection('site_config').doc('global').set(siteConfig, { merge: true });
+            
+            console.log(`[CONFIG] Configuração atualizada por ${req.user.email}:`, siteConfig);
+            res.json({ success: true, config: siteConfig });
+        } else {
+            res.status(400).json({ message: 'Parâmetros inválidos.' });
+        }
+    } catch (error) {
+        console.error("Erro ao salvar configuração:", error);
+        res.status(500).json({ message: 'Erro interno ao salvar configuração.' });
+    }
+});
 
 // --- Rotas da API ---
 

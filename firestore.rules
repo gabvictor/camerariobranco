@@ -58,6 +58,12 @@ service cloud.firestore {
       // Impede a atualização de comentários.
       allow update: if false;
     }
+    
+    // 4. REGRAS PARA CONFIGURAÇÃO GLOBAL DO SITE
+    match /site_config/global {
+      allow read: if true; // Público pode ler (para saber se exibe banner ou não)
+      allow write: if isAdmin(); // Apenas admin pode alterar
+    }
 
   }
 }
