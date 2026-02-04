@@ -248,6 +248,30 @@
                             class="w-5 h-5 mr-2 -ml-1"></i><span>Voltar</span></a></div>
             </header>
 
+            <!-- Status da IA Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                            <i data-lucide="bot" class="w-6 h-6 text-indigo-600 dark:text-indigo-400"></i>
+                            Status da Automação (IA)
+                        </h2>
+                        <div class="flex items-center gap-3">
+                            <span id="ai-status-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                Carregando...
+                            </span>
+                            <span id="ai-next-run" class="text-sm text-gray-500 dark:text-gray-400 hidden">
+                                Próxima análise em: -- min
+                            </span>
+                        </div>
+                    </div>
+                    <button id="toggle-ai-btn" class="w-full md:w-auto px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+                        <span class="loader w-4 h-4 border-2 border-gray-500 border-t-transparent hidden" id="ai-btn-loader"></span>
+                        <span id="ai-btn-text">Carregar Status</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="mb-6 flex flex-col sm:flex-row gap-4">
                 <div class="relative flex-grow">
                     <i data-lucide="search"
@@ -408,6 +432,90 @@
             let previewInterval;
             let isPreviewLoading = false;
 
+            // --- Auto AI Logic ---
+            const aiStatusBadge = document.getElementById('ai-status-badge');
+            const aiNextRun = document.getElementById('ai-next-run');
+            const toggleAiBtn = document.getElementById('toggle-ai-btn');
+            const aiBtnText = document.getElementById('ai-btn-text');
+            const aiBtnLoader = document.getElementById('ai-btn-loader');
+            
+            const updateAiUi = (isActive, nextRunIn) => {
+                if (!aiStatusBadge) return; // Se o elemento não existir
+                
+                if (isActive) {
+                    aiStatusBadge.textContent = 'RODANDO';
+                    aiStatusBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                    
+                    toggleAiBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
+                    toggleAiBtn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
+                    aiBtnText.textContent = 'Parar Automação';
+                    
+                    if (nextRunIn) {
+                        aiNextRun.textContent = `Próxima análise em: ${nextRunIn}`;
+                        aiNextRun.classList.remove('hidden');
+                    } else {
+                         aiNextRun.classList.remove('hidden');
+                         aiNextRun.textContent = 'Próxima análise em: Calculando...';
+                    }
+                } else {
+                    aiStatusBadge.textContent = 'PARADO';
+                    aiStatusBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                    
+                    toggleAiBtn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
+                    toggleAiBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-700');
+                    aiBtnText.textContent = 'Ativar Automação Hora em Hora';
+                    
+                    aiNextRun.classList.add('hidden');
+                }
+            };
+
+            const loadAiStatus = async () => {
+                try {
+                    const user = auth.currentUser;
+                    if(!user) return;
+                    const idToken = await user.getIdToken();
+                    
+                    const res = await fetch('/api/ai/status', {
+                         headers: { 'Authorization': `Bearer ${idToken}` }
+                    });
+                    const data = await res.json();
+                    updateAiUi(data.active, data.nextRunIn);
+                } catch (e) {
+                    console.error("Erro ao carregar status IA", e);
+                }
+            };
+
+            if (toggleAiBtn) {
+                toggleAiBtn.addEventListener('click', async () => {
+                    const user = auth.currentUser;
+                    if (!user) return;
+                    
+                    aiBtnText.classList.add('hidden');
+                    aiBtnLoader.classList.remove('hidden');
+                    toggleAiBtn.disabled = true;
+
+                    try {
+                        const idToken = await user.getIdToken();
+                        const res = await fetch('/api/ai/toggle-global', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${idToken}` }
+                        });
+                        const data = await res.json();
+                        updateAiUi(data.active, data.nextRunIn);
+                        showToast(data.active ? 'Automação ativada!' : 'Automação parada.');
+                    } catch (error) {
+                        showToast('Erro ao alterar status da IA', 'error');
+                    } finally {
+                        aiBtnText.classList.remove('hidden');
+                        aiBtnLoader.classList.add('hidden');
+                        toggleAiBtn.disabled = false;
+                    }
+                });
+            }
+
+            // Load status initially
+            loadAiStatus();
+
             const showToast = (message, type = 'success') => {
                 elements.toast.textContent = message; elements.toast.className = ``; elements.toast.classList.add(type, 'show');
                 setTimeout(() => { elements.toast.classList.remove('show'); }, 3000);
@@ -499,6 +607,10 @@
                 const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
                 const imageUrl = `/proxy/camera/${camera.codigo}?t=${cacheBuster}${tokenParam}`;
 
+                const lockIcon = camera.ai_locked ? 'lock' : 'lock-open';
+                const lockColor = camera.ai_locked ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-gray-400 bg-gray-100 dark:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200';
+                const lockTitle = camera.ai_locked ? 'IA Bloqueada (Clique para desbloquear)' : 'IA Permitida (Clique para bloquear)';
+
                 div.innerHTML = `
                     <div class="flex items-center gap-4 overflow-hidden">
                         <div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative skeleton-pulse">
@@ -506,18 +618,108 @@
                             <div class="absolute bottom-1 right-1">${statusBadge}</div>
                         </div>
                         <div class="overflow-hidden">
-                            <p class="font-bold text-lg truncate">${camera.nome}</p>
+                            <p class="font-bold text-lg truncate flex items-center gap-2">
+                                ${camera.nome}
+                                <button class="lock-btn p-1 rounded-full ${lockColor} transition-colors" title="${lockTitle}">
+                                    <i data-lucide="${lockIcon}" class="w-3 h-3"></i>
+                                </button>
+                            </p>
                             <p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}<span class="font-semibold">${levelText}</span></p>
+                            <p class="text-xs text-gray-400 mt-1 italic description-text">${camera.descricao || 'Sem descrição'}</p>
                         </div>
                     </div>
-                    <div class="flex-shrink-0">
+                    <div class="flex-shrink-0 flex gap-2">
+                        <button class="btn btn-secondary ai-btn" title="Gerar Descrição com IA" ${camera.ai_locked ? 'disabled' : ''}>
+                            <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        </button>
                         <button class="btn btn-secondary edit-btn">
                             <i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i>
                             <span class="hidden sm:inline">Editar</span>
                         </button>
                     </div>`;
 
+                // Lock Button Logic
+                const lockBtn = div.querySelector('.lock-btn');
+                lockBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const newLockedState = !camera.ai_locked;
+                    
+                    // Optimistic UI update
+                    // Re-create the <i> tag because Lucide replaces it with an <svg>
+                    lockBtn.innerHTML = `<i data-lucide="${newLockedState ? 'lock' : 'lock-open'}" class="w-3 h-3"></i>`;
+                    lockBtn.className = `lock-btn p-1 rounded-full ${newLockedState ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-gray-400 bg-gray-100 dark:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200'} transition-colors`;
+                    lucide.createIcons();
+
+                    try {
+                        const idToken = await auth.currentUser.getIdToken();
+                        const res = await fetch(`/api/ai/toggle-lock/${camera.codigo}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${idToken}`
+                            },
+                            body: JSON.stringify({ locked: newLockedState })
+                        });
+                        
+                        if (!res.ok) throw new Error('Falha ao atualizar bloqueio');
+                        
+                        const data = await res.json();
+                        camera.ai_locked = data.ai_locked; // Update local model
+                        showToast(data.message);
+                        
+                        // Update AI button state
+                        const aiBtn = div.querySelector('.ai-btn');
+                        if (aiBtn) aiBtn.disabled = camera.ai_locked;
+
+                    } catch (error) {
+                        console.error(error);
+                        showToast('Erro ao atualizar bloqueio', 'error');
+                        // Simple revert:
+                        loadCameras(); 
+                    }
+                });
+
                 div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
+                
+                const aiBtn = div.querySelector('.ai-btn');
+                aiBtn.addEventListener('click', async () => {
+                    if (!confirm(`Deseja gerar uma descrição automática para a câmera ${camera.nome}?`)) return;
+                    
+                    const originalContent = aiBtn.innerHTML;
+                    aiBtn.disabled = true;
+                    aiBtn.innerHTML = `<div class="loader" style="width: 16px; height: 16px; border-width: 2px;"></div>`;
+                    
+                    try {
+                        const idToken = await auth.currentUser.getIdToken();
+                        const res = await fetch(`/api/ai/describe/${camera.codigo}`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${idToken}`
+                            }
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                            showToast('Descrição gerada com sucesso!');
+                            // Atualiza o texto na interface
+                            const descEl = div.querySelector('.description-text');
+                            if (descEl) descEl.textContent = data.description;
+                            // Atualiza o objeto local para persistir se re-renderizar (opcional, mas bom)
+                            camera.descricao = data.description;
+                        } else {
+                            throw new Error(data.message || 'Erro ao gerar descrição');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        showToast(error.message, 'error');
+                    } finally {
+                        aiBtn.disabled = false;
+                        aiBtn.innerHTML = originalContent;
+                        lucide.createIcons();
+                    }
+                });
+
                 return div;
             };
 

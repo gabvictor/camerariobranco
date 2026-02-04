@@ -338,7 +338,36 @@ function setupCameraInterface(camera, el, cameraCode) {
     // B. Preenche Textos
     if(el.title) el.title.textContent = camera.nome;
     if(el.category) el.category.textContent = camera.categoria || 'Geral';
-    if(el.description) el.description.textContent = camera.descricao || 'Sem descrição disponível.';
+    if(el.description) {
+        if (camera.descricao) {
+            // Formata Markdown (**texto** -> <strong>texto</strong>) e quebras de linha
+            let formattedDesc = camera.descricao
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/(Condições climáticas)/, '<br>$1');
+            
+            // Adiciona data da análise se existir
+            if (camera.lastAnalysis) {
+                let dateObj = null;
+                // Suporte a diferentes formatos de Timestamp (Firestore / ISO String)
+                if (camera.lastAnalysis._seconds) {
+                     dateObj = new Date(camera.lastAnalysis._seconds * 1000);
+                } else if (camera.lastAnalysis.seconds) {
+                     dateObj = new Date(camera.lastAnalysis.seconds * 1000);
+                } else {
+                     dateObj = new Date(camera.lastAnalysis);
+                }
+                
+                if (dateObj && !isNaN(dateObj.getTime())) {
+                     const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                     formattedDesc += `<br><span class="inline-block mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800">✨ Análise feita às ${timeStr}</span>`;
+                }
+            }
+            el.description.innerHTML = formattedDesc;
+        } else {
+            el.description.textContent = 'Monitoramento em tempo real';
+        }
+    }
     
     // C. Atualiza Badge de Status e Ping
     const isOnline = camera.status === 'online';

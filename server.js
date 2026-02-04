@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const helmet = require('helmet');
 const admin = require('firebase-admin');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 let db; // Declare db in the outer scope
@@ -35,6 +36,7 @@ try {
     process.exit(1);
 }
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || serviceAccount.admin_email;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || serviceAccount.gemini_api_key;
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
 
 
@@ -67,6 +69,13 @@ let scanTimeoutOccurred = false;
 let cameraInfo = []; // Agora será preenchido pelo Firestore
 let cachedCameraStatus = [];
 let siteConfig = { showAppBanner: true }; // Default config
+
+// --- Estado da Automação de IA ---
+let isAutoAiActive = false;
+let autoAiInterval = null;
+const AUTO_AI_INTERVAL_MS = 60 * 60 * 1000; // 1 hora
+let nextAutoAiRun = null;
+
 
 // --- Métricas e Logs ---
 const METRICS = {
@@ -489,6 +498,218 @@ app.post('/api/site-config', verifyAdmin, async (req, res) => {
     }
 });
 
+// --- FUNÇÕES AUXILIARES DE IA ---
+
+async function analyzeCameraWithGemini(code) {
+    if (!GEMINI_API_KEY) {
+        throw new Error('Chave da API Gemini não configurada.');
+    }
+
+    console.log(`[AI_CORE] Iniciando análise para câmera ${code}...`);
+
+    // 1. Obter a imagem do proxy
+    // Usamos a URL completa do proxy local
+    const imageUrl = `https://camerasriobranco.site/proxy/camera/${code}`;
+    
+    const imageResponse = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 30000, 
+        headers: { 'User-Agent': 'CamRB-AI-Agent/1.0' }
+    });
+
+    const base64Image = Buffer.from(imageResponse.data, 'binary').toString('base64');
+
+    // 2. Enviar para Google Gemini
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const imagePart = {
+        inlineData: {
+            data: base64Image,
+            mimeType: imageResponse.headers['content-type']
+        }
+    };
+
+    const prompt = "Analise esta câmera de trânsito em Rio Branco e descreva de forma curta e objetiva o fluxo de veículos (parado, lento ou fluindo) e as condições climáticas visíveis.";
+
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const description = response.text();
+    
+    // 3. Atualizar no Firestore
+    await db.collection('cameras').doc(code).set({
+        descricao: description,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastAnalysis: admin.firestore.FieldValue.serverTimestamp(),
+        aiUpdated: true
+    }, { merge: true });
+
+    return description;
+}
+
+async function runBatchAnalysis() {
+    if (!isAutoAiActive) return;
+    
+    // Define a próxima execução estimada
+    nextAutoAiRun = Date.now() + AUTO_AI_INTERVAL_MS;
+    
+    console.log('[AUTO_AI] Iniciando ciclo de análise em lote...');
+    try {
+        const camerasSnap = await db.collection('cameras').get();
+        const cameras = [];
+        camerasSnap.forEach(doc => {
+            const data = doc.data();
+            
+            // Verifica se a câmera está online no cache atual
+            const cachedCam = cachedCameraStatus.find(c => c.codigo === data.codigo);
+            const isOnline = cachedCam && cachedCam.status === 'online';
+
+            // Filtra câmeras bloqueadas (ai_locked) E que estejam ONLINE
+            if (data.codigo && !data.ai_locked && isOnline) {
+                cameras.push(data.codigo);
+            }
+        });
+
+        console.log(`[AUTO_AI] ${cameras.length} câmeras elegíveis para análise.`);
+
+        // Processamento Sequencial com Delay
+        for (const code of cameras) {
+            if (!isAutoAiActive) {
+                console.log('[AUTO_AI] Ciclo interrompido manualmente.');
+                break; 
+            }
+            
+            try {
+                await analyzeCameraWithGemini(code);
+                console.log(`[AUTO_AI] Sucesso: Câmera ${code}`);
+            } catch (err) {
+                console.error(`[AUTO_AI] Erro na câmera ${code}: ${err.message}`);
+            }
+
+            // Delay de 10 segundos
+            await new Promise(resolve => setTimeout(resolve, 10000));
+        }
+        
+        // Atualizar cache global no final do lote
+        await loadCameraInfoFromFirestore();
+        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
+        updateStatusCache(currentStatuses);
+        
+        console.log('[AUTO_AI] Ciclo de análise concluído.');
+
+    } catch (error) {
+        console.error('[AUTO_AI] Erro fatal no ciclo:', error);
+    }
+}
+
+// --- ROTA DE DESCRIÇÃO POR IA ---
+app.post('/api/ai/describe/:code', verifyAdmin, async (req, res) => {
+    const { code } = req.params;
+    
+    // Validar código
+    if (!code || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ message: 'Código de câmera inválido.' });
+    }
+
+    // Verificar se a câmera está bloqueada para IA
+    const camera = cameraInfo.find(c => c.codigo === code);
+    if (camera && camera.ai_locked) {
+        return res.status(403).json({ message: 'A geração de descrição por IA está bloqueada para esta câmera.' });
+    }
+
+    try {
+        const description = await analyzeCameraWithGemini(code);
+        
+        // Atualizar Cache Local (já feito na helper, mas para resposta imediata na UI podemos refazer ou confiar no batch update da helper se fosse o caso, 
+        // mas a helper não atualiza o cache global a cada chamada, apenas o batch faz no final. 
+        // Vamos manter a atualização de cache aqui para feedback imediato no botão manual).
+        await loadCameraInfoFromFirestore();
+        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
+        updateStatusCache(currentStatuses);
+
+        res.json({ message: 'Descrição atualizada com sucesso!', description });
+
+    } catch (error) {
+        console.error(`[AI_ERROR] Falha ao processar câmera ${code}:`, error.message);
+        if (error.response) {
+             console.error('AI/Axios Error Data:', error.response.data);
+        }
+        res.status(500).json({ message: 'Erro ao processar descrição por IA.', error: error.message });
+    }
+});
+
+// --- ROTAS DE CONTROLE DA AUTOMAÇÃO ---
+
+app.post('/api/ai/toggle-global', verifyAdmin, (req, res) => {
+    isAutoAiActive = !isAutoAiActive;
+    
+    if (isAutoAiActive) {
+        // Inicia o intervalo
+        if (autoAiInterval) clearInterval(autoAiInterval);
+        
+        // Executa imediatamente a primeira vez (opcional, ou espera 1 hora)
+        // Vamos executar imediatamente para feedback
+        runBatchAnalysis();
+        
+        autoAiInterval = setInterval(runBatchAnalysis, AUTO_AI_INTERVAL_MS);
+        console.log(`[AUTO_AI] Ativado por ${req.user.email}`);
+    } else {
+        if (autoAiInterval) clearInterval(autoAiInterval);
+        autoAiInterval = null;
+        nextAutoAiRun = null;
+        console.log(`[AUTO_AI] Desativado por ${req.user.email}`);
+    }
+    
+    let nextRunIn = null;
+    if (isAutoAiActive && nextAutoAiRun) {
+        const minutes = Math.ceil((nextAutoAiRun - Date.now()) / 60000);
+        nextRunIn = minutes > 0 ? `${minutes} min` : 'Em breve';
+    }
+
+    res.json({ 
+        active: isAutoAiActive, 
+        nextRunIn: nextRunIn 
+    });
+});
+
+app.post('/api/ai/toggle-lock/:code', verifyAdmin, async (req, res) => {
+    const { code } = req.params;
+    const { locked } = req.body;
+    
+    if (!code) return res.status(400).json({ message: 'Código obrigatório' });
+    
+    try {
+        await db.collection('cameras').doc(code).set({
+            ai_locked: !!locked
+        }, { merge: true });
+
+        // Atualizar cache global para refletir a mudança imediatamente
+        await loadCameraInfoFromFirestore();
+        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
+        updateStatusCache(currentStatuses);
+        
+        res.json({ success: true, ai_locked: !!locked, message: locked ? 'IA Bloqueada para esta câmera' : 'IA Desbloqueada para esta câmera' });
+    } catch (error) {
+        console.error('Erro ao alternar bloqueio de IA:', error);
+        res.status(500).json({ message: 'Erro ao atualizar bloqueio' });
+    }
+});
+
+app.get('/api/ai/status', verifyAdmin, (req, res) => {
+    let nextRunIn = null;
+    if (isAutoAiActive && nextAutoAiRun) {
+        const minutes = Math.ceil((nextAutoAiRun - Date.now()) / 60000);
+        nextRunIn = minutes > 0 ? `${minutes} min` : 'Em breve';
+    }
+
+    res.json({
+        active: isAutoAiActive,
+        intervalMs: AUTO_AI_INTERVAL_MS,
+        nextRunIn: nextRunIn
+    });
+});
+
+
 // --- Rotas da API ---
 
 const proxyCameraHandler = async (req, res) => {
@@ -628,6 +849,10 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
         const db = admin.firestore();
         const cameraRef = db.collection('cameras').doc(codigo);
 
+        // Verifica se a descrição mudou para bloquear a IA
+        const doc = await cameraRef.get();
+        const currentData = doc.exists ? doc.data() : {};
+        
         const updatedData = {
             codigo,
             nome,
@@ -638,6 +863,12 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedBy: req.user.email
         };
+
+        // Se a descrição foi alterada manualmente (e não é vazia), bloqueia a automação
+        if (descricao && currentData.descricao !== descricao) {
+            updatedData.ai_locked = true;
+            console.log(`[AUDIT] Descrição alterada manualmente. Bloqueio de IA ativado para ${codigo}.`);
+        }
 
         await cameraRef.set(updatedData, { merge: true });
 
@@ -784,6 +1015,8 @@ function updateStatusCache(statuses) {
             categoria: info ? info.categoria : "Sem Categoria",
             coords: info ? info.coords : null,
             descricao: info ? info.descricao : "",
+            lastAnalysis: info ? info.lastAnalysis : null,
+            ai_locked: info ? !!info.ai_locked : false,
             level: info ? info.level : 1
         };
     }).sort((a, b) => (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1) || a.nome.localeCompare(b.nome));
