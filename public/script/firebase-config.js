@@ -3,7 +3,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCQgDMwDnVbjhWdw6MYP1K754TAAsdhsy0",
+    apiKey: "AIzaSyD-7M8M-y5hmHiEIztFTSFzMIcEZt3MdpE",
     authDomain: "camerasriobranco.firebaseapp.com",
     projectId: "camerasriobranco",
     storageBucket: "camerasriobranco.appspot.com",
