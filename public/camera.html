@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <link rel="icon" href="https://camerasriobranco.site/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="https://camerasriobranco.site/assets/icone.png">
 
     <title>Câmera ao Vivo - Rio Branco | CamRB</title>
@@ -256,6 +257,12 @@
                                 <i data-lucide="share-2" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
                                 <span class="hidden sm:inline">Compartilhar</span>
                             </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="report-btn" aria-label="Reportar Problema"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Reportar</span>
+                            </button>
                         </div>
                         
                         <div class="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-900/30">
@@ -455,6 +462,49 @@
         })();
     </script>
     <script type="module" src="/script/camera-script.js"></script>
+    <!-- Report Modal -->
+    <div id="report-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" id="report-backdrop"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-100 dark:border-gray-700">
+                    <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-white" id="modal-title">Reportar Problema</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">O que está acontecendo com esta câmera?</p>
+                                    <div class="mt-4 space-y-3">
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="offline">
+                                            <span>Câmera Offline / Tela Preta</span>
+                                            <i data-lucide="wifi-off" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="freezing">
+                                            <span>Travando / Lenta</span>
+                                            <i data-lucide="activity" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="wrong_location">
+                                            <span>Localização Incorreta</span>
+                                            <i data-lucide="map-pin-off" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <textarea id="report-details" rows="3" class="mt-2 block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 sm:text-sm sm:leading-6" placeholder="Detalhes adicionais (opcional)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <button type="button" id="confirm-report-btn" class="inline-flex w-full justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Enviar Reporte</button>
+                        <button type="button" id="cancel-report-btn" class="mt-3 inline-flex w-full justify-center rounded-xl bg-white dark:bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 sm:mt-0 sm:w-auto transition-colors">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

@@ -4,14 +4,10 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "axios": "^1.11.0",
-    "cors": "^2.8.5",
     "express": "^5.1.0",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.5.0",
-    "helmet": "^8.1.0",
-    "web-push": "^3.6.7"
+    "helmet": "^8.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

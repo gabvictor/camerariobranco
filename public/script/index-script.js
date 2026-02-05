@@ -125,11 +125,28 @@ function initializeAppLogic() {
         currentSearch: '',
         currentStatusFilter: 'online',
         currentCategoryFilter: 'all',
+        sortBy: 'default', // 'default' or 'views'
+        userLocation: null,
         updateInterval: 5 * 60 * 1000,
         modalUpdateInterval: null,
         currentModalIndex: -1,
         currentPage: 1,
         itemsPerPage: 18,
+    };
+
+    const deg2rad = (deg) => deg * (Math.PI / 180);
+
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // Radius of the earth in km
+        const dLat = deg2rad(lat2 - lat1);
+        const dLon = deg2rad(lon2 - lon1);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const d = R * c; // Distance in km
+        return d;
     };
 
     const fetchFavorites = async () => {
@@ -160,6 +177,16 @@ function initializeAppLogic() {
         const isFavorite = state.favorites.includes(camera.codigo);
         const imageUrl = isOnline ? `/proxy/camera/${camera.codigo}` : `/assets/offline.png`;
 
+        let distanceBadge = '';
+        if (camera.distance !== undefined) {
+            distanceBadge = `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 ml-2 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i>${camera.distance.toFixed(1)} km</span>`;
+        }
+
+        let viewsBadge = '';
+        if (camera.views > 0) {
+             viewsBadge = `<span class="flex items-center text-xs text-gray-400 dark:text-gray-500 mr-auto ml-2" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1"></i>${camera.views}</span>`;
+        }
+
         card.innerHTML = `
             <div class="relative group">
                 <a href="/camera/${camera.codigo}" class="block aspect-video w-full bg-gray-200 dark:bg-gray-700 cursor-pointer" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">
@@ -174,10 +201,14 @@ function initializeAppLogic() {
             <div class="p-3 flex-grow flex flex-col justify-center">
                 <a href="/camera/${camera.codigo}" class="font-semibold text-sm pr-2 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="${camera.nome}" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">${camera.nome}</a>
                 <div class="flex justify-between items-center mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate" title="${camera.categoria}">${camera.categoria}</span>
-                    <span class="status-badge px-2 py-0.5 text-xs font-medium rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
-                        ${isOnline ? 'Online' : 'Offline'}
-                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]" title="${camera.categoria}">${camera.categoria}</span>
+                    ${viewsBadge}
+                    <div class="flex items-center ml-auto">
+                        ${distanceBadge}
+                        <span class="status-badge px-2 py-0.5 text-xs font-medium rounded-full ml-2 ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
+                            ${isOnline ? 'Online' : 'Offline'}
+                        </span>
+                    </div>
                 </div>
             </div>
         `;
@@ -215,7 +246,7 @@ function initializeAppLogic() {
             await setDoc(userRef, { favoriteCameras: state.favorites }, { merge: true });
         } catch (error) {
             console.error("Error updating favorites:", error);
-            alert("Erro ao salvar favorito. Tente novamente.");
+            showToast("Erro ao salvar favorito. Tente novamente.", "error");
 
             // Revert changes
             if (wasFavorite) {
@@ -331,7 +362,7 @@ function initializeAppLogic() {
     };
 
     const applyFilters = () => {
-        let filtered = state.allCameras;
+        let filtered = [...state.allCameras]; // Create a copy to avoid mutating source
 
         // Simplified Status Filter
         if (state.currentStatusFilter === 'favorites') {
@@ -340,6 +371,16 @@ function initializeAppLogic() {
             filtered = filtered.filter(cam => cam.status === 'online');
         } else if (state.currentStatusFilter === 'offline') {
             filtered = filtered.filter(cam => cam.status !== 'online');
+        } else if (state.currentStatusFilter === 'near_me' && state.userLocation) {
+            filtered = filtered.filter(cam => cam.coords && Array.isArray(cam.coords) && cam.coords.length === 2 && cam.status === 'online');
+            filtered = filtered.map(cam => {
+                const dist = calculateDistance(
+                    state.userLocation.lat, state.userLocation.lng,
+                    cam.coords[0], cam.coords[1]
+                );
+                return { ...cam, distance: dist };
+            });
+            filtered.sort((a, b) => a.distance - b.distance);
         }
 
         // Category Filter
@@ -357,6 +398,11 @@ function initializeAppLogic() {
                 normalize(cam.codigo).includes(searchTerm) ||
                 normalize(cam.categoria).includes(searchTerm)
             );
+        }
+
+        // Sort Filter (Mais Vistos)
+        if (state.sortBy === 'views') {
+            filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
         }
 
         state.filteredCameras = filtered;
@@ -478,15 +524,22 @@ function initializeAppLogic() {
             const categoryBtn = e.target.closest('.filter-chip[data-filter-group="category"]');
             if (categoryBtn) {
                 e.preventDefault();
-
                 const { filter } = categoryBtn.dataset;
-                state.currentCategoryFilter = filter;
+
+                // Toggle logic
+                if (state.currentCategoryFilter === filter) {
+                    state.currentCategoryFilter = 'all';
+                } else {
+                    state.currentCategoryFilter = filter;
+                }
 
                 // Update UI
                 const container = document.getElementById('category-filters');
                 if (container) {
                     container.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active-chip'));
-                    categoryBtn.classList.add('active-chip');
+                    if (state.currentCategoryFilter !== 'all') {
+                        categoryBtn.classList.add('active-chip');
+                    }
                 }
 
                 applyFilters();
@@ -497,8 +550,51 @@ function initializeAppLogic() {
             const statusBtn = e.target.closest('.filter-chip[data-filter-group="status"]');
             if (statusBtn) {
                 e.preventDefault();
-
                 const { filter } = statusBtn.dataset;
+
+                // Handle "Near Me" specifically
+                if (filter === 'near_me') {
+                    if (!state.userLocation) {
+                        if ("geolocation" in navigator) {
+                            const originalText = statusBtn.innerHTML;
+                            statusBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i>Localizando...`;
+                            if (window.lucide) window.lucide.createIcons();
+
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    state.userLocation = {
+                                        lat: position.coords.latitude,
+                                        lng: position.coords.longitude
+                                    };
+                                    // Success
+                                    state.currentStatusFilter = filter;
+                                    
+                                    // Update UI
+                                    const container = document.getElementById('status-filters');
+                                    if (container) {
+                                        container.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active-chip'));
+                                        statusBtn.classList.add('active-chip');
+                                    }
+                                    
+                                    applyFilters();
+                                    statusBtn.innerHTML = originalText;
+                                    if (window.lucide) window.lucide.createIcons();
+                                },
+                                (error) => {
+                                    console.error("Error getting location:", error);
+                                    showToast("Não foi possível obter sua localização.", "error");
+                                    statusBtn.innerHTML = originalText;
+                                    if (window.lucide) window.lucide.createIcons();
+                                }
+                            );
+                            return;
+                        } else {
+                            showToast("Geolocalização não suportada.", "error");
+                            return;
+                        }
+                    }
+                }
+
                 state.currentStatusFilter = filter;
 
                 // Update UI
@@ -506,6 +602,26 @@ function initializeAppLogic() {
                 if (container) {
                     container.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active-chip'));
                     statusBtn.classList.add('active-chip');
+                }
+
+                applyFilters();
+            }
+
+            // Handle Sort Filters
+            const sortBtn = e.target.closest('.filter-chip[data-filter-group="sort"]');
+            if (sortBtn) {
+                e.preventDefault();
+                const { sort } = sortBtn.dataset;
+
+                // Toggle sort
+                if (state.sortBy === sort) {
+                    state.sortBy = 'default';
+                    sortBtn.classList.remove('active-chip');
+                    sortBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); // Remove active styles
+                } else {
+                    state.sortBy = sort;
+                    sortBtn.classList.add('active-chip');
+                    sortBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); // Add active styles
                 }
 
                 applyFilters();
@@ -648,5 +764,39 @@ function initializeAppLogic() {
 
 // --- Login Modal Logic ---
 initAuthModal();
+
+// Toast Notification System
+window.showToast = (message, type = 'success') => {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${
+        type === 'error' 
+            ? 'bg-red-500/90 text-white' 
+            : 'bg-gray-900/90 text-white dark:bg-white/90 dark:text-gray-900'
+    }`;
+
+    const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
+    
+    toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+        <p class="text-sm font-medium">${message}</p>
+    `;
+
+    container.appendChild(toast);
+    if(window.lucide) window.lucide.createIcons();
+
+    // Animate In
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-8', 'opacity-0');
+    });
+
+    // Remove after delay
+    setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
 
 

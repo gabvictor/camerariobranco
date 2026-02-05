@@ -8,6 +8,48 @@ import { collection, addDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, onS
 initAuthModal();
 initGlobalAuthUI();
 
+// Toast Notification System (Duplicate or Shared)
+if (!window.showToast) {
+    window.showToast = (message, type = 'success') => {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            // Create container if it doesn't exist (e.g. on camera page)
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${
+            type === 'error' 
+                ? 'bg-red-500/90 text-white' 
+                : 'bg-gray-900/90 text-white dark:bg-white/90 dark:text-gray-900'
+        }`;
+
+        const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
+        
+        toast.innerHTML = `
+            <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+            <p class="text-sm font-medium">${message}</p>
+        `;
+
+        container.appendChild(toast);
+        if(window.lucide) window.lucide.createIcons();
+
+        // Animate In
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-8', 'opacity-0');
+        });
+
+        // Remove after delay
+        setTimeout(() => {
+            toast.classList.add('translate-y-4', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
 let videoInterval = null;
 let commentsUnsubscribe = null;
 
@@ -187,7 +229,7 @@ function initializeComments(user, cameraCode) {
                     // Firestore snapshot listener updates the UI automatically
                 } catch (error) {
                     console.error("Erro ao excluir comentário:", error);
-                    alert("Erro ao excluir. Verifique se você tem permissão.");
+                    showToast("Erro ao excluir. Verifique se você tem permissão.", "error");
                 }
             }
         });
@@ -217,7 +259,7 @@ function initializeComments(user, cameraCode) {
                 commentInput.value = '';
             } catch (error) {
                 console.error("Erro ao comentar: ", error);
-                alert("Erro ao enviar. Tente novamente.");
+                showToast("Erro ao enviar. Tente novamente.", "error");
             } finally {
                 commentInput.disabled = false;
                 submitButton.disabled = false;
@@ -324,6 +366,100 @@ async function initializeCameraLogic(user) {
 
     // Configuração de Botões (Share, Like, Fullscreen, Favorite)
     setupActionButtons(el, cameraCode, user);
+
+    // Share functionality removed (duplicate)
+
+    // --- Report Functionality ---
+    const reportBtn = document.getElementById('report-btn');
+    const reportModal = document.getElementById('report-modal');
+    const cancelReportBtn = document.getElementById('cancel-report-btn');
+    const confirmReportBtn = document.getElementById('confirm-report-btn');
+    const reportBackdrop = document.getElementById('report-backdrop');
+    const reportOptions = document.querySelectorAll('.report-option');
+    let selectedReason = null;
+
+    if (reportBtn && reportModal) {
+        // Open Modal
+        reportBtn.addEventListener('click', () => {
+            reportModal.classList.remove('hidden');
+            // Reset state
+            selectedReason = null;
+            document.getElementById('report-details').value = '';
+            reportOptions.forEach(opt => {
+                opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                opt.classList.add('border-transparent');
+            });
+        });
+
+        // Close Modal
+        const closeReportModal = () => {
+            reportModal.classList.add('hidden');
+        };
+
+        if (cancelReportBtn) cancelReportBtn.addEventListener('click', closeReportModal);
+        if (reportBackdrop) reportBackdrop.addEventListener('click', closeReportModal);
+
+        // Select Reason
+        reportOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Deselect all
+                reportOptions.forEach(opt => {
+                    opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                    opt.classList.add('border-transparent');
+                });
+                
+                // Select clicked
+                option.classList.remove('border-transparent');
+                option.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                selectedReason = option.dataset.reason;
+            });
+        });
+
+        // Submit Report
+        if (confirmReportBtn) {
+            confirmReportBtn.addEventListener('click', async () => {
+                if (!selectedReason) {
+                    window.showToast('Selecione um motivo para o reporte.', 'error');
+                    return;
+                }
+
+                const details = document.getElementById('report-details').value;
+                const originalText = confirmReportBtn.innerText;
+                confirmReportBtn.innerText = 'Enviando...';
+                confirmReportBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/report', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cameraId: cameraCode,
+                            issueType: selectedReason,
+                            description: details,
+                            userEmail: user ? user.email : 'anonymous'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        window.showToast('Obrigado! Seu reporte foi enviado.', 'success');
+                        closeReportModal();
+                    } else {
+                        throw new Error(data.error || 'Erro ao enviar');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    window.showToast('Erro ao enviar reporte. Tente novamente.', 'error');
+                } finally {
+                    confirmReportBtn.innerText = originalText;
+                    confirmReportBtn.disabled = false;
+                }
+            });
+        }
+    }
 }
 
 /**
@@ -346,23 +482,8 @@ function setupCameraInterface(camera, el, cameraCode) {
                 .replace(/\n/g, '<br>')
                 .replace(/(Condições climáticas)/, '<br>$1');
             
-            // Adiciona data da análise se existir
-            if (camera.lastAnalysis) {
-                let dateObj = null;
-                // Suporte a diferentes formatos de Timestamp (Firestore / ISO String)
-                if (camera.lastAnalysis._seconds) {
-                     dateObj = new Date(camera.lastAnalysis._seconds * 1000);
-                } else if (camera.lastAnalysis.seconds) {
-                     dateObj = new Date(camera.lastAnalysis.seconds * 1000);
-                } else {
-                     dateObj = new Date(camera.lastAnalysis);
-                }
-                
-                if (dateObj && !isNaN(dateObj.getTime())) {
-                     const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                     formattedDesc += `<br><span class="inline-block mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800">✨ Análise feita às ${timeStr}</span>`;
-                }
-            }
+            // Adiciona data da análise se existir (REMOVIDO)
+            // if (camera.lastAnalysis) { ... }
             el.description.innerHTML = formattedDesc;
         } else {
             el.description.textContent = 'Monitoramento em tempo real';

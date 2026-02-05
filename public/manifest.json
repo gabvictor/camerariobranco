@@ -1,0 +1,20 @@
+{
+  "name": "Câmeras Rio Branco",
+  "short_name": "Câmeras RB",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/assets/icone.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icone.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

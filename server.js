@@ -6,7 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const helmet = require('helmet');
 const admin = require('firebase-admin');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // --- INÍCIO: CONFIGURAÇÃO SEGURA DO FIREBASE ADMIN ---
 let db; // Declare db in the outer scope
@@ -36,7 +35,6 @@ try {
     process.exit(1);
 }
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || serviceAccount.admin_email;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || serviceAccount.gemini_api_key;
 // --- FIM: CONFIGURAÇÃO DO FIREBASE ADMIN ---
 
 
@@ -70,13 +68,6 @@ let cameraInfo = []; // Agora será preenchido pelo Firestore
 let cachedCameraStatus = [];
 let siteConfig = { showAppBanner: true }; // Default config
 
-// --- Estado da Automação de IA ---
-let isAutoAiActive = false;
-let autoAiInterval = null;
-const AUTO_AI_INTERVAL_MS = 60 * 60 * 1000; // 1 hora
-let nextAutoAiRun = null;
-
-
 // --- Métricas e Logs ---
 const METRICS = {
     startTime: Date.now(),
@@ -87,9 +78,50 @@ const METRICS = {
     totalRequestDurationMs: 0,
     lastRequestAt: null,
     lastProxySuccessAt: null,
-    lastProxyFailureAt: null
+    lastProxyFailureAt: null,
+    viewsToday: 0,  // Contador volátil de visualizações hoje (resetado no restart)
+    totalViews: 0,  // Contador total acumulado (carregado do DB se possível, ou 0)
+    topCameras: {}  // Mapa { cameraCode: viewsCount }
 };
 
+// Carregar contadores persistentes do Firestore (opcional, para não zerar no restart)
+async function loadPersistentMetrics() {
+    try {
+        const doc = await db.collection('metrics').doc('global_views').get();
+        if (doc.exists) {
+            const data = doc.data();
+            METRICS.totalViews = data.total || 0;
+            // Opcional: zerar viewsToday diariamente via cron ou checar data
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (data.date === todayStr) {
+                METRICS.viewsToday = data.today || 0;
+                METRICS.topCameras = data.topCameras || {};
+            } else {
+                METRICS.viewsToday = 0;
+                METRICS.topCameras = {};
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao carregar métricas persistentes:", e);
+    }
+}
+// Chamar após inicializar DB
+setTimeout(loadPersistentMetrics, 5000);
+
+// Salvar métricas periodicamente
+setInterval(async () => {
+    try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        await db.collection('metrics').doc('global_views').set({
+            total: METRICS.totalViews,
+            today: METRICS.viewsToday,
+            date: todayStr,
+            topCameras: METRICS.topCameras
+        }, { merge: true });
+    } catch (e) {
+        console.error("Erro ao salvar métricas:", e);
+    }
+}, 5 * 60 * 1000); // A cada 5 minutos
 
 // --- ROTA DE CORREÇÃO PARA ANDROID APP LINKS (ASSETLINKS.JSON) ---
 // Tenta ler o arquivo diretamente e envia o conteúdo como JSON.
@@ -116,14 +148,13 @@ app.get('/.well-known/assetlinks.json', async (req, res) => {
         res.status(200).send(JSON.stringify(fallback));
     }
 });
-
 // --- FIM DA ROTA DE CORREÇÃO ---
 
 
 // --- Middlewares ---
 
-// Configuração de Segurança com Helmet (SIMPLIFICADA PARA LOCALHOST)
-// NOTA: CSP desativada para permitir carregamento de todos os recursos (Anúncios, Scripts externos, etc)
+// Configuração de Segurança com Helmet
+// NOTA: CSP desativada para permitir carregamento de todos os recursos externos (Anúncios, Scripts, Imagens, etc)
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
@@ -135,10 +166,145 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 
+// --- Middlewares de Autenticação ---
+const verifyAdmin = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn(`[SECURITY] Tentativa de acesso sem token: ${req.originalUrl} - IP: ${req.ip}`);
+        return res.status(403).json({ message: 'Acesso negado: Token não fornecido.' });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        if (decodedToken.email === ADMIN_EMAIL) {
+            req.user = decodedToken;
+            next();
+        } else {
+            console.warn(`[SECURITY] Acesso negado para email não autorizado: ${decodedToken.email} em ${req.originalUrl}`);
+            res.status(403).json({ message: 'Acesso negado: Permissões insuficientes.' });
+        }
+    } catch (error) {
+        console.error(`[SECURITY] Erro na verificação do token: ${error.message}`);
+        res.status(401).json({ message: 'Token inválido ou expirado.' });
+    }
+};
+
+const verifyOptionalAdmin = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    req.userIsAdmin = false;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const idToken = authHeader.split('Bearer ')[1];
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            if (decodedToken.email === ADMIN_EMAIL) {
+                req.userIsAdmin = true;
+            }
+        } catch (error) { /* Ignora erros de token inválido */ }
+    }
+    next();
+};
+
+
 app.get('/api/config', (req, res) => {
     res.json({
         adminEmail: ADMIN_EMAIL
     });
+});
+
+// Rota para a nova página de gerenciamento de reportes (admin/reports)
+app.get('/admin/reports', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'reports.html'));
+});
+
+// Endpoint para Reportar Problemas
+app.post('/api/report', async (req, res) => {
+    try {
+        const { cameraId, issueType, description, userEmail } = req.body;
+        
+        if (!cameraId || !issueType) {
+            return res.status(400).json({ error: 'Dados incompletos' });
+        }
+
+        // Rate limiting simples (opcional)
+        
+        await db.collection('reports').add({
+            cameraId,
+            issueType,
+            description: description || '',
+            userEmail: userEmail || 'anônimo',
+            status: 'pending',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            userAgent: req.headers['user-agent'] || ''
+        });
+
+        res.status(200).json({ success: true, message: 'Reporte enviado com sucesso' });
+    } catch (error) {
+        console.error('Erro ao salvar reporte:', error);
+        res.status(500).json({ error: 'Erro interno ao processar reporte' });
+    }
+});
+
+// Endpoint para Listar Reportes (Admin Only)
+app.get('/api/reports', verifyAdmin, async (req, res) => {
+    try {
+        console.log(`[API] Buscando reportes para admin: ${req.user.email}`);
+        const snapshot = await db.collection('reports').orderBy('timestamp', 'desc').limit(50).get();
+        const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[API] ${reports.length} reportes encontrados.`);
+        res.setHeader('Cache-Control', 'no-store');
+        res.json(reports);
+    } catch (error) {
+        console.error('Erro ao buscar reportes:', error);
+        res.status(500).json({ error: 'Erro ao buscar reportes' });
+    }
+});
+
+// Endpoint para Atualizar Status de Reporte (Admin Only)
+app.put('/api/report/:id/status', verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ error: 'Status é obrigatório' });
+        }
+
+        const reportRef = db.collection('reports').doc(id);
+        const report = await reportRef.get();
+
+        if (!report.exists) {
+            return res.status(404).json({ error: 'Reporte não encontrado' });
+        }
+
+        await reportRef.update({ status });
+        
+        console.log(`[API] Reporte ${id} atualizado para ${status} por ${req.user.email}`);
+        res.json({ success: true, message: 'Status atualizado com sucesso' });
+    } catch (error) {
+        console.error('Erro ao atualizar reporte:', error);
+        res.status(500).json({ error: 'Erro ao atualizar reporte' });
+    }
+});
+
+// Endpoint para Excluir Reporte (Admin Only)
+app.delete('/api/report/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const reportRef = db.collection('reports').doc(id);
+        const report = await reportRef.get();
+
+        if (!report.exists) {
+            return res.status(404).json({ error: 'Reporte não encontrado' });
+        }
+
+        await reportRef.delete();
+        
+        console.log(`[API] Reporte ${id} excluído por ${req.user.email}`);
+        res.json({ success: true, message: 'Reporte excluído com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir reporte:', error);
+        res.status(500).json({ error: 'Erro ao excluir reporte' });
+    }
 });
 
 // Logging simples de requisições
@@ -181,6 +347,13 @@ const serveCameraPage = (req, res) => {
     } catch (err) {
         console.error('Erro ao ler camera.html:', err);
         return res.status(500).send('Erro interno ao carregar a página.');
+    }
+    
+    // Incrementa visualização para essa câmera
+    METRICS.viewsToday++;
+    METRICS.totalViews++;
+    if (code) {
+        METRICS.topCameras[code] = (METRICS.topCameras[code] || 0) + 1;
     }
 
     // --- CORREÇÃO CRÍTICA 1: Base Tag --- 
@@ -433,43 +606,7 @@ async function loadCameraInfoFromFirestore() {
     }
 }
 
-// --- Middlewares de Autenticação (sem alterações) ---
-const verifyAdmin = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn(`[SECURITY] Tentativa de acesso sem token: ${req.originalUrl} - IP: ${req.ip}`);
-        return res.status(403).json({ message: 'Acesso negado: Token não fornecido.' });
-    }
-    const idToken = authHeader.split('Bearer ')[1];
-    try {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        if (decodedToken.email === ADMIN_EMAIL) {
-            req.user = decodedToken;
-            next();
-        } else {
-            console.warn(`[SECURITY] Acesso negado para email não autorizado: ${decodedToken.email} em ${req.originalUrl}`);
-            res.status(403).json({ message: 'Acesso negado: Permissões insuficientes.' });
-        }
-    } catch (error) {
-        console.error(`[SECURITY] Erro na verificação do token: ${error.message}`);
-        res.status(401).json({ message: 'Token inválido ou expirado.' });
-    }
-};
-
-const verifyOptionalAdmin = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    req.userIsAdmin = false;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const idToken = authHeader.split('Bearer ')[1];
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(idToken);
-            if (decodedToken.email === ADMIN_EMAIL) {
-                req.userIsAdmin = true;
-            }
-        } catch (error) { /* Ignora erros de token inválido */ }
-    }
-    next();
-};
+// Middlewares moved up
 
 
 // --- Rotas de Configuração (Site Config) ---
@@ -498,217 +635,7 @@ app.post('/api/site-config', verifyAdmin, async (req, res) => {
     }
 });
 
-// --- FUNÇÕES AUXILIARES DE IA ---
-
-async function analyzeCameraWithGemini(code) {
-    if (!GEMINI_API_KEY) {
-        throw new Error('Chave da API Gemini não configurada.');
-    }
-
-    console.log(`[AI_CORE] Iniciando análise para câmera ${code}...`);
-
-    // 1. Obter a imagem do proxy
-    // Usamos a URL completa do proxy local
-    const imageUrl = `https://camerasriobranco.site/proxy/camera/${code}`;
-    
-    const imageResponse = await axios.get(imageUrl, {
-        responseType: 'arraybuffer',
-        timeout: 30000, 
-        headers: { 'User-Agent': 'CamRB-AI-Agent/1.0' }
-    });
-
-    const base64Image = Buffer.from(imageResponse.data, 'binary').toString('base64');
-
-    // 2. Enviar para Google Gemini
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    const imagePart = {
-        inlineData: {
-            data: base64Image,
-            mimeType: imageResponse.headers['content-type']
-        }
-    };
-
-    const prompt = "Analise esta câmera de trânsito em Rio Branco e descreva de forma curta e objetiva o fluxo de veículos (parado, lento ou fluindo) e as condições climáticas visíveis.";
-
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const description = response.text();
-    
-    // 3. Atualizar no Firestore
-    await db.collection('cameras').doc(code).set({
-        descricao: description,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastAnalysis: admin.firestore.FieldValue.serverTimestamp(),
-        aiUpdated: true
-    }, { merge: true });
-
-    return description;
-}
-
-async function runBatchAnalysis() {
-    if (!isAutoAiActive) return;
-    
-    // Define a próxima execução estimada
-    nextAutoAiRun = Date.now() + AUTO_AI_INTERVAL_MS;
-    
-    console.log('[AUTO_AI] Iniciando ciclo de análise em lote...');
-    try {
-        const camerasSnap = await db.collection('cameras').get();
-        const cameras = [];
-        camerasSnap.forEach(doc => {
-            const data = doc.data();
-            
-            // Verifica se a câmera está online no cache atual
-            const cachedCam = cachedCameraStatus.find(c => c.codigo === data.codigo);
-            const isOnline = cachedCam && cachedCam.status === 'online';
-
-            // Filtra câmeras bloqueadas (ai_locked) E que estejam ONLINE
-            if (data.codigo && !data.ai_locked && isOnline) {
-                cameras.push(data.codigo);
-            }
-        });
-
-        console.log(`[AUTO_AI] ${cameras.length} câmeras elegíveis para análise.`);
-
-        // Processamento Sequencial com Delay
-        for (const code of cameras) {
-            if (!isAutoAiActive) {
-                console.log('[AUTO_AI] Ciclo interrompido manualmente.');
-                break; 
-            }
-            
-            try {
-                await analyzeCameraWithGemini(code);
-                console.log(`[AUTO_AI] Sucesso: Câmera ${code}`);
-            } catch (err) {
-                console.error(`[AUTO_AI] Erro na câmera ${code}: ${err.message}`);
-            }
-
-            // Delay de 10 segundos
-            await new Promise(resolve => setTimeout(resolve, 10000));
-        }
-        
-        // Atualizar cache global no final do lote
-        await loadCameraInfoFromFirestore();
-        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
-        updateStatusCache(currentStatuses);
-        
-        console.log('[AUTO_AI] Ciclo de análise concluído.');
-
-    } catch (error) {
-        console.error('[AUTO_AI] Erro fatal no ciclo:', error);
-    }
-}
-
-// --- ROTA DE DESCRIÇÃO POR IA ---
-app.post('/api/ai/describe/:code', verifyAdmin, async (req, res) => {
-    const { code } = req.params;
-    
-    // Validar código
-    if (!code || !/^\d{6}$/.test(code)) {
-        return res.status(400).json({ message: 'Código de câmera inválido.' });
-    }
-
-    // Verificar se a câmera está bloqueada para IA
-    const camera = cameraInfo.find(c => c.codigo === code);
-    if (camera && camera.ai_locked) {
-        return res.status(403).json({ message: 'A geração de descrição por IA está bloqueada para esta câmera.' });
-    }
-
-    try {
-        const description = await analyzeCameraWithGemini(code);
-        
-        // Atualizar Cache Local (já feito na helper, mas para resposta imediata na UI podemos refazer ou confiar no batch update da helper se fosse o caso, 
-        // mas a helper não atualiza o cache global a cada chamada, apenas o batch faz no final. 
-        // Vamos manter a atualização de cache aqui para feedback imediato no botão manual).
-        await loadCameraInfoFromFirestore();
-        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
-        updateStatusCache(currentStatuses);
-
-        res.json({ message: 'Descrição atualizada com sucesso!', description });
-
-    } catch (error) {
-        console.error(`[AI_ERROR] Falha ao processar câmera ${code}:`, error.message);
-        if (error.response) {
-             console.error('AI/Axios Error Data:', error.response.data);
-        }
-        res.status(500).json({ message: 'Erro ao processar descrição por IA.', error: error.message });
-    }
-});
-
-// --- ROTAS DE CONTROLE DA AUTOMAÇÃO ---
-
-app.post('/api/ai/toggle-global', verifyAdmin, (req, res) => {
-    isAutoAiActive = !isAutoAiActive;
-    
-    if (isAutoAiActive) {
-        // Inicia o intervalo
-        if (autoAiInterval) clearInterval(autoAiInterval);
-        
-        // Executa imediatamente a primeira vez (opcional, ou espera 1 hora)
-        // Vamos executar imediatamente para feedback
-        runBatchAnalysis();
-        
-        autoAiInterval = setInterval(runBatchAnalysis, AUTO_AI_INTERVAL_MS);
-        console.log(`[AUTO_AI] Ativado por ${req.user.email}`);
-    } else {
-        if (autoAiInterval) clearInterval(autoAiInterval);
-        autoAiInterval = null;
-        nextAutoAiRun = null;
-        console.log(`[AUTO_AI] Desativado por ${req.user.email}`);
-    }
-    
-    let nextRunIn = null;
-    if (isAutoAiActive && nextAutoAiRun) {
-        const minutes = Math.ceil((nextAutoAiRun - Date.now()) / 60000);
-        nextRunIn = minutes > 0 ? `${minutes} min` : 'Em breve';
-    }
-
-    res.json({ 
-        active: isAutoAiActive, 
-        nextRunIn: nextRunIn 
-    });
-});
-
-app.post('/api/ai/toggle-lock/:code', verifyAdmin, async (req, res) => {
-    const { code } = req.params;
-    const { locked } = req.body;
-    
-    if (!code) return res.status(400).json({ message: 'Código obrigatório' });
-    
-    try {
-        await db.collection('cameras').doc(code).set({
-            ai_locked: !!locked
-        }, { merge: true });
-
-        // Atualizar cache global para refletir a mudança imediatamente
-        await loadCameraInfoFromFirestore();
-        const currentStatuses = cachedCameraStatus.map(c => ({ codigo: c.codigo, status: c.status }));
-        updateStatusCache(currentStatuses);
-        
-        res.json({ success: true, ai_locked: !!locked, message: locked ? 'IA Bloqueada para esta câmera' : 'IA Desbloqueada para esta câmera' });
-    } catch (error) {
-        console.error('Erro ao alternar bloqueio de IA:', error);
-        res.status(500).json({ message: 'Erro ao atualizar bloqueio' });
-    }
-});
-
-app.get('/api/ai/status', verifyAdmin, (req, res) => {
-    let nextRunIn = null;
-    if (isAutoAiActive && nextAutoAiRun) {
-        const minutes = Math.ceil((nextAutoAiRun - Date.now()) / 60000);
-        nextRunIn = minutes > 0 ? `${minutes} min` : 'Em breve';
-    }
-
-    res.json({
-        active: isAutoAiActive,
-        intervalMs: AUTO_AI_INTERVAL_MS,
-        nextRunIn: nextRunIn
-    });
-});
-
+// AI reset route removed
 
 // --- Rotas da API ---
 
@@ -802,10 +729,16 @@ app.get('/api/simple-metrics', (req, res) => {
 
 // ESTA ROTA FOI MANTIDA E FUNCIONA EXATAMENTE COMO ANTES PARA O SEU APLICATIVO
 app.get('/status-cameras', verifyOptionalAdmin, (req, res) => {
+    // Injeta views atuais antes de enviar
+    const camerasWithViews = cachedCameraStatus.map(cam => ({
+        ...cam,
+        views: METRICS.topCameras[cam.codigo] || 0
+    }));
+
     if (req.userIsAdmin) {
-        res.json(cachedCameraStatus);
+        res.json(camerasWithViews);
     } else {
-        const publicCameras = cachedCameraStatus.filter(camera => camera.level === 1 || !camera.level);
+        const publicCameras = camerasWithViews.filter(camera => camera.level === 1 || !camera.level);
         res.json(publicCameras);
     }
 });
@@ -864,12 +797,6 @@ app.post('/api/update-camera-info', verifyAdmin, async (req, res) => {
             updatedBy: req.user.email
         };
 
-        // Se a descrição foi alterada manualmente (e não é vazia), bloqueia a automação
-        if (descricao && currentData.descricao !== descricao) {
-            updatedData.ai_locked = true;
-            console.log(`[AUDIT] Descrição alterada manualmente. Bloqueio de IA ativado para ${codigo}.`);
-        }
-
         await cameraRef.set(updatedData, { merge: true });
 
         console.log(`[AUDIT] Câmera ${codigo} atualizada com sucesso por ${req.user.email}.`);
@@ -914,76 +841,96 @@ app.post('/api/track-visit', async (req, res) => {
     }
 });
 
-// --- ROTA DE DADOS PARA O DASHBOARD (sem alterações) ---
+// Nova Rota para Dados do Dashboard
 app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     try {
-        const listUsersResult = await admin.auth().listUsers(1000);
+        // Dados de Usuários
+        const listUsersResult = await admin.auth().listUsers(1000); // Limite de 1000 por enquanto
         const users = listUsersResult.users;
-        const totalUsers = users.length;
-
-        // Traffic Stats
-        const today = new Date().toISOString().split('T')[0];
-        const statsRef = db.collection('stats').doc('traffic');
-        const dailyRef = statsRef.collection('daily').doc(today);
         
-        const [statsSnap, dailySnap] = await Promise.all([
-            statsRef.get(),
-            dailyRef.get()
-        ]);
-
-        const totalViews = statsSnap.exists ? (statsSnap.data().totalViews || 0) : 0;
-        const viewsToday = dailySnap.exists ? (dailySnap.data().views || 0) : 0;
-
-        // Active Users (24h)
-        const now = new Date();
-        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const totalUsers = users.length;
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        
+        // Filtra usuários ativos nas últimas 24h (baseado no lastSignInTime)
         const activeUsers24h = users.filter(user => {
-            if (!user.metadata.lastSignInTime) return false;
-            const lastSignIn = new Date(user.metadata.lastSignInTime);
-            return lastSignIn > oneDayAgo;
+            const lastSign = new Date(user.metadata.lastSignInTime).getTime();
+            return lastSign > oneDayAgo;
         }).length;
 
-        // Recent Users (Top 5)
-        const recentUsers = users.sort((a, b) => {
-            return new Date(b.metadata.creationTime) - new Date(a.metadata.creationTime);
-        }).slice(0, 5).map(user => ({
-            uid: user.uid,
-            email: user.email,
-            creationTime: user.metadata.creationTime,
-            lastSignInTime: user.metadata.lastSignInTime
-        }));
-
-        const totalCameras = cameraInfo.length;
-
-        const todayDate = new Date();
-        todayDate.setHours(23, 59, 59, 999);
-        const signupsByDay = { labels: [], values: Array(7).fill(0) };
+        // Prepara dados para o gráfico de novos usuários (últimos 7 dias)
+        const signupsByDay = { labels: [], values: [] };
+        const today = new Date();
         for (let i = 6; i >= 0; i--) {
-            const date = new Date(todayDate);
-            date.setDate(todayDate.getDate() - i);
-            signupsByDay.labels.push(date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit' }));
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); // dd/mm
+            signupsByDay.labels.push(dateStr);
+            
+            // Conta usuários criados neste dia
+            const startOfDay = new Date(d.setHours(0,0,0,0)).getTime();
+            const endOfDay = new Date(d.setHours(23,59,59,999)).getTime();
+            
+            const count = users.filter(u => {
+                const created = new Date(u.metadata.creationTime).getTime();
+                return created >= startOfDay && created <= endOfDay;
+            }).length;
+            signupsByDay.values.push(count);
         }
-        users.forEach(user => {
-            const creationTime = new Date(user.metadata.creationTime);
-            const diffDays = Math.floor((todayDate - creationTime) / (1000 * 60 * 60 * 24));
-            if (diffDays >= 0 && diffDays < 7) {
-                const index = 6 - diffDays;
-                signupsByDay.values[index]++;
-            }
+
+        // Últimos 5 usuários cadastrados
+        const recentUsers = users
+            .sort((a, b) => new Date(b.metadata.creationTime) - new Date(a.metadata.creationTime))
+            .slice(0, 5)
+            .map(u => ({
+                email: u.email,
+                creationTime: u.metadata.creationTime,
+                lastSignInTime: u.metadata.lastSignInTime
+            }));
+
+        // Dados de Câmeras
+        const totalCameras = cachedCameraStatus.length || cameraInfo.length;
+
+        // Processa Top Câmeras para o Dashboard
+        // Ordena o objeto METRICS.topCameras
+        const sortedTopCameras = Object.entries(METRICS.topCameras)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5)
+            .map(([code, views]) => {
+                const info = cameraInfo.find(c => c.codigo === code);
+                return {
+                    codigo: code,
+                    nome: info ? info.nome : `Câmera ${code}`,
+                    views: views
+                };
+            });
+
+        // Dados de Categorias
+        const categories = {};
+        cameraInfo.forEach(cam => {
+            const cat = cam.categoria || 'Outros';
+            categories[cat] = (categories[cat] || 0) + 1;
         });
         
-        res.json({ 
-            totalUsers, 
-            activeUsers24h, 
-            totalCameras, 
-            recentUsers, 
+        const categoryData = {
+            labels: Object.keys(categories),
+            values: Object.values(categories)
+        };
+
+        res.json({
+            totalUsers,
+            activeUsers24h,
+            totalCameras,
+            recentUsers,
             signupsByDay,
-            totalViews,
-            viewsToday
+            categoryData,
+            viewsToday: METRICS.viewsToday,
+            totalViews: METRICS.totalViews,
+            topCameras: sortedTopCameras
         });
+
     } catch (error) {
-        console.error('Erro ao buscar estatísticas de usuários:', error);
-        res.status(500).json({ message: "Não foi possível carregar as estatísticas." });
+        console.error("Erro ao buscar dados do dashboard:", error);
+        res.status(500).json({ message: "Erro interno ao buscar dados." });
     }
 });
 
@@ -1015,8 +962,6 @@ function updateStatusCache(statuses) {
             categoria: info ? info.categoria : "Sem Categoria",
             coords: info ? info.coords : null,
             descricao: info ? info.descricao : "",
-            lastAnalysis: info ? info.lastAnalysis : null,
-            ai_locked: info ? !!info.ai_locked : false,
             level: info ? info.level : 1
         };
     }).sort((a, b) => (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1) || a.nome.localeCompare(b.nome));

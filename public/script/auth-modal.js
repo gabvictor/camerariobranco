@@ -88,7 +88,7 @@ export const initGlobalAuthUI = () => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 signOut(auth).then(() => {
-                    console.log('User signed out');
+                    // console.log('User signed out');
                 }).catch((error) => {
                     console.error('Sign out error', error);
                 });

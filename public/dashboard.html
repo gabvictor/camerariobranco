@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://camerasriobranco.site/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="https://camerasriobranco.site/assets/icone.png">
     <title>Dashboard - Câmeras Rio Branco</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -94,20 +95,7 @@
 
             <!-- Grid de Estatísticas -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Card Total de Usuários -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
-                    <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
-                        <i data-lucide="users" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Usuários</p>
-                        <div id="total-users-stat-container">
-                            <h2 id="total-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
-                            <div id="total-users-loader" class="loader mt-2"></div>
-                        </div>
-                    </div>
-                </div>
-
+                
                 <!-- Card Câmeras Totais -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
                     <div class="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full">
@@ -122,46 +110,30 @@
                     </div>
                 </div>
 
+                <!-- Card Total de Usuários -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
+                        <i data-lucide="users" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Usuários</p>
+                        <div id="total-users-stat-container">
+                            <h2 id="total-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="total-users-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Card Usuários Ativos (24h) -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
                     <div class="bg-blue-100 dark:bg-blue-900/50 p-4 rounded-full">
-                        <i data-lucide="user-check" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
+                        <i data-lucide="activity" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
                     </div>
                     <div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Usuários Cadastrados Ativos (24h)</p>
-                <div id="active-users-stat-container">
-                    <h2 id="active-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Usuários Ativos (24h)</p>
+                        <div id="active-users-stat-container">
+                            <h2 id="active-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
                             <div id="active-users-loader" class="loader mt-2"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Acesso às Métricas -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center justify-between gap-6">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
-                            <i data-lucide="activity" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Métricas do Sistema</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Uptime, requisições, proxy e scanner</p>
-                        </div>
-                    </div>
-                    <a href="/metrics" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
-                        Abrir
-                    </a>
-                </div>
-
-                <!-- Card Visualizações (Hoje) -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
-                    <div class="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full">
-                        <i data-lucide="eye" class="w-8 h-8 text-purple-600 dark:text-purple-400"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Hoje)</p>
-                        <div id="views-today-stat-container">
-                            <h2 id="views-today-stat" class="text-3xl font-bold" style="display: none;">--</h2>
-                            <div id="views-today-loader" class="loader mt-2"></div>
                         </div>
                     </div>
                 </div>
@@ -179,6 +151,47 @@
                         </div>
                     </div>
                 </div>
+
+                 <!-- Card Visualizações (Hoje) -->
+                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full">
+                        <i data-lucide="eye" class="w-8 h-8 text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Hoje)</p>
+                        <div id="views-today-stat-container">
+                            <h2 id="views-today-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="views-today-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mapa de Calor (Heatmap) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold">Mapa de Calor (Acessos em Tempo Real)</h2>
+                    <span class="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full animate-pulse">AO VIVO</span>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Lista Top Câmeras -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-4 uppercase">Top 5 Câmeras Mais Acessadas</h3>
+                        <div id="top-cameras-list" class="space-y-3">
+                            <!-- Loader -->
+                            <div class="animate-pulse space-y-3">
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Pizza (Categorias) -->
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="categories-chart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Gráfico de Cadastros -->
@@ -187,6 +200,23 @@
                 <div class="relative h-64">
                     <canvas id="signups-chart"></canvas>
                 </div>
+            </div>
+
+            <!-- Reportes de Problemas (Card Resumo) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Gerenciamento de Reportes</h2>
+                    <a href="/admin/reports" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                        Ver Todos <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">
+                    Acesse a área dedicada para visualizar e gerenciar os problemas reportados pelos usuários.
+                </p>
+                <a href="/admin/reports" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors font-medium text-sm">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    Acessar Central de Reportes
+                </a>
             </div>
 
             <!-- Últimos Usuários Cadastrados -->
@@ -282,6 +312,119 @@
                 loadStats();
             });
 
+            async function loadReports() {
+                const tbody = document.getElementById('reports-table-body');
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch('/api/reports', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.message || `Erro HTTP ${response.status}`);
+                    }
+                    
+                    const reports = await response.json();
+                    tbody.innerHTML = '';
+                    
+                    if (reports.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">Nenhum reporte encontrado.</td></tr>';
+                        return;
+                    }
+
+                    reports.forEach(report => {
+                        let date = 'Data desconhecida';
+                        if (report.timestamp) {
+                            const dateObj = report.timestamp._seconds 
+                                ? new Date(report.timestamp._seconds * 1000) 
+                                : new Date(report.timestamp);
+                            date = dateObj.toLocaleString('pt-BR');
+                        }
+                        
+                        const issueMap = {
+                            'offline': 'Offline / Tela Preta',
+                            'freezing': 'Travando / Lenta',
+                            'wrong_location': 'Localização Incorreta'
+                        };
+                        const issueLabel = issueMap[report.issueType] || report.issueType;
+                        
+                        const row = `
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${report.cameraId}</td>
+                                <td class="px-6 py-4">
+                                    <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                                        ${issueLabel}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 truncate max-w-xs" title="${report.description}">${report.description || '-'}</td>
+                                <td class="px-6 py-4">${date}</td>
+                                <td class="px-6 py-4">
+                                    <span id="status-${report.id}" class="${getStatusColor(report.status)} text-xs font-medium px-2.5 py-0.5 rounded">
+                                        ${report.status || 'Pendente'}
+                                    </span>
+                                    ${report.status !== 'resolved' ? `
+                                        <button onclick="resolveReport('${report.id}')" class="ml-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium underline">
+                                            Resolver
+                                        </button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+
+                } catch (error) {
+                    console.error(error);
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Erro ao carregar reportes: ${error.message}</td></tr>`;
+                }
+            }
+
+            function getStatusColor(status) {
+                switch(status) {
+                    case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                    case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+                    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                }
+            }
+
+            window.resolveReport = async (id) => {
+                if(!confirm('Deseja marcar este reporte como resolvido?')) return;
+                
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch(`/api/report/${id}/status`, {
+                        method: 'PUT',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ status: 'resolved' })
+                    });
+                    
+                    if (!response.ok) throw new Error('Erro ao atualizar');
+                    
+                    // Update UI
+                    const statusSpan = document.getElementById(`status-${id}`);
+                    if(statusSpan) {
+                        statusSpan.textContent = 'resolved';
+                        statusSpan.className = getStatusColor('resolved') + ' text-xs font-medium px-2.5 py-0.5 rounded';
+                        
+                        // Remove the button
+                        const btn = statusSpan.nextElementSibling;
+                        if(btn) btn.remove();
+                    }
+                    
+                    alert('Reporte marcado como resolvido!');
+                    
+                } catch (error) {
+                    console.error(error);
+                    alert('Erro ao atualizar status.');
+                }
+            };
+            
+            document.getElementById('refresh-reports-btn')?.addEventListener('click', loadReports);
+
             async function loadStats() {
                 try {
                     // Pega o token de autenticação do usuário logado
@@ -307,6 +450,39 @@
                     document.getElementById('views-today-stat').textContent = stats.viewsToday;
                     document.getElementById('views-total-stat').textContent = stats.totalViews;
 
+                    // Render Top Cameras
+                    const topCamerasList = document.getElementById('top-cameras-list');
+                    topCamerasList.innerHTML = '';
+                    
+                    if (stats.topCameras && stats.topCameras.length > 0) {
+                        stats.topCameras.forEach((cam, index) => {
+                            const percent = Math.round((cam.views / stats.viewsToday) * 100) || 0;
+                            const item = document.createElement('div');
+                            item.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors";
+                            item.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <span class="text-lg font-bold text-gray-400 w-6">#${index + 1}</span>
+                                    <div>
+                                        <p class="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[150px]">${cam.nome || 'Câmera ' + cam.codigo}</p>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-[10px] bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">${cam.codigo}</span>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">${cam.views} views</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500" style="width: ${percent}%"></div>
+                                    </div>
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 w-8 text-right">${percent}%</span>
+                                </div>
+                            `;
+                            topCamerasList.appendChild(item);
+                        });
+                    } else {
+                        topCamerasList.innerHTML = '<p class="text-sm text-gray-500">Sem dados de visualização hoje.</p>';
+                    }
+
                     // Render Recent Users Table
                     const tableBody = document.getElementById('recent-users-table-body');
                     tableBody.innerHTML = '';
@@ -322,6 +498,7 @@
                     });
 
                     renderChart(stats.signupsByDay);
+                    renderCategoryChart(stats.categoryData);
 
                 } catch (error) {
                     console.error("Falha ao carregar estatísticas:", error);
@@ -392,9 +569,65 @@
                 });
             }
 
+            function renderCategoryChart(data) {
+                const ctx = document.getElementById('categories-chart').getContext('2d');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                // Destruir gráfico antigo se existir
+                if (window.myCategoryChart) {
+                    window.myCategoryChart.destroy();
+                }
+
+                window.myCategoryChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.values,
+                            backgroundColor: [
+                                '#4F46E5', // Indigo
+                                '#10B981', // Emerald
+                                '#F59E0B', // Amber
+                                '#EF4444', // Red
+                                '#8B5CF6', // Violet
+                                '#EC4899', // Pink
+                                '#6366F1', // Indigo Light
+                                '#14B8A6'  // Teal
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: textColor,
+                                    boxWidth: 12,
+                                    padding: 15,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
             initializeTheme();
+
+            // Start loading stats
             loadStats();
-            lucide.createIcons();
+            
+            // Auto refresh stats every 30s
+            setInterval(loadStats, 30000);
+
+            if (window.lucide) window.lucide.createIcons();
         }
     </script>
 </body>

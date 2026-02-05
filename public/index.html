@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://camerasriobranco.site/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="https://camerasriobranco.site/assets/icone.png">
     <title>Câmeras ao Vivo de Rio Branco | CamRB</title>
 
@@ -82,6 +83,9 @@
 <body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
     <div id="content-wrapper" class="min-h-screen flex flex-col" style="display: none;">
+        <!-- Toast Container -->
+        <div id="toast-container" class="fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
         <!-- Bottom Navigation (Mobile) -->
         <nav class="bottom-nav sm:hidden">
             <a href="/" class="nav-item active">
@@ -257,12 +261,20 @@
                                     class="w-3.5 h-3.5 mr-1.5 text-amber-500 fill-amber-500"></i>Favoritas <span
                                     id="count-favorites" class="ml-1.5 opacity-60 text-xs">0</span>
                             </button>
+                            <button data-filter-group="status" data-filter="near_me" class="filter-chip">
+                                <i data-lucide="map-pin"
+                                    class="w-3.5 h-3.5 mr-1.5 text-blue-500"></i>Perto de Mim
+                            </button>
                             <button data-filter-group="status" data-filter="all" class="filter-chip">
                                 Todas <span id="count-all" class="ml-1.5 opacity-60 text-xs">0</span>
                             </button>
                             <button data-filter-group="status" data-filter="offline" class="filter-chip">
                                 <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span>Offline <span
                                     id="count-offline" class="ml-1.5 opacity-60 text-xs">0</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                            <button data-filter-group="sort" data-sort="views" class="filter-chip">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-1.5 text-purple-500"></i>Mais Vistos
                             </button>
                         </div>
 
