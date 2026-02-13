@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://camerasriobranco.site/assets/icone.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://camerasriobranco.site/assets/icone.png">
+    <title>Novidades e Atualizações | CamRB</title>
+
+    <meta name="description" content="Acompanhe as últimas novidades, atualizações e melhorias do CamRB em Rio Branco.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://camerasriobranco.site/novidades">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://camerasriobranco.site/novidades">
+    <meta property="og:title" content="Novidades e Atualizações | CamRB">
+    <meta property="og:description" content="Fique por dentro das melhorias e novas câmeras adicionadas ao CamRB.">
+    <meta property="og:image" content="https://camerasriobranco.site/assets/camrb.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/global.css">
+    <script src="/script/theme.js"></script>
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Navbar Simplificada -->
+        <nav class="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50">
+            <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+                <a href="/" class="flex items-center gap-2 group">
+                    <div class="bg-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-700 transition-colors">
+                        <i data-lucide="video" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">CamRB</span>
+                </a>
+                
+                <div class="flex items-center gap-4">
+                    <a href="/" class="hidden sm:block text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        Voltar para Início
+                    </a>
+                    
+                    <button id="toggle-theme" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow container mx-auto px-4 py-12 max-w-3xl">
+            <header class="text-center mb-16 animate-fade-in-up">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-4 border border-indigo-100 dark:border-indigo-800/50">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    O que há de novo
+                </div>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">
+                    Novidades e Atualizações
+                </h1>
+                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                    Acompanhe a evolução do CamRB. Aqui listamos todas as melhorias, novas funcionalidades e câmeras adicionadas para você.
+                </p>
+            </header>
+
+            <!-- Timeline Container -->
+            <div id="novidades-content" class="relative">
+                <!-- Loader State -->
+                <div id="novidades-loader" class="flex flex-col items-center justify-center py-20">
+                    <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-gray-500 font-medium">Carregando novidades...</p>
+                </div>
+
+                <!-- Timeline Items will be injected here -->
+                <div id="timeline-container" class="hidden relative border-l-2 border-indigo-100 dark:border-indigo-900/50 ml-4 md:ml-6 space-y-12 pb-8">
+                </div>
+
+                <!-- Empty State -->
+                <div id="novidades-empty" class="hidden flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
+                    <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-full mb-6">
+                        <i data-lucide="ghost" class="w-12 h-12 text-gray-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Nada por aqui ainda</h3>
+                    <p class="text-gray-500 max-w-xs mx-auto">Em breve traremos atualizações emocionantes para o sistema.</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="novidades-error" class="hidden flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
+                    <div class="bg-red-50 dark:bg-red-900/20 p-6 rounded-full mb-6">
+                        <i data-lucide="alert-circle" class="w-12 h-12 text-red-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Erro ao carregar</h3>
+                    <p class="text-gray-500 mb-6">Não conseguimos buscar as atualizações no momento.</p>
+                    <button onclick="window.location.reload()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-all">
+                        Tentar Novamente
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <div id="global-footer" data-type="full"></div>
+
+    <script type="module">
+        import { initFooter } from './script/footer-component.js';
+        document.addEventListener('DOMContentLoaded', initFooter);
+    </script>
+</body>
+
+</html>

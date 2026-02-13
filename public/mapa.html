@@ -181,6 +181,12 @@
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                 </button>
 
+                <!-- Changelog -->
+                <button id="nav-changelog-btn" title="Novidades" class="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="changelog-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full hidden"></span>
+                </button>
+
                 <!-- Theme Toggle -->
                 <button id="map-theme-toggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
@@ -201,6 +207,43 @@
 
         <!-- Map Container -->
         <div id="map" class="w-full h-full z-0"></div>
+
+        <!-- Changelog Modal -->
+        <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1002] hidden flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+                <!-- Modal Header -->
+                <div class="relative px-6 py-8 border-b dark:border-gray-700 bg-indigo-600 text-white overflow-hidden">
+                    <!-- Background Decor -->
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                    <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl"></div>
+                    
+                    <div class="relative flex justify-between items-start">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </div>
+                                <h3 class="font-bold text-2xl tracking-tight">Novidades</h3>
+                            </div>
+                            <p class="text-indigo-100 text-sm font-medium opacity-90">Acompanhe as atualizações do CamRB</p>
+                        </div>
+                        <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group">
+                            <i data-lucide="x" class="w-6 h-6 text-white/80 group-hover:text-white"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Content -->
+                <div id="changelog-content" class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                    <!-- Conteúdo dinâmico (changelog.js) -->
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-center">
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
+                </div>
+            </div>
+        </div>
 
         <!-- Floating Controls (Locate Me) -->
         <div class="absolute bottom-24 sm:bottom-8 right-4 z-[999] flex flex-col gap-2">
@@ -269,6 +312,12 @@
                 }
             } catch (e) { console.error('Error loading config', e); }
         })();
+    </script>
+    <script type="module">
+        import { initChangelog } from '/script/changelog.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initChangelog();
+        });
     </script>
 </body>
 

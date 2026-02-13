@@ -65,5 +65,11 @@ service cloud.firestore {
       allow write: if isAdmin(); // Apenas admin pode alterar
     }
 
+    // 5. REGRAS PARA CHANGELOG
+    match /changelog/{docId} {
+      allow read: if true; // Público pode ler as novidades
+      allow write: if isAdmin(); // Apenas admin pode publicar
+    }
+
   }
 }

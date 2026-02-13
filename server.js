@@ -52,10 +52,6 @@ const CONFIG = {
 };
 
 const app = express();
-app.use((req, res, next) => {
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    next();
-});
 const PUBLIC_FOLDER = path.join(__dirname, 'public');
 const ASSETS_FOLDER = path.join(PUBLIC_FOLDER, 'assets');
 const ERROR_IMAGE_PATH = path.join(ASSETS_FOLDER, 'offline.png');
@@ -159,7 +155,7 @@ app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false,
-    crossOriginOpenerPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     originAgentCluster: false,
 }));
 
@@ -304,6 +300,34 @@ app.delete('/api/report/:id', verifyAdmin, async (req, res) => {
     } catch (error) {
         console.error('Erro ao excluir reporte:', error);
         res.status(500).json({ error: 'Erro ao excluir reporte' });
+    }
+});
+
+// Endpoint para Salvar Changelog (Admin Only)
+app.post('/api/changelog', verifyAdmin, async (req, res) => {
+    try {
+        const { title, message } = req.body;
+
+        if (!title || !message) {
+            return res.status(400).json({ error: 'Título e Mensagem são obrigatórios' });
+        }
+
+        const date = new Date().toLocaleDateString('pt-BR');
+        const changelogData = {
+            title,
+            message,
+            date,
+            active: true,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        const docRef = await db.collection('changelog').add(changelogData);
+        
+        console.log(`[API] Changelog publicado por ${req.user.email}: ${title}`);
+        res.json({ success: true, message: 'Novidade publicada com sucesso!', id: docRef.id });
+    } catch (error) {
+        console.error('Erro ao salvar changelog:', error);
+        res.status(500).json({ error: 'Erro ao publicar novidade' });
     }
 });
 
@@ -527,6 +551,12 @@ app.get('/sitemap.xml', (req, res) => {
         <lastmod>${lastMod}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/novidades</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
     </url>`;
 
     // Páginas dinâmicas das câmeras
@@ -558,6 +588,11 @@ app.get('/sitemap.xml', (req, res) => {
 
 // O express.static serve os arquivos da pasta 'public'
 app.use(express.static(PUBLIC_FOLDER));
+
+// --- Rotas de Páginas Públicas ---
+app.get('/novidades', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'novidades.html'));
+});
 
 // Rota de fallback para universal link deep-link (Removida pois agora é tratada pelo SSR acima)
 // app.get('/camera', (req, res) => { ... });
@@ -1027,6 +1062,7 @@ app.get('/login', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'login.htm
 app.get('/metrics', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'metrics.html')));
 app.get('/termos', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'termos.html')));
 app.get('/perfil', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'perfil.html')));
+app.get('/novidades', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'novidades.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'dashboard.html')));
 app.get('/index', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'index.html')));
 

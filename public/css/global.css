@@ -191,3 +191,43 @@ body {
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: #4b5563; /* gray-600 */
 }
+
+/* Proteção contra cliques inválidos do Admin */ 
+body.is-admin .adsbygoogle, 
+body.is-admin .ad-container, 
+body.is-admin [id^="google_ads_iframe"], 
+body.is-admin iframe[src*="doubleclick"], 
+body.is-admin iframe[src*="ads"] { 
+    display: none !important; 
+    pointer-events: none !important; 
+    visibility: hidden !important; 
+    height: 0 !important; 
+    width: 0 !important; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+}
+
+/* Animações e Classes Adicionais */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

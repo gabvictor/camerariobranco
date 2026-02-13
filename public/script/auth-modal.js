@@ -30,6 +30,14 @@ const checkAdminStatus = (user) => {
     
     const isAdmin = user && targetAdminEmail && userEmail === targetAdminEmail;
 
+    // Proteção AdSense: Adiciona/Remove classe no body
+    if (isAdmin) {
+        document.body.classList.add('is-admin');
+        // console.log("🔒 Modo Admin Ativo: Anúncios ocultos para prevenir cliques inválidos.");
+    } else {
+        document.body.classList.remove('is-admin');
+    }
+
     adminElements.forEach(el => {
         if (isAdmin) {
             el.classList.remove('hidden');

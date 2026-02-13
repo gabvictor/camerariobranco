@@ -64,6 +64,43 @@
         </div>
     </div>
 
+    <!-- Modal de Changelog -->
+    <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+            <!-- Modal Header -->
+            <div class="relative px-6 py-8 border-b dark:border-gray-700 bg-indigo-600 text-white overflow-hidden">
+                <!-- Background Decor -->
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl"></div>
+                
+                <div class="relative flex justify-between items-start">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            </div>
+                            <h3 class="font-bold text-2xl tracking-tight">Novidades</h3>
+                        </div>
+                        <p class="text-indigo-100 text-sm font-medium opacity-90">Acompanhe as atualizações do CamRB</p>
+                    </div>
+                    <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group">
+                        <i data-lucide="x" class="w-6 h-6 text-white/80 group-hover:text-white"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Content -->
+            <div id="changelog-content" class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                <!-- Conteúdo dinâmico (changelog.js) -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-center">
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
+            </div>
+        </div>
+    </div>
+
     <div id="content-wrapper">
         <div class="container mx-auto p-4 md:p-8">
             <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -73,6 +110,11 @@
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
                         <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <button id="nav-changelog-btn" title="Novidades"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 relative">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="changelog-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
                     </button>
                     <a href="/metrics" title="Métricas do sistema"
                         class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
@@ -219,6 +261,36 @@
                 </a>
             </div>
 
+            <!-- Publicar Atualização no Site -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
+                        <i data-lucide="megaphone" class="w-6 h-6 text-amber-600 dark:text-amber-400"></i>
+                    </div>
+                    <h2 class="text-lg font-bold">Publicar Atualização no Site</h2>
+                </div>
+                <form id="changelog-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Título</label>
+                        <input type="text" id="cl-title" placeholder="Ex: Novo Layout e Correções" required
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Mensagem</label>
+                        <textarea id="cl-message" rows="4" placeholder="Descreva as novidades..." required
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <button type="submit" id="cl-submit-btn"
+                            class="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Publicar Agora</span>
+                        </button>
+                        <p id="cl-feedback" class="text-sm font-medium hidden"></p>
+                    </div>
+                </form>
+            </div>
+
             <!-- Últimos Usuários Cadastrados -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
                 <h2 class="text-lg font-bold mb-4">Últimos Usuários Cadastrados</h2>
@@ -238,28 +310,25 @@
                 </div>
             </div>
 
-            <footer class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6 pb-8">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div class="flex gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
-                        <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
-                        <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
-                    </div>
-                    <p class="text-xs text-gray-400">
-                        &copy; 2025 CamRB.
-                    </p>
-                </div>
-            </footer>
+            <div id="global-footer"></div>
         </div>
     </div>
 
     <script type="module">
+        import { initFooter } from '/script/footer-component.js';
+        document.addEventListener('DOMContentLoaded', initFooter);
+    </script>
+    <script type="module">
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { auth } from "/script/firebase-config.js";
         import { initAuthModal, toggleLoginModal, ADMIN_EMAIL } from "/script/auth-modal.js";
 
         // Initialize Auth Modal
         initAuthModal();
+
+        // Initialize Firestore
+        const db = getFirestore();
 
         // ALTERAÇÃO: A URL do backend é agora relativa, pois a página é servida pelo mesmo servidor.
         const BACKEND_URL = '';
@@ -312,118 +381,148 @@
                 loadStats();
             });
 
-            async function loadReports() {
-                const tbody = document.getElementById('reports-table-body');
-                try {
-                    const token = await user.getIdToken();
-                    const response = await fetch('/api/reports', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}));
-                        throw new Error(errData.message || `Erro HTTP ${response.status}`);
-                    }
-                    
-                    const reports = await response.json();
-                    tbody.innerHTML = '';
-                    
-                    if (reports.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">Nenhum reporte encontrado.</td></tr>';
-                        return;
-                    }
+            // Lógica de Changelog
+            const navChangelogBtn = document.getElementById('nav-changelog-btn');
+            const changelogModal = document.getElementById('changelog-modal');
+            const closeChangelogModal = document.getElementById('close-changelog-modal');
+            const changelogBadge = document.getElementById('changelog-badge');
+            const changelogContent = document.getElementById('changelog-content');
+            const changelogForm = document.getElementById('changelog-form');
+            const clFeedback = document.getElementById('cl-feedback');
+            const clSubmitBtn = document.getElementById('cl-submit-btn');
 
-                    reports.forEach(report => {
-                        let date = 'Data desconhecida';
-                        if (report.timestamp) {
-                            const dateObj = report.timestamp._seconds 
-                                ? new Date(report.timestamp._seconds * 1000) 
-                                : new Date(report.timestamp);
-                            date = dateObj.toLocaleString('pt-BR');
-                        }
-                        
-                        const issueMap = {
-                            'offline': 'Offline / Tela Preta',
-                            'freezing': 'Travando / Lenta',
-                            'wrong_location': 'Localização Incorreta'
-                        };
-                        const issueLabel = issueMap[report.issueType] || report.issueType;
-                        
-                        const row = `
-                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${report.cameraId}</td>
-                                <td class="px-6 py-4">
-                                    <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
-                                        ${issueLabel}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 truncate max-w-xs" title="${report.description}">${report.description || '-'}</td>
-                                <td class="px-6 py-4">${date}</td>
-                                <td class="px-6 py-4">
-                                    <span id="status-${report.id}" class="${getStatusColor(report.status)} text-xs font-medium px-2.5 py-0.5 rounded">
-                                        ${report.status || 'Pendente'}
-                                    </span>
-                                    ${report.status !== 'resolved' ? `
-                                        <button onclick="resolveReport('${report.id}')" class="ml-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium underline">
-                                            Resolver
-                                        </button>
-                                    ` : ''}
-                                </td>
-                            </tr>
-                        `;
-                        tbody.insertAdjacentHTML('beforeend', row);
-                    });
-
-                } catch (error) {
-                    console.error(error);
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Erro ao carregar reportes: ${error.message}</td></tr>`;
+            const checkChangelogNotification = () => {
+                const lastViewed = localStorage.getItem('lastViewedChangelog');
+                if (!lastViewed) {
+                    changelogBadge.classList.remove('hidden');
                 }
-            }
+            };
 
-            function getStatusColor(status) {
-                switch(status) {
-                    case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-                    case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-                    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-                }
-            }
-
-            window.resolveReport = async (id) => {
-                if(!confirm('Deseja marcar este reporte como resolvido?')) return;
+            const openChangelogModal = async () => {
+                changelogModal.classList.remove('hidden');
+                changelogBadge.classList.add('hidden');
+                localStorage.setItem('lastViewedChangelog', new Date().toISOString());
+                
+                changelogContent.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 animate-pulse">
+                        <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p class="text-sm text-gray-500 font-medium">Buscando novidades...</p>
+                    </div>
+                `;
                 
                 try {
+                    const q = query(collection(db, 'changelog'), where('active', '==', true), orderBy('timestamp', 'desc'));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (querySnapshot.empty) {
+                        changelogContent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-12 text-center">
+                                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-full mb-4">
+                                    <i data-lucide="ghost" class="w-8 h-8 text-gray-400"></i>
+                                </div>
+                                <h4 class="text-lg font-bold text-gray-800 dark:text-gray-200">Nada por aqui ainda</h4>
+                                <p class="text-sm text-gray-500 max-w-[200px]">Fique atento para futuras atualizações do CamRB.</p>
+                            </div>
+                        `;
+                        if (window.lucide) window.lucide.createIcons();
+                        return;
+                    }
+                    
+                    changelogContent.innerHTML = '<div class="relative border-l-2 border-indigo-100 dark:border-indigo-900/50 ml-3 space-y-8 pb-4"></div>';
+                    const timelineContainer = changelogContent.firstChild;
+
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const item = `
+                            <div class="relative pl-8 animate-fade-in-up">
+                                <!-- Timeline Dot -->
+                                <div class="absolute -left-[9px] top-1 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-indigo-500 rounded-full z-10"></div>
+                                
+                                <!-- Content Card -->
+                                <div class="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all p-5 group">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                        <h3 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${data.title}</h3>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+                                            ${data.date}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line leading-relaxed">${data.message}</p>
+                                </div>
+                            </div>
+                        `;
+                        timelineContainer.insertAdjacentHTML('beforeend', item);
+                    });
+                    
+                    if (window.lucide) window.lucide.createIcons();
+                } catch (error) {
+                    console.error('Erro ao carregar changelog:', error);
+                    changelogContent.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
+                                <i data-lucide="alert-circle" class="w-8 h-8 text-red-500"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-800 dark:text-gray-200">Erro ao carregar</h4>
+                            <p class="text-sm text-gray-500">Não conseguimos buscar as novidades no momento.</p>
+                        </div>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            };
+
+            navChangelogBtn.addEventListener('click', openChangelogModal);
+            if (closeChangelogModal) {
+                closeChangelogModal.addEventListener('click', () => changelogModal.classList.add('hidden'));
+            }
+            checkChangelogNotification();
+
+            // Lógica de Escrita do Changelog
+            changelogForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const title = document.getElementById('cl-title').value;
+                const message = document.getElementById('cl-message').value;
+                
+                clSubmitBtn.disabled = true;
+                clSubmitBtn.innerHTML = '<div class="loader w-4 h-4 border-2"></div><span class="ml-2">Publicando...</span>';
+                clFeedback.className = 'text-sm font-medium text-gray-500';
+                clFeedback.textContent = 'Aguarde...';
+                clFeedback.classList.remove('hidden');
+
+                try {
                     const token = await user.getIdToken();
-                    const response = await fetch(`/api/report/${id}/status`, {
-                        method: 'PUT',
-                        headers: { 
+                    const response = await fetch('/api/changelog', {
+                        method: 'POST',
+                        headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ status: 'resolved' })
+                        body: JSON.stringify({ title, message })
                     });
-                    
-                    if (!response.ok) throw new Error('Erro ao atualizar');
-                    
-                    // Update UI
-                    const statusSpan = document.getElementById(`status-${id}`);
-                    if(statusSpan) {
-                        statusSpan.textContent = 'resolved';
-                        statusSpan.className = getStatusColor('resolved') + ' text-xs font-medium px-2.5 py-0.5 rounded';
-                        
-                        // Remove the button
-                        const btn = statusSpan.nextElementSibling;
-                        if(btn) btn.remove();
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        clFeedback.className = 'text-sm font-medium text-green-500';
+                        clFeedback.textContent = '✅ ' + result.message;
+                        changelogForm.reset();
+                    } else {
+                        throw new Error(result.error || 'Erro ao publicar');
                     }
-                    
-                    alert('Reporte marcado como resolvido!');
-                    
                 } catch (error) {
-                    console.error(error);
-                    alert('Erro ao atualizar status.');
+                    clFeedback.className = 'text-sm font-medium text-red-500';
+                    clFeedback.textContent = '❌ ' + error.message;
+                } finally {
+                    clSubmitBtn.disabled = false;
+                    clSubmitBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Publicar Agora</span>';
+                    if (window.lucide) window.lucide.createIcons();
+                    setTimeout(() => clFeedback.classList.add('hidden'), 5000);
                 }
-            };
-            
-            document.getElementById('refresh-reports-btn')?.addEventListener('click', loadReports);
+            });
+
+            document.getElementById('refresh-reports-btn')?.addEventListener('click', () => {
+                // Se um dia houver tabela de reportes no dashboard, implementar aqui
+                console.log('Refresh reports clicked');
+            });
 
             async function loadStats() {
                 try {
