@@ -3,6 +3,7 @@ import { fetchWeather } from "./weather.js";
 import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initTour } from "./tour.js";
 
 // Inicializa widget de clima imediatamente
 fetchWeather();
@@ -111,6 +112,7 @@ function initializeAppLogic() {
         modalLoader: document.getElementById('modal-loader'),
         modalPrevButton: document.getElementById('modal-prev'),
         modalNextButton: document.getElementById('modal-next'),
+        embedButton: document.getElementById('embed-button'),
         paginationControls: document.getElementById('pagination-controls'),
         updateProgressBar: document.getElementById('update-progress-bar'),
         categoryToggleBtn: document.getElementById('category-toggle-btn'),
@@ -698,6 +700,7 @@ function initializeAppLogic() {
         initListeners();
         fetchFavorites();
         syncLoop();
+        initTour();
     };
 
     const getOnlineCamerasForModal = () => state.filteredCameras.filter(c => c.status === 'online');
@@ -714,6 +717,10 @@ function initializeAppLogic() {
             elements.modal.querySelector('.transform').classList.remove('scale-95');
         }, 10);
         document.body.style.overflow = 'hidden';
+
+        try {
+            window.dispatchEvent(new CustomEvent('camrb-camera-modal-open'));
+        } catch (e) {}
     };
 
     const closeModal = () => {
@@ -748,6 +755,49 @@ function initializeAppLogic() {
 
         elements.modalPrevButton.disabled = onlineCameras.length <= 1;
         elements.modalNextButton.disabled = onlineCameras.length <= 1;
+
+        if (elements.embedButton) {
+            elements.embedButton.onclick = async () => {
+                const iframeCode = `<iframe src="https://camerasriobranco.site/embed/${camera.codigo}" width="100%" height="450" frameborder="0" allowfullscreen></iframe>`;
+                let copied = false;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(iframeCode);
+                        copied = true;
+                    } catch (err) {
+                        copied = false;
+                    }
+                }
+
+                if (!copied) {
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = iframeCode;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        textarea.style.pointerEvents = 'none';
+                        document.body.appendChild(textarea);
+                        textarea.focus();
+                        textarea.select();
+                        copied = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    } catch (err) {
+                        copied = false;
+                    }
+                }
+
+                if (copied) {
+                    if (window.showToast) {
+                        window.showToast('Código de incorporação copiado!', 'success');
+                    }
+                } else {
+                    if (window.showToast) {
+                        window.showToast('Não foi possível copiar o código. Copie manualmente.', 'error');
+                    }
+                }
+            };
+        }
     };
 
     const navigateModal = (direction) => {

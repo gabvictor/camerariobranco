@@ -69,6 +69,7 @@
         <script src="https://unpkg.com/lucide@latest"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="/css/global.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css">
         <script src="/script/theme.js"></script>
 
         <!-- Google AdSense -->
@@ -256,6 +257,12 @@
                                 class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-600 dark:text-gray-400 hover:text-indigo-500 transition-all group active:scale-95 font-medium text-sm">
                                 <i data-lucide="share-2" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
                                 <span class="hidden sm:inline">Compartilhar</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="embed-btn" aria-label="Gerar código de incorporação"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-indigo-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="code-2" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Embed</span>
                             </button>
                             <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
                             <button id="report-btn" aria-label="Reportar Problema"
@@ -463,6 +470,7 @@
             } catch (e) { console.error('Error loading config', e); }
         })();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     <script type="module" src="/script/camera-script.js"></script>
     <!-- Report Modal -->
     <div id="report-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">

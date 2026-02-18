@@ -21,15 +21,19 @@ function formatUptime(ms) {
 // Fetch Metrics Logic
 async function fetchMetrics() {
     try {
-        const response = await fetch('/health');
-        if (!response.ok) throw new Error('Failed to fetch metrics');
-        
-        const data = await response.json();
+        const [healthRes, trafficRes] = await Promise.all([
+            fetch('/health'),
+            fetch('/api/traffic')
+        ]);
+        if (!healthRes.ok) throw new Error('Failed to fetch metrics');
+        if (!trafficRes.ok) throw new Error('Failed to fetch traffic');
+        const data = await healthRes.json();
+        const traffic = await trafficRes.json();
         
         // Update DOM elements with animation
         animateValue("stat-total-cameras", 0, data.cachedCount || 0, 1000);
         animateValue("stat-online-cameras", 0, data.onlineCount || 0, 1000);
-        animateValue("stat-requests", 0, data.metrics.requestCount || 0, 1500);
+        animateValue("stat-requests", 0, (traffic && traffic.viewsToday) || 0, 1500);
         
         const uptimeEl = document.getElementById("stat-uptime");
         if (uptimeEl) uptimeEl.textContent = formatUptime(data.uptimeMs);

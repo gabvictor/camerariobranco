@@ -876,6 +876,23 @@ app.post('/api/track-visit', async (req, res) => {
     }
 });
 
+app.get('/api/traffic', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const statsRef = db.collection('stats').doc('traffic');
+        const [statsDoc, dailyDoc] = await Promise.all([
+            statsRef.get(),
+            statsRef.collection('daily').doc(today).get()
+        ]);
+        const totalViews = statsDoc.exists ? (statsDoc.data().totalViews || 0) : 0;
+        const viewsToday = dailyDoc.exists ? (dailyDoc.data().views || 0) : 0;
+        res.json({ totalViews, viewsToday });
+    } catch (error) {
+        console.error('Erro ao obter métricas de tráfego:', error);
+        res.status(500).json({ message: 'Erro ao obter métricas de tráfego.' });
+    }
+});
+
 // Nova Rota para Dados do Dashboard
 app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
     try {
@@ -951,6 +968,15 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
             values: Object.values(categories)
         };
 
+        const todayStr = new Date().toISOString().split('T')[0];
+        const trafficRef = db.collection('stats').doc('traffic');
+        const [trafficDoc, trafficDailyDoc] = await Promise.all([
+            trafficRef.get(),
+            trafficRef.collection('daily').doc(todayStr).get()
+        ]);
+        const totalViewsCount = trafficDoc.exists ? (trafficDoc.data().totalViews || 0) : 0;
+        const viewsTodayCount = trafficDailyDoc.exists ? (trafficDailyDoc.data().views || 0) : 0;
+
         res.json({
             totalUsers,
             activeUsers24h,
@@ -958,8 +984,8 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
             recentUsers,
             signupsByDay,
             categoryData,
-            viewsToday: METRICS.viewsToday,
-            totalViews: METRICS.totalViews,
+            viewsToday: viewsTodayCount,
+            totalViews: totalViewsCount,
             topCameras: sortedTopCameras
         });
 
@@ -1055,6 +1081,7 @@ function runScheduledScan() {
 // --- Clean URL Routes ---
 app.get('/camera/:code', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html')));
 app.get('/camera', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'camera.html')));
+app.get('/embed/:id', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'embed.html')));
 app.get('/sobre', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'sobre.html')));
 app.get('/mapa', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'mapa.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(PUBLIC_FOLDER, 'admin.html')));

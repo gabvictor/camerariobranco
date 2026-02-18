@@ -321,6 +321,7 @@ async function initializeCameraLogic(user) {
         shareBtn: document.getElementById('share-button-main'),
         likeBtn: document.getElementById('like-btn'),
         favoriteBtn: document.getElementById('favorite-btn'),
+        embedBtn: document.getElementById('embed-btn'),
         reportBtn: document.getElementById('report-button')
     };
 
@@ -459,6 +460,13 @@ async function initializeCameraLogic(user) {
                 }
             });
         }
+    }
+
+    if (localStorage.getItem('camrb_camera_tour_trigger') === 'pending') {
+        setTimeout(() => {
+            initCameraTour(user);
+            localStorage.setItem('camrb_camera_tour_trigger', 'done');
+        }, 1500);
     }
 }
 
@@ -691,8 +699,82 @@ function setupActionButtons(el, cameraCode, user) {
     // 3. Share Button
     setupShareButton(el.shareBtn, el.feed, cameraCode);
 
-    // 4. Favorite Button
+    // 4. Embed Button
+    setupEmbedButton(el.embedBtn, cameraCode);
+
+    // 5. Favorite Button
     setupFavoriteButton(el.favoriteBtn, cameraCode, user);
+}
+
+function initCameraTour(user) {
+    if (!window.driver || !window.driver.js) return;
+
+    const isLoggedIn = !!user;
+
+    const steps = [
+        {
+            element: '#player-wrapper',
+            popover: {
+                title: 'Visualização da Câmera',
+                description: 'Aqui você acompanha esta câmera em destaque, com indicador de status e tela ampliada.',
+                side: 'top',
+                align: 'center'
+            }
+        },
+        {
+            element: '#image-container',
+            popover: {
+                title: 'Imagem da Câmera',
+                description: 'Se aparecer uma imagem totalmente preta como no exemplo abaixo, significa que o sinal está temporariamente indisponível e esta câmera pode desaparecer automaticamente da lista principal.<br><br><img src="/assets/tutorial/offline-example.png" alt="Exemplo de imagem preta" class="mt-2 rounded-lg border border-gray-200 max-w-full">',
+                side: 'bottom',
+                align: 'center'
+            }
+        },
+        {
+            element: '#favorite-btn',
+            popover: {
+                title: 'Favoritar câmera',
+                description: isLoggedIn
+                    ? 'Use este botão para adicionar ou remover esta câmera dos seus Favoritos e acessá-la rapidamente na tela inicial.'
+                    : 'Se você estiver logado, pode usar este botão para adicionar esta câmera aos seus Favoritos e encontrá-la mais rápido na tela inicial.',
+                side: 'top',
+                align: 'end'
+            }
+        },
+        {
+            element: '#share-button-main',
+            popover: {
+                title: 'Compartilhar câmera',
+                description: 'Use este botão para copiar o link desta câmera e compartilhar com outras pessoas.',
+                side: 'top',
+                align: 'start'
+            }
+        },
+        {
+            element: '#report-btn',
+            popover: {
+                title: 'Reportar Problema',
+                description: 'Se notar tela preta constante, localização errada ou travamentos, use este botão para avisar a equipe.',
+                side: 'top',
+                align: 'end'
+            }
+        }
+    ];
+
+    const validSteps = steps.filter(step => document.querySelector(step.element));
+    if (!validSteps.length) return;
+
+    const driverInstance = window.driver.js.driver({
+        showProgress: true,
+        animate: true,
+        showButtons: ['previous', 'next', 'close'],
+        nextBtnText: 'Próximo',
+        prevBtnText: 'Voltar',
+        doneBtnText: 'Concluir',
+        steps: validSteps
+    });
+
+    driverInstance.drive();
 }
 
 /**
@@ -763,6 +845,54 @@ function setupShareButton(btn, imgElement, cameraCode) {
                 }, 2000);
             } catch (clipboardErr) {
                 alert('Copie o link do navegador para compartilhar.');
+            }
+        }
+    });
+}
+
+function setupEmbedButton(btn, cameraCode) {
+    if (!btn) return;
+    if (btn.dataset.hasListener) return;
+
+    btn.dataset.hasListener = 'true';
+
+    btn.addEventListener('click', async () => {
+        const iframeCode = `<iframe src="https://camerasriobranco.site/embed/${cameraCode}" width="100%" height="450" frameborder="0" allowfullscreen></iframe>`;
+        let copied = false;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(iframeCode);
+                copied = true;
+            } catch (err) {
+                copied = false;
+            }
+        }
+
+        if (!copied) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = iframeCode;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                textarea.style.pointerEvents = 'none';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                copied = document.execCommand('copy');
+                document.body.removeChild(textarea);
+            } catch (err) {
+                copied = false;
+            }
+        }
+
+        if (copied) {
+            if (window.showToast) {
+                window.showToast('Código de incorporação copiado!', 'success');
+            }
+        } else {
+            if (window.showToast) {
+                window.showToast('Não foi possível copiar o código. Copie manualmente.', 'error');
             }
         }
     });

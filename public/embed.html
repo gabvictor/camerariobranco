@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CamRB • Ao Vivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-black text-white overflow-hidden">
+    <div class="w-screen h-screen relative flex items-center justify-center bg-black">
+        <div id="loader" class="absolute inset-0 flex items-center justify-center">
+            <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <img id="cam-feed" alt="Feed da câmera CamRB" class="w-full h-full object-contain opacity-0 transition-opacity duration-500" />
+        <a id="watermark" href="#" target="_blank"
+           class="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-xs font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10">
+            <i data-lucide="radio" class="w-3.5 h-3.5 text-red-400"></i>
+            <span class="tracking-wide">CamRB • Ao Vivo</span>
+        </a>
+    </div>
+    <script>
+        (function () {
+            const path = window.location.pathname;
+            const parts = path.split('/');
+            const cameraId = parts[parts.length - 1] || parts[parts.length - 2];
+            const img = document.getElementById('cam-feed');
+            const loader = document.getElementById('loader');
+            const watermark = document.getElementById('watermark');
+
+            if (!cameraId) {
+                loader.innerHTML = '<p class="text-sm text-gray-400">Câmera não informada.</p>';
+                return;
+            }
+
+            const baseUrl = 'https://camerasriobranco.site';
+            img.src = `/proxy/camera/${cameraId}`;
+            watermark.href = `${baseUrl}/camera/${cameraId}`;
+
+            function showImage() {
+                loader.classList.add('hidden');
+                img.classList.remove('opacity-0');
+            }
+
+            img.addEventListener('load', showImage);
+            img.addEventListener('error', () => {
+                loader.innerHTML = '<p class="text-sm text-gray-400">Não foi possível carregar esta câmera.</p>';
+            });
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        })();
+    </script>
+</body>
+</html>

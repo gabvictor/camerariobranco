@@ -75,6 +75,7 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/global.css">
     <script src="/script/theme.js"></script>
@@ -165,11 +166,19 @@
             class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4 md:p-6 transition-opacity duration-300">
             <div
                 class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] relative transform scale-95 transition-transform duration-300 grid grid-rows-[auto_1fr]">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center gap-3">
                     <h3 id="modal-title" class="text-lg font-semibold">Câmera</h3>
-                    <button id="close-modal" aria-label="Fechar modal"
-                        class="p-2 -mr-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-white"><i
-                            data-lucide="x" class="w-6 h-6"></i></button>
+                    <div class="flex items-center gap-2">
+                        <button id="embed-button" type="button"
+                            class="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 flex items-center gap-1.5">
+                            <i data-lucide="code-2" class="w-4 h-4"></i>
+                            <span>Embed</span>
+                        </button>
+                        <button id="close-modal" aria-label="Fechar modal"
+                            class="p-2 -mr-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-white">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="relative min-h-0 p-4 bg-black/10 dark:bg-black/20 flex items-center justify-center">
                     <img id="modal-camera-feed" src="" alt="Visualização da Câmera"
@@ -201,7 +210,7 @@
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4">
                     <span id="last-updated" class="text-xs text-gray-400 whitespace-nowrap hidden sm:inline"></span>
-                    <a href="/mapa" title="Ver no mapa"
+                    <a id="nav-map-btn" href="/mapa" title="Ver no mapa"
                         class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all hover:text-indigo-600 dark:text-gray-200"><i
                             data-lucide="map" class="w-5 h-5"></i></a>
                     <a id="dashboard-link" href="/dashboard" title="Dashboard"
@@ -222,6 +231,11 @@
                         class="relative p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200 hover:text-indigo-600">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         <span id="changelog-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full hidden"></span>
+                    </button>
+
+                    <button id="start-tour-btn" title="Ajuda / Tour"
+                        class="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200 hover:text-indigo-600">
+                        <i data-lucide="circle-help" class="w-5 h-5"></i>
                     </button>
 
                     <button id="toggle-theme" title="Alternar tema"
@@ -410,6 +424,7 @@
             initChangelog();
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
 </body>
 
 </html>
