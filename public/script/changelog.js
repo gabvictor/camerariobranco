@@ -92,13 +92,13 @@ export const initChangelog = () => {
                     : fullMessage;
 
                 const item = `
-                    <div class="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-4 animate-fade-in-up">
+                    <button type="button" class="w-full text-left bg-white dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-4 animate-fade-in-up hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors" onclick="window.location.href='/novidades'">
                         <div class="flex items-center justify-between gap-2 mb-2">
                             <h3 class="font-bold text-gray-900 dark:text-white truncate" title="${fullTitle}">${truncatedTitle}</h3>
                             <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider flex-shrink-0">${data.date}</span>
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">${truncatedMessage}</p>
-                    </div>
+                    </button>
                 `;
                 timelineContainer.insertAdjacentHTML('beforeend', item);
             });
