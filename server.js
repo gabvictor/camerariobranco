@@ -212,6 +212,18 @@ app.get('/admin/reports', (req, res) => {
     res.sendFile(path.join(PUBLIC_FOLDER, 'reports.html'));
 });
 
+app.get('/admin/comments', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'comments.html'));
+});
+
+app.get('/admin/comments/:cameraId', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'comments.html'));
+});
+
+app.get('/admin/comments/:cameraId/:commentId', (req, res) => {
+    res.sendFile(path.join(PUBLIC_FOLDER, 'comments.html'));
+});
+
 // Endpoint para Reportar Problemas
 app.post('/api/report', async (req, res) => {
     try {
@@ -300,6 +312,52 @@ app.delete('/api/report/:id', verifyAdmin, async (req, res) => {
     } catch (error) {
         console.error('Erro ao excluir reporte:', error);
         res.status(500).json({ error: 'Erro ao excluir reporte' });
+    }
+});
+
+app.get('/api/comments', verifyAdmin, async (req, res) => {
+    try {
+        const limit = Math.min(Number(req.query.limit) || 200, 1000);
+        const snapshot = await db.collectionGroup('comments')
+            .limit(limit)
+            .get();
+        const items = snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
+            const cameraId = docSnap.ref.parent.parent.id;
+            return {
+                id: docSnap.id,
+                cameraId,
+                text: data.text || '',
+                userDisplayName: data.userDisplayName || '',
+                userId: data.userId || '',
+                timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : null
+            };
+        }).sort((a, b) => {
+            const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tb - ta;
+        });
+        res.setHeader('Cache-Control', 'no-store');
+        res.json(items);
+    } catch (error) {
+        console.error('Erro ao listar comentários:', error);
+        res.status(500).json({ error: 'Erro ao listar comentários' });
+    }
+});
+
+app.delete('/api/comment/:cameraId/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { cameraId, id } = req.params;
+        const ref = db.collection('cameras').doc(cameraId).collection('comments').doc(id);
+        const docSnap = await ref.get();
+        if (!docSnap.exists) {
+            return res.status(404).json({ error: 'Comentário não encontrado' });
+        }
+        await ref.delete();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao excluir comentário:', error);
+        res.status(500).json({ error: 'Erro ao excluir comentário' });
     }
 });
 
@@ -704,19 +762,28 @@ const proxyCameraHandler = async (req, res) => {
         }
     }
 
-    const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
+    const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}&timestamp=${Date.now()}`;
     try {
         const response = await axios.get(url, { 
-            responseType: 'stream', 
+            responseType: 'arraybuffer', 
             timeout: 15000,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://cameras.riobranco.ac.gov.br/'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+                'Referer': 'https://deolhonorio.riobranco.ac.gov.br/',
+                'Origin': 'https://deolhonorio.riobranco.ac.gov.br',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Sec-Fetch-Dest': 'image',
+                'Sec-Fetch-Mode': 'no-cors',
+                'Sec-Fetch-Site': 'same-site'
             }
         });
+        const sizeInKB = Buffer.byteLength(response.data) / 1024;
+        if (sizeInKB < 22) {
+            return res.status(404).sendFile(ERROR_IMAGE_PATH);
+        }
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.setHeader('Content-Type', response.headers['content-type']);
-        response.data.pipe(res);
+        res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+        res.send(response.data);
         METRICS.proxySuccesses++;
         METRICS.lastProxySuccessAt = Date.now();
     } catch (error) {
@@ -997,14 +1064,20 @@ app.get('/api/dashboard-data', verifyAdmin, async (req, res) => {
 
 // --- Lógica de Verificação de Câmeras (sem alterações) ---
 async function checkCameraStatus(code, signal) {
-    const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}`;
+    const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}&timestamp=${Date.now()}`;
     try {
         const response = await axios.get(url, {
             responseType: 'arraybuffer',
             timeout: CONFIG.REQUEST_TIMEOUT,
-            signal: signal
+            signal: signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+                'Referer': 'https://deolhonorio.riobranco.ac.gov.br/',
+                'Origin': 'https://deolhonorio.riobranco.ac.gov.br',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            }
         });
-        const isOnline = Buffer.byteLength(response.data) > CONFIG.MIN_IMAGE_SIZE_KB * 1024;
+        const isOnline = Buffer.byteLength(response.data) > 22 * 1024;
         return { codigo: code, status: isOnline ? 'online' : 'offline' };
     } catch (error) {
         if (error.name !== 'AbortError' && error.code !== 'ECONNABORTED') {
