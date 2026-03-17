@@ -208,8 +208,10 @@
 
                             <!-- Feed Image -->
                             <img id="camera-feed" src="" alt="Transmissão ao vivo"
-                                class="w-full h-full object-contain z-10 opacity-0 transition-opacity duration-700 scale-[1.01]"
-                                onload="this.classList.remove('opacity-0')">
+                                class="absolute inset-0 w-full h-full object-contain z-10 transition-opacity duration-700 ease-in-out scale-[1.01]">
+
+                            <img id="camera-buffer" src="" alt=""
+                                class="absolute inset-0 w-full h-full object-contain z-[15] opacity-0 transition-opacity duration-700 ease-in-out pointer-events-none scale-[1.01]">
 
                             <!-- Loading State -->
                             <div id="loader"

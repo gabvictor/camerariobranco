@@ -162,6 +162,44 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 
+// --- INÍCIO DA ARMADILHA PARA BOTS (TARPIT) ---
+const rotasIsca = [
+    '/.env',
+    '/.git/config',
+    '/phpmyadmin',
+    '/backup.zip',
+    '/config.bak',
+    '/.well-known/security.txt', 
+    '/manager/html'              
+];
+
+app.use((req, res, next) => {
+    const caminhoAcessado = req.path.toLowerCase();
+
+    // A MÁGICA COMPLETA AQUI:
+    // 1. Está na lista de iscas? OU
+    // 2. Termina com '.php'? OU
+    // 3. Começa com '/wp' ou '/wp-'?
+    if (
+        rotasIsca.some(isca => caminhoAcessado.includes(isca)) || 
+        caminhoAcessado.endsWith('.php') || 
+        caminhoAcessado.startsWith('/wp')
+    ) {
+        
+        const ipAtacante = req.ip || req.headers['x-forwarded-for'];
+        console.warn(`[🛑 ARMADILHA] Bot capturado! IP: ${ipAtacante} tentou acessar: ${req.path}`);
+        
+        setTimeout(() => {
+            res.status(418).send("Você caiu no poço de piche do CamRB. Volte sempre!");
+        }, 180000); // Fica preso por 3 minutos
+
+        return; 
+    }
+
+    next();
+});
+// --- FIM DA ARMADILHA ---
+
 // --- Middlewares de Autenticação ---
 const verifyAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -769,8 +807,8 @@ const proxyCameraHandler = async (req, res) => {
             timeout: 15000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
-                'Referer': 'https://deolhonorio.riobranco.ac.gov.br/',
-                'Origin': 'https://deolhonorio.riobranco.ac.gov.br',
+                'Referer': 'https://deolhonotransito.riobranco.ac.gov.br',
+                'Origin': 'https://deolhonotransito.riobranco.ac.gov.br',
                 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
                 'Sec-Fetch-Dest': 'image',
                 'Sec-Fetch-Mode': 'no-cors',
@@ -1072,8 +1110,8 @@ async function checkCameraStatus(code, signal) {
             signal: signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
-                'Referer': 'https://deolhonorio.riobranco.ac.gov.br/',
-                'Origin': 'https://deolhonorio.riobranco.ac.gov.br',
+                'Referer': 'https://deolhonotransito.riobranco.ac.gov.br',
+                'Origin': 'https://deolhonotransito.riobranco.ac.gov.br',
                 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
             }
         });

@@ -304,6 +304,7 @@ async function initializeCameraLogic(user) {
         // Player
         playerWrapper: document.getElementById('player-wrapper'),
         feed: document.getElementById('camera-feed'),
+        buffer: document.getElementById('camera-buffer'), // Adicione esta linha
         loader: document.getElementById('loader'),
         error: document.getElementById('error-message'),
         errorText: document.getElementById('error-text-content'),
@@ -569,89 +570,96 @@ function toggleSkeletons(el, showLoading) {
 /**
  * Gerencia o loop de atualização da imagem
  */
-function startVideoFeed(el, cameraCode) {
-    if(!el.feed) return;
+function startVideoFeed(el, cameraCode) { 
+    if(!el.feed || !el.buffer) return; 
 
-    // Limpa intervalo anterior para evitar loops múltiplos
-    if (videoInterval) clearInterval(videoInterval);
+    if (videoInterval) clearInterval(videoInterval); 
 
-    let consecutiveErrors = 0;
-    let hasShownValidImage = false;
-    let lastSuccessAt = 0;
+    let consecutiveErrors = 0; 
+    let hasShownValidImage = false; 
+    let lastSuccessAt = 0; 
+    
+    // Variável que controla qual imagem será usada como "fundo invisível"
+    let useBufferForNextFrame = true; 
 
-    const updateImage = () => {
-        // Tenta carregar via proxy primeiro
-        // Adiciona timestamp para evitar cache do navegador
-        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`;
-        // console.log("Updating image source:", proxyUrl);
+    // Dispara o evento do Google Analytics APENAS UMA VEZ quando a câmera abre,
+    // em vez de disparar a cada 3 segundos (evita spam e bloqueio no GA4)
+    if (window.gtag) { 
+        window.gtag('event', 'camera_view_started', { camera_code: cameraCode }); 
+    }
+
+    const updateImage = () => { 
+        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`; 
         
-        // Se já estávamos tentando o link direto e funcionou, mantemos? 
-        // Não, vamos tentar o proxy novamente a cada ciclo para ser resiliente,
-        // a menos que queiramos um fallback permanente.
-        // Vamos tentar o proxy, e no erro o fallback.
-        el.feed.src = proxyUrl;
-    };
+        const imgToLoad = useBufferForNextFrame ? el.buffer : el.feed; 
+        const imgCurrentlyVisible = useBufferForNextFrame ? el.feed : el.buffer; 
 
-    el.feed.onload = () => {
-        consecutiveErrors = 0;
-        hasShownValidImage = true;
-        lastSuccessAt = Date.now();
-        if (el.loader) el.loader.classList.add('hidden');
-        if (el.error) el.error.classList.add('hidden');
-        el.feed.classList.remove('opacity-0');
-        el.feed.classList.remove('hidden');
-        if (el.subtitle) {
-            el.subtitle.textContent = "Online";
-            el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold";
-        }
-        if (window.gtag) {
-            window.gtag('event', 'camera_frame_loaded', { camera_code: cameraCode });
-        }
-    };
+imgToLoad.onload = () => { 
+            consecutiveErrors = 0; 
+            hasShownValidImage = true; 
+            lastSuccessAt = Date.now(); 
+            
+            if (el.loader) el.loader.classList.add('hidden'); 
+            if (el.error) el.error.classList.add('hidden'); 
+            
+            if (el.subtitle) { 
+                el.subtitle.textContent = "Online"; 
+                el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold"; 
+            } 
 
-    el.feed.onerror = () => {
-        consecutiveErrors++;
-        // Se falhar o proxy, tenta o link direto como fallback
-        if (el.feed.src.includes('/proxy/camera')) {
-            console.warn("Proxy falhou, tentando conexão direta...");
-            const directUrl = `https://cameras.riobranco.ac.gov.br/api/camera?code=${cameraCode}&t=${Date.now()}`;
-            el.feed.src = directUrl;
-            return; // Sai para deixar o browser tentar o novo src
-        }
+            // 1. A nova imagem aparece imediatamente (fazendo o fade-in por cima)
+            imgToLoad.classList.remove('opacity-0'); 
 
-        // Se falhar também o direto (ou se já era o direto)
-        // Se já exibimos uma imagem válida nos últimos 60s, não troca para erro imediatamente
-        const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000);
-        if (recentlyOk || consecutiveErrors < 3) {
-            if (el.loader) el.loader.classList.add('hidden');
-            if (el.error) el.error.classList.add('hidden');
-            // Mantém a imagem atual visível (não troca src)
-            if (window.gtag) {
-                window.gtag('event', 'camera_error_soft', { camera_code: cameraCode, phase: el.feed.src.includes('/proxy/camera') ? 'proxy' : 'direct' });
-            }
-            return;
-        }
+            // 2. Esperamos a nova imagem aparecer totalmente para esconder a antiga
+            // O tempo de 300ms é o padrão das classes 'duration-300' do Tailwind. 
+            // Se a transição ainda piscar, você pode testar aumentar para 500.
+            setTimeout(() => {
+                imgCurrentlyVisible.classList.add('opacity-0'); 
+            }, 300);
 
-        if (el.loader) el.loader.classList.add('hidden');
-        el.feed.classList.remove('hidden');
-        el.feed.classList.remove('opacity-0');
-        el.feed.src = '/assets/offline.png';
-        if (el.error) {
-            if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Tentando reconectar...';
-            el.error.classList.remove('hidden');
-            el.error.classList.add('flex');
-        }
-        if (el.subtitle) {
-            el.subtitle.textContent = "Sinal Interrompido";
-            el.subtitle.className = "text-red-500 font-bold";
-        }
-        if (window.gtag) {
-            window.gtag('event', 'camera_error_hard', { camera_code: cameraCode, phase: el.feed.src.includes('/proxy/camera') ? 'proxy' : 'direct' });
-        }
-    };
+            // Inverte as posições para o próximo ciclo 
+            useBufferForNextFrame = !useBufferForNextFrame; 
+        };
 
-    updateImage();
-    videoInterval = setInterval(updateImage, 3000);
+        imgToLoad.onerror = () => { 
+            consecutiveErrors++; 
+            
+            // REMOVIDO: O fallback da url direta (directUrl) foi removido.
+            // Motivo: O navegador vai bloquear a url direta por erro de CORS de qualquer jeito.
+            // É melhor confiar 100% no seu proxy.
+
+            const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000); 
+            
+            // Se falhou menos de 3 vezes ou estava OK agorinha, tenta de novo na surdina
+            if (recentlyOk || consecutiveErrors < 3) { 
+                return; 
+            } 
+
+            // Se realmente caiu, mostra a imagem de erro
+            if (el.loader) el.loader.classList.add('hidden'); 
+            
+            imgToLoad.src = '/assets/offline.png'; 
+            imgToLoad.classList.remove('opacity-0'); 
+            imgCurrentlyVisible.classList.add('opacity-0'); 
+            useBufferForNextFrame = !useBufferForNextFrame; 
+            
+            if (el.error) { 
+                if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Tentando reconectar...'; 
+                el.error.classList.remove('hidden'); 
+                el.error.classList.add('flex'); 
+            } 
+            if (el.subtitle) { 
+                el.subtitle.textContent = "Sinal Interrompido"; 
+                el.subtitle.className = "text-red-500 font-bold"; 
+            } 
+        }; 
+
+        // Inicia o carregamento invisível 
+        imgToLoad.src = proxyUrl; 
+    }; 
+
+    updateImage(); 
+    videoInterval = setInterval(updateImage, 3000); 
 }
 
 /**
