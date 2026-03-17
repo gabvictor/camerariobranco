@@ -189,8 +189,23 @@ app.use((req, res, next) => {
         const ipAtacante = req.ip || req.headers['x-forwarded-for'];
         console.warn(`[🛑 ARMADILHA] Bot capturado! IP: ${ipAtacante} tentou acessar: ${req.path}`);
         
-        setTimeout(() => {
-            res.status(418).send("Você caiu no poço de piche do CamRB. Volte sempre!");
+setTimeout(() => {
+            // Criamos um HTML simples com a mensagem e a imagem do gatinho sem barra de rolagem
+            const respostaHTML = `
+                <!DOCTYPE html>
+                <html lang="pt-br">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${req.path}</title>
+                </head>
+                <body style="background-color: #111827; color: #f3f4f6; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; overflow: hidden; font-family: sans-serif; text-align: center;">
+                    <img src="https://http.cat/418" alt="418 I'm a teapot" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </body>
+                </html>
+            `;
+            
+            // Enviamos o HTML com o status 418
+            res.status(418).send(respostaHTML);
         }, 180000); // Fica preso por 3 minutos
 
         return; 
