@@ -1,10 +1,10 @@
 {
-  "version": 2.0,
-  "lastUpdated": "Dezembro de 2025",
+  "version": 2.1,
+  "lastUpdated": "Março de 2026",
   "content": [
     {
       "type": "date",
-      "text": "Última atualização: Dezembro de 2025"
+      "text": "Última atualização: Março de 2026"
     },
     {
       "type": "paragraph",
@@ -84,7 +84,15 @@
     },
     {
       "type": "listItem",
-      "text": "Realizar engenharia reversa ou sobrecarregar nossos servidores (DDoS)."
+      "text": "Realizar engenharia reversa ou sobrecarregar nossos servidores (DDoS);"
+    },
+    {
+      "type": "listItem",
+      "text": "Publicar comentários com conteúdo ofensivo, discriminatório, discurso de ódio, spam ou que violem as leis brasileiras."
+    },
+    {
+      "type": "paragraph",
+      "text": "O CamRB reserva-se o direito de excluir comentários e banir ou suspender contas de usuários que violem estas regras, sem aviso prévio."
     },
     {
       "type": "title",
@@ -102,7 +110,17 @@
     {
       "type": "listItem",
       "boldPrefix": "Dados de Cadastro:",
-      "text": "Se você criar uma conta, armazenamos apenas seu e-mail e nome para autenticação via Google Firebase. Não compartilhamos esses dados com terceiros."
+      "text": "Se você criar uma conta, armazenamos apenas seu e-mail, nome e foto de perfil (fornecidos pelo Google Firebase) exclusivamente para autenticação e gestão de perfil. Não compartilhamos esses dados com terceiros."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Interação e Comentários:",
+      "text": "Ao publicar um comentário em nossa plataforma, você concorda que seu nome de exibição e o conteúdo da mensagem se tornarão públicos para outros usuários. O CamRB não se responsabiliza pelas opiniões emitidas por terceiros."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Reportes de Falhas:",
+      "text": "Ao utilizar o sistema de 'Reportar Problema', coletamos o seu e-mail e dados básicos do seu navegador (User-Agent) unicamente para fins de diagnóstico técnico e combate a abusos."
     },
     {
       "type": "listItem",
