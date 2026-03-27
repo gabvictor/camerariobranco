@@ -124,8 +124,26 @@ async function initializeMapLogic() {
             const color = categoryColors[camera.categoria] || categoryColors['default'];
             const icon = createPinIcon(color);
             const marker = L.marker(camera.coords, { icon: icon });
-            const popupContent = `<img src="/proxy/camera/${camera.codigo}?t=${Date.now()}" alt="Câmera ${camera.nome}"><div class="popup-info"><h3>${camera.nome}</h3><a href="/camera/${camera.codigo}" target="_blank">Ver em Tela Cheia</a></div>`;
-            marker.bindPopup(popupContent);
+
+            const popupContent = `
+                <div class="map-popup-wrapper">
+                    <img
+                        class="map-popup-thumb"
+                        src="/proxy/camera/${camera.codigo}?t=${Date.now()}"
+                        alt="Câmera ${camera.nome}"
+                        onerror="this.src='/assets/offline.png'"
+                    >
+                    <div class="map-popup-body">
+                        <p class="map-popup-name">${camera.nome}</p>
+                        <p class="map-popup-cat">${camera.categoria || 'Câmera'}</p>
+                        <a href="/camera/${camera.codigo}" class="map-popup-link" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>
+                            <span style="color:#ffffff;font-weight:600;">Ver em Tela Cheia</span>
+                        </a>
+                    </div>
+                </div>`;
+
+            marker.bindPopup(popupContent, { maxWidth: 280, minWidth: 280 });
             markers.addLayer(marker);
 
             if (targetCode && camera.codigo === targetCode) {

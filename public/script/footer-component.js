@@ -24,12 +24,12 @@ export function initFooter() {
                             <div class="flex gap-4 mt-6">
                                 <a href="https://github.com/gabvictor/camerariobranco" target="_blank"
                                     class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                    <span class="sr-only">GitHub</span> <i data-lucide="github" class="w-5 h-5"></i>
+                                    <span class="sr-only">GitHub</span> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
                                 </a>
                                 <a href="https://www.instagram.com/gabv_ctor/" target="_blank"
                                     class="text-gray-400 hover:text-pink-600 transition-colors">
                                     <span class="sr-only">Instagram</span>
-                                    <i data-lucide="instagram" class="w-5 h-5"></i>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
                                 </a>
                                 <a href="mailto:suportecamrb@gmail.com"
                                     class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">

@@ -356,6 +356,7 @@ async function initializeCameraLogic(user) {
             if (camera) {
                 // console.log("Camera found:", camera);
                 setupCameraInterface(camera, el, cameraCode);
+                setupCarousel(cameras, cameraCode);
             } else {
                 console.warn("Camera not found in list.");
                 handleErrorState(el, 'Câmera não encontrada ou acesso restrito.', true);
@@ -623,10 +624,6 @@ imgToLoad.onload = () => {
 
         imgToLoad.onerror = () => { 
             consecutiveErrors++; 
-            
-            // REMOVIDO: O fallback da url direta (directUrl) foi removido.
-            // Motivo: O navegador vai bloquear a url direta por erro de CORS de qualquer jeito.
-            // É melhor confiar 100% no seu proxy.
 
             const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000); 
             
@@ -660,6 +657,64 @@ imgToLoad.onload = () => {
 
     updateImage(); 
     videoInterval = setInterval(updateImage, 3000); 
+}
+
+/**
+ * Setup Camera Carousel
+ */
+function setupCarousel(allCameras, currentCode) {
+    const carouselContainer = document.getElementById('camera-carousel');
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
+    
+    if (!carouselContainer) return;
+    
+    const onlineOthers = allCameras
+        .filter(c => c.status === 'online' && c.codigo !== currentCode)
+        .sort(() => 0.5 - Math.random());
+        
+    if (onlineOthers.length === 0) {
+        carouselContainer.parentNode.parentNode.style.display = 'none';
+        return;
+    }
+    
+    carouselContainer.innerHTML = '';
+    
+    onlineOthers.slice(0, 15).forEach(cam => {
+        const item = document.createElement('a');
+        item.href = `/camera/${cam.codigo}`;
+        item.className = 'snap-start shrink-0 w-44 sm:w-56 flex flex-col gap-2 rounded-xl group relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-2 hover:shadow-md hover:border-indigo-500/50 transition-all cursor-pointer';
+        item.onclick = function(e) {
+            if (window.gtag) gtag('event', 'carousel_click', { 'camera_code': cam.codigo });
+        };
+        item.innerHTML = `
+            <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-900">
+                <img src="/proxy/camera/${cam.codigo}" alt="Câmera ${cam.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="relative flex h-2 w-2 shadow-[0_0_5px_rgba(16,185,129,1)]">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-[10px] text-white font-bold uppercase tracking-wider">Ao Vivo</span>
+                </div>
+            </div>
+            <div class="px-1 text-left">
+                <h4 class="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${cam.nome}</h4>
+                <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">${cam.categoria || 'Geral'}</p>
+            </div>
+        `;
+        carouselContainer.appendChild(item);
+    });
+    
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', () => {
+            carouselContainer.scrollBy({ left: -300, behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', () => {
+            carouselContainer.scrollBy({ left: 300, behavior: 'smooth' });
+        });
+    }
 }
 
 /**

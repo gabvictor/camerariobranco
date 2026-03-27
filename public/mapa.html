@@ -41,12 +41,7 @@
         gtag('config', 'G-Y6B72KFF66');
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/global.css">
@@ -74,75 +69,60 @@
         }
 
         .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 16px !important;
+            box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 8px 16px -4px rgba(0, 0, 0, 0.12) !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
         }
 
         .leaflet-popup-content {
-            margin: 0;
-            width: 300px !important;
+            margin: 0 !important;
+            width: 280px !important;
+            line-height: normal !important;
         }
 
-        .leaflet-popup-content img {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            display: block;
-            border-radius: 8px 8px 0 0;
-            background-color: #f3f4f6;
+        .leaflet-container a.leaflet-popup-close-button {
+            top: 8px !important;
+            right: 8px !important;
+            color: white !important;
+            background: rgba(0,0,0,0.45) !important;
+            border-radius: 50% !important;
+            width: 24px !important;
+            height: 24px !important;
+            font: 16px/24px Tahoma, Verdana, sans-serif !important;
+            font-weight: bold;
+            text-align: center !important;
+            padding: 0 !important;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: all 0.2s ease;
+            z-index: 20;
         }
 
-        .leaflet-popup-content .popup-info {
-            padding: 12px;
-            text-align: center;
-        }
-
-        .leaflet-popup-content h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .leaflet-popup-content a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 8px 12px;
-            background-color: #4f46e5;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-
-        .leaflet-popup-content a:hover {
-            background-color: #4338CA;
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: white !important;
+            background: rgba(0,0,0,0.7) !important;
+            transform: scale(1.05);
         }
 
         .custom-leaflet-icon {
             background: transparent;
             border: none;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            transition: filter 0.2s ease, transform 0.2s ease;
+        }
+        
+        .custom-leaflet-icon:hover {
+            filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
         }
 
         /* Dark mode overrides for Leaflet */
         .dark .leaflet-popup-content-wrapper,
         .dark .leaflet-popup-tip {
-            background-color: #1f2937;
-            color: #f3f4f6;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-
-        .dark .leaflet-popup-content h3 {
-            color: #f9fafb;
-        }
-        
-        .dark .leaflet-popup-content img {
-            background-color: #374151;
+            background-color: #1f2937 !important;
+            border-color: rgba(75, 85, 99, 0.4);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
         }
 
         /* Adjust Leaflet controls for mobile bottom nav */
@@ -268,7 +248,7 @@
             <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="app-banner-controlled nav-item relative group -top-5">
                 <div
                     class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
-                    <i data-lucide="github" class="w-6 h-6"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
                 </div>
                 <span
                     class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">App</span>

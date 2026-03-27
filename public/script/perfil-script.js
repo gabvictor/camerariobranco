@@ -11,8 +11,17 @@ initAuthModal();
 
 let currentUser = null;
 
-// Initialize Icons
-if (window.lucide) window.lucide.createIcons();
+// Helper: inicializa ícones Lucide com segurança
+const initIcons = () => {
+    if (window.lucide) window.lucide.createIcons();
+};
+
+// Initialize Icons após o DOM estar pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initIcons);
+} else {
+    initIcons();
+}
 
 // Elements
 const favoritesList = document.getElementById('favorites-list');
@@ -36,7 +45,7 @@ onAuthStateChanged(auth, (user) => {
                 <p>Faça login para ver suas câmeras favoritas.</p>
             </div>
         `;
-        if (window.lucide) window.lucide.createIcons();
+        initIcons();
     }
 });
 
@@ -112,7 +121,7 @@ const loadFavorites = async () => {
                     </a>
                 </div>
             `;
-            if (window.lucide) window.lucide.createIcons();
+            initIcons();
             return;
         }
 
@@ -153,6 +162,9 @@ const loadFavorites = async () => {
             favoritesList.appendChild(item);
         });
 
+        // Init icons for dynamically added content
+        initIcons();
+
         // Add event listeners for remove buttons
         document.querySelectorAll('.remove-fav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -171,7 +183,7 @@ const loadFavorites = async () => {
                 <p>Erro ao carregar favoritos.</p>
             </div>
         `;
-        if (window.lucide) window.lucide.createIcons();
+        initIcons();
     }
 };
 

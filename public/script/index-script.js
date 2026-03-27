@@ -172,7 +172,7 @@ function initializeAppLogic() {
 
     const createCameraCard = (camera) => {
         const card = document.createElement('div');
-        card.className = `camera-card flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300 transform md:hover:-translate-y-1`;
+        card.className = `camera-card group flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/60 transition-all duration-300 transform hover:-translate-y-1.5 overflow-hidden`;
         card.dataset.codigo = camera.codigo;
         card.dataset.status = camera.status;
         const isOnline = camera.status === 'online';
@@ -181,36 +181,38 @@ function initializeAppLogic() {
 
         let distanceBadge = '';
         if (camera.distance !== undefined) {
-            distanceBadge = `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 ml-2 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i>${camera.distance.toFixed(1)} km</span>`;
+            distanceBadge = `<span class="px-2.5 py-1 text-[10px] font-bold tracking-wider rounded-full bg-black/60 backdrop-blur-md text-white flex items-center gap-1 border border-white/10"><i data-lucide="map-pin" class="w-3 h-3 text-indigo-300"></i>${camera.distance.toFixed(1)} km</span>`;
         }
 
         let viewsBadge = '';
         if (camera.views > 0) {
-             viewsBadge = `<span class="flex items-center text-xs text-gray-400 dark:text-gray-500 mr-auto ml-2" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1"></i>${camera.views}</span>`;
+             viewsBadge = `<span class="flex items-center text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-700/50 px-2 py-1 rounded-md tracking-wide" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1 opacity-70"></i>${camera.views}</span>`;
         }
 
         card.innerHTML = `
-            <div class="relative group">
-                <a href="/camera/${camera.codigo}" class="block aspect-video w-full bg-gray-200 dark:bg-gray-700 cursor-pointer" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">
-                    <img src="${imageUrl}" alt="Câmera ${camera.nome}" class="w-full h-full object-cover" loading="lazy">
+            <div class="relative w-full aspect-video bg-gray-200 dark:bg-gray-800/80 overflow-hidden">
+                <a href="/camera/${camera.codigo}" class="block w-full h-full cursor-pointer" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">
+                    <img src="${imageUrl}" alt="Câmera ${camera.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </a>
-                <div class="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button title="Favoritar" class="favorite-btn ${isFavorite ? 'is-favorite' : ''} bg-black/50 p-2 rounded-full text-white hover:bg-black/75" onclick="gtag('event', 'favorite_camera', {'event_category': 'engagement', 'event_label': '${camera.codigo}'});">
-                        <i data-lucide="star" class="w-5 h-5 pointer-events-none"></i>
+                
+                <!-- Overlays on Image -->
+                <div class="absolute top-3 left-3 flex gap-2 pointer-events-none z-20">
+                    ${!isOnline ? '<span class="status-badge px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm text-white bg-red-500 border border-white/20">Offline</span>' : ''}
+                    ${distanceBadge}
+                </div>
+
+                <div class="absolute top-3 right-3 flex flex-col gap-2 z-10 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                    <button title="Favoritar" class="favorite-btn ${isFavorite ? 'is-favorite' : ''} bg-black/40 backdrop-blur-md hover:bg-black/60 p-2.5 rounded-full text-white shadow-lg border border-white/20 transition-colors" onclick="gtag('event', 'favorite_camera', {'event_category': 'engagement', 'event_label': '${camera.codigo}'});">
+                        <i data-lucide="star" class="w-4 h-4 pointer-events-none transition-colors"></i>
                     </button>
                 </div>
             </div>
-            <div class="p-3 flex-grow flex flex-col justify-center">
-                <a href="/camera/${camera.codigo}" class="font-semibold text-sm pr-2 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="${camera.nome}" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">${camera.nome}</a>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]" title="${camera.categoria}">${camera.categoria}</span>
+            <div class="p-4 flex-grow flex flex-col justify-between gap-3 bg-white dark:bg-gray-800">
+                <a href="/camera/${camera.codigo}" class="font-bold text-gray-900 dark:text-white truncate text-base hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="${camera.nome}" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${camera.codigo}', 'item_name': '${camera.nome}'});">${camera.nome}</a>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate max-w-[130px]" title="${camera.categoria}">${camera.categoria}</span>
                     ${viewsBadge}
-                    <div class="flex items-center ml-auto">
-                        ${distanceBadge}
-                        <span class="status-badge px-2 py-0.5 text-xs font-medium rounded-full ml-2 ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
-                            ${isOnline ? 'Online' : 'Offline'}
-                        </span>
-                    </div>
                 </div>
             </div>
         `;
@@ -445,13 +447,13 @@ function initializeAppLogic() {
                 // Generate some skeleton items if empty
                 if (elements.skeletonGrid.children.length === 0) {
                     elements.skeletonGrid.innerHTML = Array(10).fill(0).map(() => `
-                        <div class="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden animate-pulse">
-                            <div class="aspect-video w-full bg-gray-200 dark:bg-gray-700"></div>
-                            <div class="p-3 space-y-2">
-                                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                                <div class="flex justify-between">
-                                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                        <div class="flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 overflow-hidden animate-pulse-subtle">
+                            <div class="aspect-video w-full bg-gray-200 dark:bg-gray-700/50 relative overflow-hidden"></div>
+                            <div class="p-4 space-y-3 bg-white dark:bg-gray-800">
+                                <div class="h-4 bg-gray-200 dark:bg-gray-700/70 rounded-md w-3/4"></div>
+                                <div class="flex justify-between pt-1">
+                                    <div class="h-3 bg-gray-200 dark:bg-gray-700/70 rounded-md w-1/3"></div>
+                                    <div class="h-4 bg-gray-200 dark:bg-gray-700/70 rounded-md w-8"></div>
                                 </div>
                             </div>
                         </div>
