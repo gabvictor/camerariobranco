@@ -4,57 +4,408 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CamRB • Ao Vivo</title>
-    <link rel="stylesheet" href="/css/output.css">
-    <script>
-        tailwind.config = {
-            darkMode: 'class'
-        };
-    </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        #wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0f;
+        }
+
+        /* Feed images — double buffering */
+        #cam-feed,
+        #cam-buffer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.4s ease;
+        }
+        #cam-feed   { z-index: 1; opacity: 0; }
+        #cam-buffer { z-index: 2; opacity: 0; }
+
+        /* Loader */
+        #loader {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: #0a0a0f;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .loader-text {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #6366f1;
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+
+        /* Error overlay */
+        #error-overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            background: rgba(10, 10, 15, 0.95);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #error-overlay.visible { display: flex; }
+
+        .error-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(239, 68, 68, 0.12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .error-icon svg { width: 26px; height: 26px; stroke: #ef4444; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        .error-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .error-sub {
+            font-size: 12px;
+            color: #64748b;
+            max-width: 220px;
+            line-height: 1.5;
+        }
+
+        #retry-btn {
+            margin-top: 4px;
+            padding: 8px 20px;
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        #retry-btn:hover { background: #4338ca; }
+        #retry-btn:active { transform: scale(0.97); }
+
+        /* Live badge */
+        #live-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 4px 10px 4px 8px;
+            pointer-events: none;
+        }
+
+        .live-dot-outer {
+            position: relative;
+            width: 8px;
+            height: 8px;
+            flex-shrink: 0;
+        }
+
+        .live-dot-ping {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: #ef4444;
+            opacity: 0.7;
+            animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+        }
+
+        .live-dot-core {
+            position: absolute;
+            inset: 1px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .live-text {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        /* Refresh counter */
+        #refresh-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 30;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            padding: 4px 10px;
+            pointer-events: none;
+        }
+
+        #refresh-badge.visible { display: flex; }
+
+        .refresh-icon {
+            width: 10px;
+            height: 10px;
+            stroke: #94a3b8;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #refresh-timer {
+            font-size: 9px;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+        }
+
+        /* Watermark */
+        #watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 5px 12px 5px 10px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        #watermark:hover { background: rgba(0, 0, 0, 0.80); }
+
+        #watermark svg { width: 11px; height: 11px; stroke: #f87171; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        
+        #watermark span {
+            font-size: 10px;
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 0.05em;
+        }
+
+        /* Animations */
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes ping  { 75%, 100% { transform: scale(2); opacity: 0; } }
+    </style>
 </head>
-<body class="bg-black text-white overflow-hidden">
-    <div class="w-screen h-screen relative flex items-center justify-center bg-black">
-        <div id="loader" class="absolute inset-0 flex items-center justify-center">
-            <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+<body>
+    <div id="wrapper">
+
+        <!-- Live Badge -->
+        <div id="live-badge">
+            <div class="live-dot-outer">
+                <div class="live-dot-ping"></div>
+                <div class="live-dot-core"></div>
+            </div>
+            <span class="live-text">Ao Vivo</span>
         </div>
-        <img id="cam-feed" alt="Feed da câmera CamRB" class="w-full h-full object-contain opacity-0 transition-opacity duration-500" />
-        <a id="watermark" href="#" target="_blank"
-           class="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-xs font-medium flex items-center gap-2 backdrop-blur-sm border border-white/10">
-            <i data-lucide="radio" class="w-3.5 h-3.5 text-red-400"></i>
-            <span class="tracking-wide">CamRB • Ao Vivo</span>
+
+        <!-- Refresh Counter -->
+        <div id="refresh-badge">
+            <svg class="refresh-icon" viewBox="0 0 24 24">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span id="refresh-timer">3s</span>
+        </div>
+
+        <!-- Double-buffer Images -->
+        <img id="cam-feed"   alt="Feed da câmera CamRB" />
+        <img id="cam-buffer" alt="" aria-hidden="true" />
+
+        <!-- Loader -->
+        <div id="loader">
+            <div class="spinner"></div>
+            <span class="loader-text">Conectando ao sinal…</span>
+        </div>
+
+        <!-- Error Overlay -->
+        <div id="error-overlay">
+            <div class="error-icon">
+                <svg viewBox="0 0 24 24">
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 5a10.9 10.9 0 0 0-1.956 2.408M10.71 5.05A10 10 0 0 1 22.56 9M.92 9a10.03 10.03 0 0 0-.542 1.57M3.13 15.57A9 9 0 0 0 20.87 8.43"></path>
+                </svg>
+            </div>
+            <p class="error-title">Sinal Indisponível</p>
+            <p class="error-sub">Não foi possível carregar esta câmera. Ela pode estar temporariamente offline.</p>
+            <button id="retry-btn">Tentar novamente</button>
+        </div>
+
+        <!-- Watermark -->
+        <a id="watermark" href="#" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+            </svg>
+            <span>CamRB • Ao Vivo</span>
         </a>
     </div>
+
     <script>
         (function () {
-            const path = window.location.pathname;
-            const parts = path.split('/');
-            const cameraId = parts[parts.length - 1] || parts[parts.length - 2];
-            const img = document.getElementById('cam-feed');
-            const loader = document.getElementById('loader');
-            const watermark = document.getElementById('watermark');
+            // ── 1. Resolve camera ID from URL path or query string ───────────
+            const params  = new URLSearchParams(window.location.search);
+            let cameraId  = params.get('code');
 
             if (!cameraId) {
-                loader.innerHTML = '<p class="text-sm text-gray-400">Câmera não informada.</p>';
+                const parts = window.location.pathname.split('/').filter(Boolean);
+                cameraId = parts[parts.length - 1] || null;
+            }
+
+            // ── 2. DOM refs ─────────────────────────────────────────────────
+            const feed         = document.getElementById('cam-feed');
+            const buffer       = document.getElementById('cam-buffer');
+            const loader       = document.getElementById('loader');
+            const errorOverlay = document.getElementById('error-overlay');
+            const retryBtn     = document.getElementById('retry-btn');
+            const refreshBadge = document.getElementById('refresh-badge');
+            const refreshTimer = document.getElementById('refresh-timer');
+            const watermark    = document.getElementById('watermark');
+
+            const REFRESH_INTERVAL = 3000; // ms — igual ao camera.html
+
+            // ── 3. No camera ID? show error ─────────────────────────────────
+            if (!cameraId) {
+                loader.innerHTML = '<p style="font-size:12px;color:#64748b;">Câmera não informada.</p>';
                 return;
             }
 
-            const baseUrl = 'https://camerasriobranco.site';
-            img.src = `/proxy/camera/${cameraId}`;
-            watermark.href = `${baseUrl}/camera/${cameraId}`;
+            // ── 4. Set watermark link ───────────────────────────────────────
+            watermark.href = `https://camerasriobranco.site/camera/${cameraId}`;
 
-            function showImage() {
-                loader.classList.add('hidden');
-                img.classList.remove('opacity-0');
+            // ── 5. Double-buffer live feed ──────────────────────────────────
+            let useBuffer        = true;   // which img loads next frame
+            let consecutiveErrors = 0;
+            let hasShownImage    = false;
+            let lastSuccessAt    = 0;
+            let intervalId       = null;
+            let countdownId      = null;
+            let countdownVal     = REFRESH_INTERVAL / 1000;
+
+            function startCountdown() {
+                countdownVal = REFRESH_INTERVAL / 1000;
+                refreshTimer.textContent = countdownVal + 's';
+                clearInterval(countdownId);
+                countdownId = setInterval(() => {
+                    countdownVal = Math.max(0, countdownVal - 1);
+                    refreshTimer.textContent = countdownVal + 's';
+                }, 1000);
             }
 
-            img.addEventListener('load', showImage);
-            img.addEventListener('error', () => {
-                loader.innerHTML = '<p class="text-sm text-gray-400">Não foi possível carregar esta câmera.</p>';
-            });
+            function loadFrame() {
+                const url      = `/proxy/camera/${cameraId}?t=${Date.now()}`;
+                const next     = useBuffer ? buffer : feed;
+                const current  = useBuffer ? feed   : buffer;
 
-            if (window.lucide) {
-                window.lucide.createIcons();
+                next.onload = () => {
+                    consecutiveErrors = 0;
+                    hasShownImage     = true;
+                    lastSuccessAt     = Date.now();
+
+                    // Hide loader & error
+                    loader.style.display        = 'none';
+                    errorOverlay.classList.remove('visible');
+                    refreshBadge.classList.add('visible');
+
+                    // Crossfade: show next, hide current
+                    next.style.opacity    = '1';
+                    setTimeout(() => { current.style.opacity = '0'; }, 300);
+
+                    useBuffer = !useBuffer;
+                    startCountdown();
+                };
+
+                next.onerror = () => {
+                    consecutiveErrors++;
+                    const recentlyOk = hasShownImage && (Date.now() - lastSuccessAt < 60000);
+
+                    // Tolerate a few errors silently
+                    if (recentlyOk || consecutiveErrors < 3) return;
+
+                    // Show error state
+                    loader.style.display = 'none';
+                    refreshBadge.classList.remove('visible');
+                    errorOverlay.classList.add('visible');
+                };
+
+                next.src = url;
             }
+
+            function startFeed() {
+                clearInterval(intervalId);
+                clearInterval(countdownId);
+                consecutiveErrors = 0;
+                loader.style.display = 'flex';
+                errorOverlay.classList.remove('visible');
+
+                loadFrame();
+                intervalId = setInterval(loadFrame, REFRESH_INTERVAL);
+            }
+
+            // ── 6. Retry button ─────────────────────────────────────────────
+            retryBtn.addEventListener('click', startFeed);
+
+            // ── 7. Start! ───────────────────────────────────────────────────
+            startFeed();
         })();
     </script>
 </body>

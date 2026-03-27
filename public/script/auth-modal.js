@@ -41,8 +41,10 @@ const checkAdminStatus = (user) => {
     adminElements.forEach(el => {
         if (isAdmin) {
             el.classList.remove('hidden');
+            el.style.display = '';
         } else {
             el.classList.add('hidden');
+            el.style.display = 'none';
         }
     });
 };

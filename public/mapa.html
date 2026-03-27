@@ -138,48 +138,48 @@
     <div id="map-wrapper" class="relative w-full h-full">
         <!-- Floating Header -->
         <header class="absolute top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto md:min-w-[320px] z-[1000] pointer-events-none">
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-4 pointer-events-auto border border-gray-200 dark:border-gray-700 transition-colors">
+            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-2 sm:gap-4 pointer-events-auto border border-gray-200 dark:border-gray-700 transition-colors overflow-hidden min-w-0">
                 <a href="/" title="Voltar para Início"
                     class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-700 dark:text-gray-200">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
-                <div class="flex-1">
-                    <h1 class="font-bold text-gray-900 dark:text-white text-sm leading-tight">CamRB</h1>
+                <div class="flex-1 min-w-0">
+                    <h1 class="font-bold text-gray-900 dark:text-white text-sm leading-tight truncate">CamRB</h1>
                     <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rio Branco - AC</p>
                 </div>
 
                 <div id="weather-widget" style="display: none;" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 animate-fade-in"></div>
                 
                 <!-- Auth Controls -->
-                <button id="map-login-btn" title="Entrar" class="logged-out-only p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
+                <button id="map-login-btn" title="Entrar" class="logged-out-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
                     <i data-lucide="log-in" class="w-5 h-5"></i>
                 </button>
-                <a href="/perfil" id="map-profile-btn" title="Meu Perfil" class="logged-in-only hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                <a href="/perfil" id="map-profile-btn" title="Meu Perfil" class="logged-in-only hidden flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="user" class="w-5 h-5"></i>
                 </a>
-                <button id="map-logout-btn" title="Sair" class="logged-in-only hidden p-2 rounded-xl transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                <button id="map-logout-btn" title="Sair" class="logged-in-only hidden flex-shrink-0 p-2 rounded-xl transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                 </button>
 
                 <!-- Changelog -->
-                <button id="nav-changelog-btn" title="Novidades" class="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                <button id="nav-changelog-btn" title="Novidades" class="relative flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="bell" class="w-5 h-5"></i>
                     <span id="changelog-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full hidden"></span>
                 </button>
 
                 <!-- Theme Toggle -->
-                <button id="map-theme-toggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                <button id="map-theme-toggle" class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
                     <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
                 </button>
                 
                 <a href="/dashboard" title="Dashboard"
-                    class="admin-only hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
+                    class="admin-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400" style="display:none">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                 </a>
 
                 <a href="/sobre" title="Sobre Nós"
-                    class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
                     <i data-lucide="info" class="w-5 h-5"></i>
                 </a>
             </div>
@@ -264,12 +264,12 @@
                 <span class="text-[10px] font-medium">Perfil</span>
             </a>
             <a href="/admin"
-                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
                 <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
                 <span class="text-[10px] font-medium">Admin</span>
             </a>
             <a href="/dashboard"
-                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
                 <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>
                 <span class="text-[10px] font-medium">Dash</span>
             </a>

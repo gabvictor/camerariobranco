@@ -72,12 +72,21 @@ const PUBLIC_FOLDER   = path.join(__dirname, 'public');
 const ERROR_IMAGE_PATH = path.join(PUBLIC_FOLDER, 'assets', 'offline.png');
 
 app.use(helmet({
-    contentSecurityPolicy:    false,
+    contentSecurityPolicy:     false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false,
-    crossOriginOpenerPolicy:  { policy: 'same-origin-allow-popups' },
-    originAgentCluster:       false
+    crossOriginOpenerPolicy:   { policy: 'same-origin-allow-popups' },
+    originAgentCluster:        false,
+    frameguard:                { action: 'sameorigin' }  // bloqueia iframes por padrão
 }));
+
+// ─── Middleware: libera iframes apenas para /embed/* ──────────────────────────
+app.use('/embed', (req, res, next) => {
+    // Remove o X-Frame-Options herdado do Helmet e permite qualquer origem
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Content-Security-Policy', "frame-ancestors *");
+    next();
+});
 app.use(cors());
 app.use(express.json());
 app.use(tarpit);
@@ -219,6 +228,7 @@ const proxyCameraHandler = async (req, res) => {
         }
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+        res.setHeader('Access-Control-Allow-Origin', '*');   // necessário para iframes cross-origin
         res.send(response.data);
         metrics.recordProxySuccess();
     } catch {
@@ -304,7 +314,11 @@ app.get('/metrics',                                 page('metrics.html'));
 app.get('/termos',                                  page('termos.html'));
 app.get('/perfil',                                  page('perfil.html'));
 app.get('/dashboard',                               page('dashboard.html'));
-app.get('/embed/:id',                               page('embed.html'));
+app.get('/embed/:id', (req, res) => {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Content-Security-Policy', "frame-ancestors *");
+    res.sendFile(path.join(PUBLIC_FOLDER, 'embed.html'));
+});
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).sendFile(path.join(PUBLIC_FOLDER, '404.html')));
