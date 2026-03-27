@@ -7,8 +7,5 @@ serviceAccountKey.json
 node_modules/
 *.log
 
-# Tailwind build output (gerado automaticamente, não versionado)
-/public/css/output.css
-
 # Scripts temporários de refatoração
 tmp_*.js
