@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.gemini
+.agents
+*.log
+coverage
+.vscode
+.idea
+Dockerfile
+docker-compose.yml
+firebase-test-report.json
+README.md

@@ -1,0 +1,164 @@
+import { auth } from "./firebase-config.js";
+import { fetchWeather } from "./weather.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initAuthModal, initGlobalAuthUI, toggleLoginModal } from "./auth-modal.js";
+
+// Initialize Auth Logic
+initAuthModal();
+initGlobalAuthUI();
+
+// Theme Toggle Logic (Initialize once)
+const themeToggleBtn = document.getElementById('map-theme-toggle');
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.toggleTheme) {
+            window.toggleTheme();
+        }
+    });
+}
+
+onAuthStateChanged(auth, (user) => {
+    // Mapa agora é público
+    const mapWrapper = document.getElementById('map-wrapper');
+    if (mapWrapper) mapWrapper.style.display = 'flex'; // Usando flex para layout correto
+    
+    // Only initialize map if not already initialized (simple check or idempotent function)
+    // For now, we assume initializeMapLogic handles map creation. 
+    // Leaflet map cannot be initialized twice on same container.
+    // We should check if map instance exists or clear it. 
+    // But looking at existing code: L.map('map') will throw if already initialized.
+    // So we need to prevent re-initialization.
+    
+    const mapContainer = document.getElementById('map');
+    if (mapContainer && !mapContainer._leaflet_id) {
+         initializeMapLogic();
+    }
+    fetchWeather();
+});
+
+async function initializeMapLogic() {
+    if (window.lucide) window.lucide.createIcons();
+    
+    // Ajuste de zoom responsivo: 13 para mobile (visão geral) e 14 para desktop
+    const initialZoom = window.innerWidth < 768 ? 13 : 14;
+    const map = L.map('map', { zoomControl: false }).setView([-9.9745, -67.8100], initialZoom);
+
+    // Reposiciona o controle de zoom para não ficar escondido pelo header no mobile
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Locate Me Logic
+    const locateBtn = document.getElementById('locate-btn');
+    let locationMarker = null;
+    let locationCircle = null;
+    let locationTimeout = null;
+
+    if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+            // Clear existing timeout if user clicks again
+            if (locationTimeout) {
+                clearTimeout(locationTimeout);
+                locationTimeout = null;
+            }
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+        
+        map.on('locationfound', (e) => {
+            // Remove existing location markers if any
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+                locationMarker = null;
+            }
+            if (locationCircle) {
+                map.removeLayer(locationCircle);
+                locationCircle = null;
+            }
+
+            locationMarker = L.marker(e.latlng).addTo(map)
+                .bindPopup("Você está aqui").openPopup();
+            locationCircle = L.circle(e.latlng, e.accuracy).addTo(map);
+
+            // Remove location after 1 minute (60000 ms)
+            locationTimeout = setTimeout(() => {
+                if (locationMarker) {
+                    map.removeLayer(locationMarker);
+                    locationMarker = null;
+                }
+                if (locationCircle) {
+                    map.removeLayer(locationCircle);
+                    locationCircle = null;
+                }
+                // Optional: reset view or notify user? 
+                // For now, just silently remove as requested.
+            }, 60000);
+        });
+
+        map.on('locationerror', (e) => {
+            alert("Não foi possível obter sua localização. Verifique as permissões.");
+        });
+    }
+
+    const markers = L.markerClusterGroup();
+    const categoryColors = {
+        'Vias Urbanas': '#3b82f6', 'Praça': '#22c55e', 'Ponte': '#ef4444', 'Calçadão': '#f97316', 'Shopping Aquiri': '#8b5cf6', 'Mercado Velho': '#a16207', 'Gameleira': '#16a34a', 'Terminal': '#64748b', 'ExpoAcre': '#e11d48', 'Horto Florestal': '#15803d', 'Cemitério': '#78716c', 'default': '#71717a'
+    };
+    const createPinIcon = (color) => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"><path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle fill="white" cx="12" cy="9" r="2.5"/></svg>`;
+        return L.divIcon({ html: svg, className: 'custom-leaflet-icon', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32] });
+    };
+
+    try {
+        const response = await fetch('/status-cameras');
+        const cameras = await response.json();
+        const onlineCamerasWithCoords = cameras.filter(cam => cam.status === 'online' && Array.isArray(cam.coords) && cam.coords.length === 2);
+
+        const params = new URLSearchParams(window.location.search);
+        const targetCode = params.get('code');
+        let targetMarker = null;
+
+        onlineCamerasWithCoords.forEach(camera => {
+            const color = categoryColors[camera.categoria] || categoryColors['default'];
+            const icon = createPinIcon(color);
+            const marker = L.marker(camera.coords, { icon: icon });
+
+            const popupContent = `
+                <div class="map-popup-wrapper">
+                    <img
+                        class="map-popup-thumb"
+                        src="/proxy/camera/${camera.codigo}?t=${Date.now()}"
+                        alt="Câmera ${camera.nome}"
+                        onerror="this.src='/assets/offline.png'"
+                    >
+                    <div class="map-popup-body">
+                        <p class="map-popup-name">${camera.nome}</p>
+                        <p class="map-popup-cat">${camera.categoria || 'Câmera'}</p>
+                        <a href="/camera/${camera.codigo}" class="map-popup-link" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>
+                            <span style="color:#ffffff;font-weight:600;">Ver em Tela Cheia</span>
+                        </a>
+                    </div>
+                </div>`;
+
+            marker.bindPopup(popupContent, { maxWidth: 280, minWidth: 280 });
+            markers.addLayer(marker);
+
+            if (targetCode && camera.codigo === targetCode) {
+                targetMarker = marker;
+            }
+        });
+        map.addLayer(markers);
+
+        if (targetMarker) {
+            markers.zoomToShowLayer(targetMarker, function() {
+                targetMarker.openPopup();
+            });
+        }
+    } catch (error) {
+        console.error("Falha ao carregar câmeras para o mapa:", error);
+        document.body.insertAdjacentHTML('beforeend', '<div class="absolute bottom-5 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg">Não foi possível carregar as câmeras.</div>');
+    }
+}

@@ -1,0 +1,1412 @@
+import { auth, db } from "./firebase-config.js";
+import { fetchWeather } from "./weather.js";
+import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, addDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+const escapeHtml = (value = '') => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+
+
+// Inicializa o modal de autenticação
+initAuthModal();
+initGlobalAuthUI();
+
+// Toast Notification System (Duplicate or Shared)
+if (!window.showToast) {
+    window.showToast = (message, type = 'success') => {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            // Create container if it doesn't exist (e.g. on camera page)
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${
+            type === 'error' 
+                ? 'bg-red-500/90 text-white' 
+                : 'bg-gray-900/90 text-white dark:bg-white/90 dark:text-gray-900'
+        }`;
+
+        const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
+        
+        toast.innerHTML = `
+            <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+            <p class="text-sm font-medium">${message}</p>
+        `;
+
+        container.appendChild(toast);
+        if(window.lucide) window.lucide.createIcons();
+
+        // Animate In
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-8', 'opacity-0');
+        });
+
+        // Remove after delay
+        setTimeout(() => {
+            toast.classList.add('translate-y-4', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
+let videoInterval = null;
+let commentsUnsubscribe = null;
+
+// Exibir o wrapper de conteúdo imediatamente
+const contentWrapper = document.getElementById('content-wrapper');
+if (contentWrapper) {
+    contentWrapper.style.display = 'block';
+    
+    // Inicializar AdSense com verificação robusta de visibilidade
+    const initAdSense = (attempts = 0) => {
+        const adSlots = document.querySelectorAll('.adsbygoogle');
+        if (adSlots.length === 0) return;
+
+        // Check if any slot is visible
+        let anyVisible = false;
+        adSlots.forEach(slot => {
+            if (slot.offsetWidth > 0 && slot.offsetParent !== null) {
+                anyVisible = true;
+            }
+        });
+
+        if (anyVisible) {
+            try {
+                adSlots.forEach(slot => {
+                    if (!slot.getAttribute('data-adsbygoogle-status')) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+            } catch (e) {
+                console.error("AdSense error:", e);
+            }
+        } else {
+            // Limite de tentativas (aprox 10 segundos)
+            if (attempts < 20) {
+                setTimeout(() => initAdSense(attempts + 1), 500);
+            } else {
+                console.warn("AdSense: Timed out waiting for slot visibility.");
+            }
+        }
+    };
+    
+    // Inicia a verificação
+    setTimeout(() => initAdSense(), 200);
+}
+
+// Ouve o estado de autenticação
+onAuthStateChanged(auth, (user) => {
+    // console.log("Auth State Changed:", user ? "Logged In" : "Logged Out");
+    initializeCameraLogic(user);
+});
+
+// Inicializa widget de clima
+fetchWeather();
+
+/**
+ * Gerencia a lógica de comentários (Firestore)
+ */
+function initializeComments(user, cameraCode) {
+    const commentsList = document.getElementById('comments-list');
+    const commentForm = document.getElementById('comment-form');
+    const commentInput = document.getElementById('comment-input');
+    const submitButton = commentForm ? commentForm.querySelector('button') : null;
+
+    if (!commentsList || !commentForm) return;
+
+    // Se não estiver logado, esconde o formulário de envio
+    if (!user) {
+        commentForm.style.display = 'none';
+        const loginMsg = document.createElement('div');
+        loginMsg.className = "p-4 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700";
+        loginMsg.innerHTML = "<button id='comment-login-btn' class='text-indigo-600 hover:underline font-medium bg-transparent border-0 p-0 cursor-pointer'>Faça login</button> para participar do chat.";
+        commentForm.parentNode.appendChild(loginMsg);
+        
+        const loginBtn = document.getElementById('comment-login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleLoginModal(true);
+            });
+        }
+    }
+
+    // Se houver um listener anterior, remove
+    if (commentsUnsubscribe) {
+        commentsUnsubscribe();
+        commentsUnsubscribe = null;
+    }
+
+    const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
+    const q = query(commentsColRef, orderBy('timestamp', 'desc'));
+
+    // Escuta em tempo real
+    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+        commentsList.innerHTML = ''; 
+        if (snapshot.empty) {
+            commentsList.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 mt-8 space-y-2">
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-full">
+                        <i data-lucide="message-square" class="w-6 h-6 opacity-50"></i>
+                    </div>
+                    <p class="text-sm font-medium">Nenhum comentário ainda.</p>
+                </div>
+            `;
+            if(window.lucide) window.lucide.createIcons();
+            return;
+        }
+        
+        snapshot.forEach(docSnapshot => {
+            const comment = docSnapshot.data();
+            const commentEl = document.createElement('div');
+            commentEl.className = 'py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0 animate-fade-in group';
+            
+            // Formatação de data segura
+            let dateStr = 'agora';
+            if (comment.timestamp) {
+                dateStr = comment.timestamp.toDate().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            }
+
+            const isOwner = user && user.uid === comment.userId;
+            // Admin logic check (optional, but UI only shows for owner for now as per request)
+            
+            const deleteBtn = isOwner 
+                ? `<button class="delete-btn ml-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500" data-id="${docSnapshot.id}" title="Excluir Comentário">
+                     <i data-lucide="trash-2" class="w-3 h-3"></i>
+                   </button>` 
+                : '';
+
+            commentEl.innerHTML = `
+                <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1">
+
+                    <span class="font-bold text-gray-700 dark:text-gray-300">${escapeHtml(comment.userDisplayName || 'Usuário')}</span>
+
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] opacity-70">${dateStr}</span>
+                        ${deleteBtn}
+                    </div>
+                </div>
+
+                <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed break-words">${escapeHtml(comment.text)}</p>
+
+            `;
+            commentsList.appendChild(commentEl);
+        });
+        
+        if(window.lucide) window.lucide.createIcons();
+    }, (error) => {
+        console.error("Erro ao carregar comentários:", error);
+        if (error.code === 'permission-denied') {
+             commentsList.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 mt-8 space-y-2">
+                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-full">
+                        <i data-lucide="lock" class="w-6 h-6 text-red-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-center text-gray-500 dark:text-gray-400">Faça login para ver os comentários.</p>
+                     <button id='error-login-btn' class='mt-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium bg-transparent border-0 p-0 cursor-pointer transition-colors'>Entrar agora</button>
+                </div>
+            `;
+            if(window.lucide) window.lucide.createIcons();
+            
+            const loginBtn = document.getElementById('error-login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggleLoginModal(true);
+                });
+            }
+        }
+    });
+
+    // Event Delegation para Botões de Excluir
+    if (!commentsList.dataset.deleteListener) {
+        commentsList.dataset.deleteListener = 'true';
+        commentsList.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.delete-btn');
+            if (!btn) return;
+
+            const commentId = btn.dataset.id;
+            if (confirm('Tem certeza que deseja excluir este comentário?')) {
+                try {
+                    await deleteDoc(doc(db, 'cameras', cameraCode, 'comments', commentId));
+                    // Firestore snapshot listener updates the UI automatically
+                } catch (error) {
+                    console.error("Erro ao excluir comentário:", error);
+                    showToast("Erro ao excluir. Verifique se você tem permissão.", "error");
+                }
+            }
+        });
+    }
+    
+    // Evita múltiplos listeners no formulário
+    if (commentForm.dataset.listenerAttached === 'true') return;
+    commentForm.dataset.listenerAttached = 'true';
+
+    // Envio de comentário
+    commentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = commentInput.value.trim();
+        
+        if (text && user) {
+            commentInput.disabled = true;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>';
+            
+            try {
+                await addDoc(commentsColRef, {
+                    text: text,
+                    userDisplayName: user.displayName || 'Usuário',
+                    userId: user.uid,
+                    timestamp: serverTimestamp()
+                });
+                commentInput.value = '';
+            } catch (error) {
+                console.error("Erro ao comentar: ", error);
+                showToast("Erro ao enviar. Tente novamente.", "error");
+            } finally {
+                commentInput.disabled = false;
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i>';
+                if(window.lucide) window.lucide.createIcons();
+                commentInput.focus();
+            }
+        }
+    });
+}
+
+/**
+ * Lógica Principal da Câmera
+ */
+async function initializeCameraLogic(user) {
+    // --- 0. Obtenção do Código da Câmera (Prioridade: Injeção do Servidor > Query Param > URL Path) --- 
+    const urlParams = new URLSearchParams(window.location.search);
+    let cameraCode = window.SERVER_CAM_CODE || urlParams.get('code');
+
+    // Se não encontrou na variável global nem na query string, tenta extrair da URL amigável /camera/:code
+    if (!cameraCode) {
+        const pathParts = window.location.pathname.split('/');
+        // Procura por um segmento que seja exatamente 6 dígitos
+        const codeInPath = pathParts.find(part => /^\d{6}$/.test(part));
+        if (codeInPath) {
+            cameraCode = codeInPath;
+        }
+    }
+
+    // console.log("Initializing Camera Logic. Code:", cameraCode);
+    
+    // Mapeamento de elementos do DOM
+    const el = {
+        // Header
+        headerSkeleton: document.getElementById('header-skeleton'),
+        headerRealContent: document.getElementById('header-real-content'),
+        title: document.getElementById('header-title'),
+        subtitle: document.getElementById('header-subtitle'),
+        statusPing: document.getElementById('status-ping'),
+        statusDot: document.getElementById('status-dot'),
+        
+        // Player
+        playerWrapper: document.getElementById('player-wrapper'),
+        feed: document.getElementById('camera-feed'),
+        buffer: document.getElementById('camera-buffer'), // Adicione esta linha
+        loader: document.getElementById('loader'),
+        error: document.getElementById('error-message'),
+        errorText: document.getElementById('error-text-content'),
+        fullscreenBtn: document.getElementById('fullscreen-btn'),
+        
+        // Sidebar Info
+        detailsSkeleton: document.getElementById('details-skeleton'),
+        detailsContent: document.getElementById('details-content'),
+        category: document.getElementById('camera-category'),
+        description: document.getElementById('camera-description'),
+        statusBadge: document.getElementById('status-badge'),
+        mapLink: document.getElementById('map-link'),
+        
+        // Actions
+        shareBtn: document.getElementById('share-button-main'),
+        likeBtn: document.getElementById('like-btn'),
+        favoriteBtn: document.getElementById('favorite-btn'),
+        embedBtn: document.getElementById('embed-btn'),
+        reportBtn: document.getElementById('report-button')
+    };
+
+    if (window.lucide) window.lucide.createIcons();
+    
+    // --- 1. Validação do Código da Câmera ---
+    if (!cameraCode) {
+        handleErrorState(el, 'Nenhum código de câmera fornecido.', true);
+        return;
+    }
+    
+    // Inicia comentários independente do sucesso da câmera
+    initializeComments(user, cameraCode);
+
+    // --- 2. Preparação da Requisição ---
+    const idToken = user ? await user.getIdToken() : null;
+    const headers = {};
+    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
+    // --- 3. Busca dos Dados ---
+    // console.log("Fetching /status-cameras...");
+    fetch('/status-cameras', { headers: headers })
+        .then(res => {
+            if (!res.ok) throw new Error('Falha na comunicação com o servidor');
+            return res.json();
+        })
+        .then(cameras => {
+            // console.log("Cameras fetched:", cameras.length);
+            const camera = cameras.find(c => c.codigo === cameraCode);
+            
+            if (camera) {
+                // console.log("Camera found:", camera);
+                setupCameraInterface(camera, el, cameraCode);
+                setupCarousel(cameras, cameraCode);
+            } else {
+                console.warn("Camera not found in list.");
+                handleErrorState(el, 'Câmera não encontrada ou acesso restrito.', true);
+            }
+        })
+        .catch(err => {
+            console.error("Fetch error:", err);
+            handleErrorState(el, 'Erro de conexão. Verifique sua internet.', true);
+        });
+
+    // Configuração de Botões (Share, Like, Fullscreen, Favorite)
+    setupActionButtons(el, cameraCode, user);
+
+    // Share functionality removed (duplicate)
+
+    // --- Report Functionality ---
+    const reportBtn = document.getElementById('report-btn');
+    const reportModal = document.getElementById('report-modal');
+    const cancelReportBtn = document.getElementById('cancel-report-btn');
+    const confirmReportBtn = document.getElementById('confirm-report-btn');
+    const reportBackdrop = document.getElementById('report-backdrop');
+    const reportOptions = document.querySelectorAll('.report-option');
+    let selectedReason = null;
+
+    if (reportBtn && reportModal) {
+        if (reportModal.dataset.listenerAttached !== 'true') {
+            reportModal.dataset.listenerAttached = 'true';
+
+            // Open Modal
+            reportBtn.addEventListener('click', () => {
+                reportModal.classList.remove('hidden');
+                // Reset state
+                selectedReason = null;
+                document.getElementById('report-details').value = '';
+                reportOptions.forEach(opt => {
+                    opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                    opt.classList.add('border-transparent');
+                });
+            });
+
+        // Close Modal
+        const closeReportModal = () => {
+            reportModal.classList.add('hidden');
+        };
+
+        if (cancelReportBtn) cancelReportBtn.addEventListener('click', closeReportModal);
+        if (reportBackdrop) reportBackdrop.addEventListener('click', closeReportModal);
+
+        // Select Reason
+        reportOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Deselect all
+                reportOptions.forEach(opt => {
+                    opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                    opt.classList.add('border-transparent');
+                });
+                
+                // Select clicked
+                option.classList.remove('border-transparent');
+                option.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                selectedReason = option.dataset.reason;
+            });
+        });
+
+        // Submit Report
+        if (confirmReportBtn) {
+            confirmReportBtn.addEventListener('click', async () => {
+                if (!selectedReason) {
+                    window.showToast('Selecione um motivo para o reporte.', 'error');
+                    return;
+                }
+
+                const details = document.getElementById('report-details').value;
+                const originalText = confirmReportBtn.innerText;
+                confirmReportBtn.innerText = 'Enviando...';
+                confirmReportBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/report', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cameraId: cameraCode,
+                            issueType: selectedReason,
+                            description: details,
+                            userEmail: user ? user.email : 'anonymous'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        window.showToast('Obrigado! Seu reporte foi enviado.', 'success');
+                        closeReportModal();
+                    } else {
+                        throw new Error(data.error || 'Erro ao enviar');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    window.showToast('Erro ao enviar reporte. Tente novamente.', 'error');
+                } finally {
+                    confirmReportBtn.innerText = originalText;
+                    confirmReportBtn.disabled = false;
+                }
+            });
+        }
+    }
+}
+
+    if (localStorage.getItem('camrb_camera_tour_trigger') === 'pending') {
+        setTimeout(() => {
+            initCameraTour(user);
+            localStorage.setItem('camrb_camera_tour_trigger', 'done');
+        }, 1500);
+    }
+}
+
+/**
+ * Configura a Interface quando a câmera é encontrada
+ */
+function setupCameraInterface(camera, el, cameraCode) {
+    // A. Atualiza SEO e Metadados
+    const pageTitle = `${camera.nome} - Câmera ao Vivo`;
+    document.title = pageTitle;
+    updateMetaTags(camera, pageTitle);
+
+    // B. Preenche Textos
+    if(el.title) el.title.textContent = camera.nome;
+    if(el.description) {
+        if (camera.descricao) {
+            // Escapa HTML primeiro contra XSS e depois formata Markdown (**texto** -> <strong>texto</strong>)
+            let safeText = escapeHtml(camera.descricao);
+            let formattedDesc = safeText
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/(Condições climáticas)/, '<br>$1');
+            
+            el.description.innerHTML = formattedDesc;
+        } else {
+            el.description.textContent = 'Monitoramento em tempo real';
+        }
+    }
+    
+    // C. Atualiza Badge de Status e Ping
+    const isOnline = camera.status === 'online';
+    
+    // Ping no Header
+    if(el.statusPing) {
+        if(isOnline) {
+            el.statusPing.classList.remove('hidden');
+            el.statusDot.classList.remove('bg-gray-300', 'dark:bg-gray-600', 'bg-red-500');
+            el.statusDot.classList.add('bg-emerald-500');
+            el.subtitle.textContent = "Online";
+            el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold";
+        } else {
+            el.statusPing.classList.add('hidden');
+            el.statusDot.classList.remove('bg-emerald-500');
+            el.statusDot.classList.add('bg-red-500');
+            el.subtitle.textContent = "Offline";
+            el.subtitle.className = "text-red-500 font-bold";
+        }
+    }
+
+    // Badge na Sidebar
+    if (el.statusBadge) {
+        el.statusBadge.innerHTML = isOnline 
+            ? `<span class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Online</span>`
+            : `<span class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div> Offline</span>`;
+    }
+
+    // Link do Mapa
+    if(el.mapLink) {
+        if (camera.coords) { 
+            el.mapLink.href = `/mapa?code=${cameraCode}`; 
+            el.mapLink.removeAttribute('disabled');
+            el.mapLink.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else { 
+            el.mapLink.setAttribute('disabled', 'true');
+            el.mapLink.removeAttribute('href');
+            el.mapLink.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // D. Remove Skeletons e Mostra Conteúdo Real
+    toggleSkeletons(el, false);
+
+    // E. Inicializa o Feed de Vídeo
+    startVideoFeed(el, cameraCode);
+
+    // F. Inicializa Widget do Rio Acre e Modal de Timelapse 24h
+    initRioAcreWidget(cameraCode, camera);
+    initTimelapsePlayer(cameraCode, camera);
+}
+
+/**
+ * Remove os Skeletons e mostra o conteúdo
+ */
+function toggleSkeletons(el, showLoading) {
+    if (showLoading) {
+        el.headerSkeleton?.classList.remove('hidden');
+        el.detailsSkeleton?.classList.remove('hidden');
+        el.headerRealContent?.classList.add('hidden');
+        el.detailsContent?.classList.add('hidden');
+    } else {
+        el.headerSkeleton?.classList.add('hidden');
+        el.detailsSkeleton?.classList.add('hidden');
+        
+        el.headerRealContent?.classList.remove('hidden');
+        el.headerRealContent?.classList.add('animate-fade-in');
+        
+        el.detailsContent?.classList.remove('hidden');
+        el.detailsContent?.classList.add('animate-fade-in');
+    }
+}
+
+/**
+ * Gerencia o loop de atualização da imagem
+ */
+function startVideoFeed(el, cameraCode) { 
+    if(!el.feed || !el.buffer) return; 
+
+    if (videoInterval) clearInterval(videoInterval); 
+
+    let consecutiveErrors = 0; 
+    let hasShownValidImage = false; 
+    let lastSuccessAt = 0; 
+    
+    // Variável que controla qual imagem será usada como "fundo invisível"
+    let useBufferForNextFrame = true; 
+
+    // Dispara o evento do Google Analytics APENAS UMA VEZ quando a câmera abre,
+    // em vez de disparar a cada 3 segundos (evita spam e bloqueio no GA4)
+    if (window.gtag) { 
+        window.gtag('event', 'camera_view_started', { camera_code: cameraCode }); 
+    }
+
+    const updateImage = () => { 
+        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`; 
+        
+        const imgToLoad = useBufferForNextFrame ? el.buffer : el.feed; 
+        const imgCurrentlyVisible = useBufferForNextFrame ? el.feed : el.buffer; 
+
+imgToLoad.onload = () => { 
+            consecutiveErrors = 0; 
+            hasShownValidImage = true; 
+            lastSuccessAt = Date.now(); 
+            
+            if (el.loader) el.loader.classList.add('hidden'); 
+            if (el.error) el.error.classList.add('hidden'); 
+            
+            if (el.subtitle) { 
+                el.subtitle.textContent = "Online"; 
+                el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold"; 
+            } 
+
+            // 1. A nova imagem aparece imediatamente (fazendo o fade-in por cima)
+            imgToLoad.classList.remove('opacity-0'); 
+
+            // 2. Esperamos a nova imagem aparecer totalmente para esconder a antiga
+            // O tempo de 300ms é o padrão das classes 'duration-300' do Tailwind. 
+            // Se a transição ainda piscar, você pode testar aumentar para 500.
+            setTimeout(() => {
+                imgCurrentlyVisible.classList.add('opacity-0'); 
+            }, 300);
+
+            // Inverte as posições para o próximo ciclo 
+            useBufferForNextFrame = !useBufferForNextFrame; 
+        };
+
+        imgToLoad.onerror = () => { 
+            consecutiveErrors++; 
+
+            const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000); 
+            
+            // Se falhou menos de 3 vezes ou estava OK agorinha, tenta de novo na surdina
+            if (recentlyOk || consecutiveErrors < 3) { 
+                return; 
+            } 
+
+            // Se realmente caiu, mostra a imagem de erro
+            if (el.loader) el.loader.classList.add('hidden'); 
+            
+            imgToLoad.src = '/assets/offline.png'; 
+            imgToLoad.classList.remove('opacity-0'); 
+            imgCurrentlyVisible.classList.add('opacity-0'); 
+            useBufferForNextFrame = !useBufferForNextFrame; 
+            
+            if (el.error) { 
+                if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Tentando reconectar...'; 
+                el.error.classList.remove('hidden'); 
+                el.error.classList.add('flex'); 
+            } 
+            if (el.subtitle) { 
+                el.subtitle.textContent = "Sinal Interrompido"; 
+                el.subtitle.className = "text-red-500 font-bold"; 
+            } 
+        }; 
+
+        // Inicia o carregamento invisível 
+        imgToLoad.src = proxyUrl; 
+    }; 
+
+    updateImage(); 
+    videoInterval = setInterval(updateImage, 3000); 
+}
+
+/**
+ * Setup Camera Carousel
+ */
+function setupCarousel(allCameras, currentCode) {
+    const carouselContainer = document.getElementById('camera-carousel');
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
+    
+    if (!carouselContainer) return;
+    
+    const onlineOthers = allCameras
+        .filter(c => c.status === 'online' && c.codigo !== currentCode)
+        .sort(() => 0.5 - Math.random());
+        
+    if (onlineOthers.length === 0) {
+        carouselContainer.parentNode.parentNode.style.display = 'none';
+        return;
+    }
+    
+    carouselContainer.innerHTML = '';
+    
+    onlineOthers.slice(0, 15).forEach(cam => {
+        const item = document.createElement('a');
+        item.href = `/camera/${cam.codigo}`;
+        item.className = 'snap-start shrink-0 w-44 sm:w-56 flex flex-col gap-2 rounded-xl group relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-2 hover:shadow-md hover:border-indigo-500/50 transition-all cursor-pointer';
+        item.onclick = function(e) {
+            if (window.gtag) gtag('event', 'carousel_click', { 'camera_code': cam.codigo });
+        };
+        item.innerHTML = `
+            <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-900">
+                <img src="/proxy/camera/${cam.codigo}" alt="Câmera ${cam.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="relative flex h-2 w-2 shadow-[0_0_5px_rgba(16,185,129,1)]">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-[10px] text-white font-bold uppercase tracking-wider">Ao Vivo</span>
+                </div>
+            </div>
+            <div class="px-1 text-left">
+                <h4 class="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${cam.nome}</h4>
+                <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">${cam.categoria || 'Geral'}</p>
+            </div>
+        `;
+        carouselContainer.appendChild(item);
+    });
+    
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', () => {
+            carouselContainer.scrollBy({ left: -300, behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', () => {
+            carouselContainer.scrollBy({ left: 300, behavior: 'smooth' });
+        });
+    }
+}
+
+/**
+ * Configura Botões de Ação
+ */
+function setupActionButtons(el, cameraCode, user) {
+    // Evita adicionar listeners múltiplos se a função for chamada novamente
+    // Verifica no container principal (playerWrapper ou similar) ou usa um flag no objeto el se persistisse (mas el é recriado).
+    // O melhor é verificar no botão em si.
+    if (el.shareBtn && el.shareBtn.dataset.hasListener) return;
+
+    // 1. Like Button Removed
+
+    // 2. Fullscreen Button
+    if (el.fullscreenBtn && el.playerWrapper) {
+        el.fullscreenBtn.addEventListener('click', async () => {
+            if (!document.fullscreenElement) {
+                try {
+                    await el.playerWrapper.requestFullscreen();
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape').catch(e => console.warn("Orientation lock failed:", e));
+                    }
+                } catch (err) {
+                    console.error(`Erro ao entrar em tela cheia: ${err.message}`);
+                }
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+            }
+        });
+
+        // Atualiza ícone ao mudar estado
+        document.addEventListener('fullscreenchange', () => {
+            const icon = el.fullscreenBtn.querySelector('i');
+            if (document.fullscreenElement) {
+                icon.setAttribute('data-lucide', 'minimize');
+            } else {
+                icon.setAttribute('data-lucide', 'maximize');
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+            }
+            if(window.lucide) window.lucide.createIcons();
+        });
+    }
+
+    // 3. Share Button
+    setupShareButton(el.shareBtn, el.feed, cameraCode);
+
+    // 4. Embed Button
+    setupEmbedButton(el.embedBtn, cameraCode);
+
+    // 5. Favorite Button
+    setupFavoriteButton(el.favoriteBtn, cameraCode, user);
+}
+
+function initCameraTour(user) {
+    if (!window.driver || !window.driver.js) return;
+
+    const isLoggedIn = !!user;
+
+    const steps = [
+        {
+            element: '#player-wrapper',
+            popover: {
+                title: 'Visualização da Câmera',
+                description: 'Aqui você acompanha esta câmera em destaque, com indicador de status e tela ampliada.',
+                side: 'top',
+                align: 'center'
+            }
+        },
+        {
+            element: '#image-container',
+            popover: {
+                title: 'Imagem da Câmera',
+                description: 'Se aparecer uma imagem totalmente preta como no exemplo abaixo, significa que o sinal está temporariamente indisponível e esta câmera pode desaparecer automaticamente da lista principal.<br><br><img src="/assets/tutorial/offline-example.png" alt="Exemplo de imagem preta" class="mt-2 rounded-lg border border-gray-200 max-w-full">',
+                side: 'bottom',
+                align: 'center'
+            }
+        },
+        {
+            element: '#favorite-btn',
+            popover: {
+                title: 'Favoritar câmera',
+                description: isLoggedIn
+                    ? 'Use este botão para adicionar ou remover esta câmera dos seus Favoritos e acessá-la rapidamente na tela inicial.'
+                    : 'Se você estiver logado, pode usar este botão para adicionar esta câmera aos seus Favoritos e encontrá-la mais rápido na tela inicial.',
+                side: 'top',
+                align: 'end'
+            }
+        },
+        {
+            element: '#share-button-main',
+            popover: {
+                title: 'Compartilhar câmera',
+                description: 'Use este botão para copiar o link desta câmera e compartilhar com outras pessoas.',
+                side: 'top',
+                align: 'start'
+            }
+        },
+        {
+            element: '#report-btn',
+            popover: {
+                title: 'Reportar Problema',
+                description: 'Se notar tela preta constante, localização errada ou travamentos, use este botão para avisar a equipe.',
+                side: 'top',
+                align: 'end'
+            }
+        }
+    ];
+
+    const validSteps = steps.filter(step => document.querySelector(step.element));
+    if (!validSteps.length) return;
+
+    const driverInstance = window.driver.js.driver({
+        showProgress: true,
+        animate: true,
+        showButtons: ['previous', 'next', 'close'],
+        nextBtnText: 'Próximo',
+        prevBtnText: 'Voltar',
+        doneBtnText: 'Concluir',
+        steps: validSteps
+    });
+
+    driverInstance.drive();
+}
+
+/**
+ * Trata estados de erro global
+ */
+function handleErrorState(el, message, critical = false) {
+    toggleSkeletons(el, false);
+
+    if(el.title) el.title.textContent = "Erro";
+    if(el.category) el.category.textContent = "-";
+    if(el.description) el.description.textContent = message;
+    
+    if(el.loader) el.loader.classList.add('hidden');
+    if(el.error) {
+        if(el.errorText) el.errorText.textContent = message;
+        el.error.classList.remove('hidden');
+        el.error.classList.add('flex');
+    }
+}
+
+/**
+ * Lógica de Compartilhamento
+ */
+function setupShareButton(btn, imgElement, cameraCode) {
+    if (!btn) return;
+
+    btn.dataset.hasListener = 'true';
+
+    btn.addEventListener('click', async () => {
+        const shareUrl = `${location.origin}/camera/${cameraCode}`;
+        const shareData = {
+            title: document.title,
+            url: shareUrl
+        };
+
+        const originalContent = btn.innerHTML;
+        
+        // Verifica se é mobile (critério simples: suporte a navigator.share e tela pequena ou touch)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.share && window.innerWidth < 768);
+
+        if (isMobile && navigator.share && navigator.canShare) {
+             btn.innerHTML = '<div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>';
+             try {
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    if (window.gtag) window.gtag('event', 'camera_share', { camera_code: cameraCode, platform: 'native' });
+                } else {
+                    throw new Error('Dados de compartilhamento inválidos');
+                }
+             } catch (err) {
+                 // Se cancelar ou falhar, volta ao normal silenciosamente ou com fallback
+                 console.warn("Compartilhamento nativo cancelado ou falhou:", err);
+             } finally {
+                 btn.innerHTML = originalContent;
+                 if(window.lucide) window.lucide.createIcons();
+             }
+        } else {
+            // Desktop: Copiar para área de transferência
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span class="text-green-600 font-medium text-sm">Copiado!</span>`;
+                if(window.lucide) window.lucide.createIcons();
+                if (window.gtag) window.gtag('event', 'camera_share', { camera_code: cameraCode, platform: 'clipboard' });
+                
+                setTimeout(() => { 
+                    btn.innerHTML = originalContent; 
+                    if(window.lucide) window.lucide.createIcons();
+                }, 2000);
+            } catch (clipboardErr) {
+                alert('Copie o link do navegador para compartilhar.');
+            }
+        }
+    });
+}
+
+function setupEmbedButton(btn, cameraCode) {
+    if (!btn) return;
+    if (btn.dataset.hasListener) return;
+
+    btn.dataset.hasListener = 'true';
+
+    btn.addEventListener('click', async () => {
+
+        const iframeCode = `<iframe src="https://camerasriobranco.com.br/embed/${cameraCode}" width="100%" height="450" frameborder="0" allowfullscreen></iframe>`;
+
+        let copied = false;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(iframeCode);
+                copied = true;
+            } catch (err) {
+                copied = false;
+            }
+        }
+
+        if (!copied) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = iframeCode;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                textarea.style.pointerEvents = 'none';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                copied = document.execCommand('copy');
+                document.body.removeChild(textarea);
+            } catch (err) {
+                copied = false;
+            }
+        }
+
+        if (copied) {
+            if (window.showToast) {
+                window.showToast('Código de incorporação copiado!', 'success');
+            }
+        } else {
+            if (window.showToast) {
+                window.showToast('Não foi possível copiar o código. Copie manualmente.', 'error');
+            }
+        }
+    });
+}
+
+/**
+ * Lógica de Favoritos
+ */
+async function setupFavoriteButton(btn, cameraCode, user) {
+    if (!btn) return;
+    
+    // Check initial state
+    if (user) {
+        try {
+            const userRef = doc(db, 'userData', user.uid);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // Check both fields for backward compatibility, prefer favoriteCameras
+                const favorites = data.favoriteCameras || data.favorites || [];
+                if (favorites.includes(cameraCode)) {
+                    btn.classList.add('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/20');
+                    btn.classList.remove('text-gray-600', 'dark:text-gray-400');
+                    const icon = btn.querySelector('i');
+                    const text = btn.querySelector('span');
+                    if(icon) {
+                        icon.setAttribute('fill', 'currentColor');
+                        icon.classList.add('fill-amber-500');
+                    }
+                    if(text) text.textContent = 'Favorito';
+                }
+            }
+        } catch (err) {
+            console.error("Erro ao carregar favoritos:", err);
+        }
+    }
+
+    btn.addEventListener('click', async () => {
+        if (!user) {
+            toggleLoginModal(true);
+            return;
+        }
+
+        // Toggle visual imediato
+        const isActive = btn.classList.contains('text-amber-500');
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('span');
+
+        // Optimistic UI update
+        if (isActive) {
+            btn.classList.remove('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/20');
+            btn.classList.add('text-gray-600', 'dark:text-gray-400');
+            if(icon) {
+                icon.setAttribute('fill', 'none');
+                icon.classList.remove('fill-amber-500');
+            }
+            if(text) text.textContent = 'Favoritar';
+        } else {
+            btn.classList.add('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/20');
+            btn.classList.remove('text-gray-600', 'dark:text-gray-400');
+            if(icon) {
+                icon.setAttribute('fill', 'currentColor');
+                icon.classList.add('fill-amber-500');
+            }
+            if(text) text.textContent = 'Favorito';
+        }
+
+        try {
+            const userRef = doc(db, 'userData', user.uid);
+            const userDoc = await getDoc(userRef);
+            let favorites = [];
+
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                favorites = data.favoriteCameras || data.favorites || [];
+            }
+
+            if (isActive) {
+                // Remove
+                favorites = favorites.filter(code => code !== cameraCode);
+                if (window.gtag) window.gtag('event', 'camera_favorite', { camera_code: cameraCode, action: 'remove' });
+            } else {
+                // Add
+                if (!favorites.includes(cameraCode)) favorites.push(cameraCode);
+                if (window.gtag) window.gtag('event', 'camera_favorite', { camera_code: cameraCode, action: 'add' });
+            }
+
+            // Save to 'favoriteCameras' as requested
+            await setDoc(userRef, { favoriteCameras: favorites }, { merge: true });
+        } catch (error) {
+            console.error("Erro ao atualizar favoritos:", error);
+            alert("Erro ao salvar favorito. Tente novamente.");
+            // Revert UI if needed, but keeping it simple for now
+        }
+    });
+}
+
+/**
+ * Atualiza Meta Tags dinamicamente
+ */
+function updateMetaTags(camera, title) {
+    const description = `Assista agora a câmera ao vivo de ${camera.nome}. ${camera.descricao || 'Monitoramento em tempo real.'}`;
+    const imageUrl = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
+    const shareUrl = `${location.origin}/camera/${camera.codigo}`;
+    
+    const setMeta = (selector, attr, value) => {
+        let element = document.querySelector(selector);
+        if (!element) {
+            element = document.createElement('meta');
+            if(selector.includes('property')) {
+                element.setAttribute('property', selector.replace('meta[property="', '').replace('"]', ''));
+            } else {
+                element.setAttribute('name', selector.replace('meta[name="', '').replace('"]', ''));
+            }
+            document.head.appendChild(element);
+        }
+        element.setAttribute(attr, value);
+    };
+
+    setMeta('meta[name="description"]', 'content', description);
+    setMeta('meta[property="og:title"]', 'content', title);
+    setMeta('meta[property="og:description"]', 'content', description);
+    setMeta('meta[property="og:url"]', 'content', shareUrl);
+    setMeta('meta[property="og:image"]', 'content', imageUrl);
+    setMeta('meta[property="og:image:secure_url"]', 'content', imageUrl);
+    setMeta('meta[property="og:image:type"]', 'content', 'image/jpeg');
+    setMeta('meta[property="og:image:width"]', 'content', '1280');
+    setMeta('meta[property="og:image:height"]', 'content', '720');
+    setMeta('meta[property="twitter:title"]', 'content', title);
+    setMeta('meta[property="twitter:description"]', 'content', description);
+    setMeta('meta[property="twitter:url"]', 'content', shareUrl);
+    setMeta('meta[property="twitter:image"]', 'content', imageUrl);
+    setMeta('meta[name="twitter:image:alt"]', 'content', `Ao Vivo: ${camera.nome}`);
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', shareUrl);
+}
+
+/**
+ * Inicializa o Widget do Rio Acre para câmeras estratégicas (001426, 001334 e pontes)
+ */
+async function initRioAcreWidget(cameraCode, camera) {
+    const rioWidget = document.getElementById('rio-acre-widget');
+    if (!rioWidget) return;
+
+    // Exibe exclusivamente nas câmeras oficiais do Rio Acre (001426 e 001334)
+    const isRioCamera = ['001426', '001334'].includes(cameraCode);
+
+    if (!isRioCamera) {
+        rioWidget.classList.add('hidden');
+        return;
+    }
+
+    rioWidget.classList.remove('hidden');
+
+    try {
+        const res = await fetch('/api/rio-acre');
+        if (!res.ok) throw new Error('Falha ao carregar dados do Rio Acre');
+        const data = await res.json();
+
+        const nivelEl = document.getElementById('rio-acre-nivel');
+        const statusBadge = document.getElementById('rio-acre-status-badge');
+        const lastUpdateEl = document.getElementById('rio-acre-last-update');
+        const progressEl = document.getElementById('rio-acre-progress');
+
+        if (nivelEl) nivelEl.textContent = data.nivel?.formatado || '2,28 m';
+        if (lastUpdateEl) lastUpdateEl.textContent = `Medição: ${data.nivel?.dataLeitura || 'Hoje'}`;
+
+        if (statusBadge) {
+            statusBadge.className = `px-3 py-1 text-xs font-bold uppercase rounded-full text-white shadow-sm flex items-center gap-1.5 ${data.status?.statusBg || 'bg-emerald-500'}`;
+            statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> ${data.status?.tipo || 'Normal'}`;
+        }
+
+        if (progressEl) {
+            const percent = data.cotas?.percentualAlerta || 15;
+            progressEl.style.width = `${Math.max(percent, 5)}%`;
+            if (data.status?.tipo === 'Transbordamento') {
+                progressEl.className = 'bg-gradient-to-r from-amber-500 to-red-500 h-full rounded-full transition-all duration-500';
+            } else if (data.status?.tipo === 'Alerta') {
+                progressEl.className = 'bg-gradient-to-r from-emerald-400 to-amber-400 h-full rounded-full transition-all duration-500';
+            } else {
+                progressEl.className = 'bg-gradient-to-r from-emerald-400 to-cyan-300 h-full rounded-full transition-all duration-500';
+            }
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+    } catch (e) {
+        console.warn('Erro ao atualizar widget do Rio Acre:', e.message);
+    }
+}
+
+/**
+ * Inicializa o Modal de Timelapse 24h e Exportação de GIF
+ */
+let timelapseInterval = null;
+let timelapseFrames = [];
+let currentFrameIndex = 0;
+let isPlayingTimelapse = false;
+
+function initTimelapsePlayer(cameraCode, camera) {
+    const modalBtn = document.getElementById('timelapse-modal-btn');
+    const modal = document.getElementById('timelapse-modal');
+    const modalBox = document.getElementById('timelapse-modal-box');
+    const closeBtn = document.getElementById('close-timelapse-modal-btn');
+    const cameraTitleEl = document.getElementById('timelapse-modal-camera-title');
+    const imageEl = document.getElementById('timelapse-modal-image');
+    const slider = document.getElementById('timelapse-modal-slider');
+    const playBtn = document.getElementById('timelapse-modal-play-btn');
+    const timeBadge = document.getElementById('timelapse-modal-time-badge');
+    const frameCounter = document.getElementById('timelapse-modal-frame-counter');
+    const fullLabel = document.getElementById('timelapse-modal-full-label');
+    const startTimeEl = document.getElementById('timelapse-modal-start-time');
+    const endTimeEl = document.getElementById('timelapse-modal-end-time');
+    const speedSelect = document.getElementById('timelapse-speed-select');
+    const downloadGifBtn = document.getElementById('timelapse-download-gif-btn');
+    const gifStatus = document.getElementById('timelapse-gif-status');
+    const loader = document.getElementById('timelapse-modal-loader');
+
+    if (!modalBtn || !modal) return;
+
+    if (cameraTitleEl && camera?.nome) {
+        cameraTitleEl.textContent = `${camera.nome} (${cameraCode})`;
+    }
+
+    const openModal = async () => {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalBox?.classList.remove('scale-95');
+            modalBox?.classList.add('scale-100');
+        }, 10);
+
+        if (loader) loader.classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/api/timelapse/${cameraCode}`);
+            if (!res.ok) throw new Error('Falha ao buscar imagens de timelapse');
+            timelapseFrames = await res.json();
+
+            if (!Array.isArray(timelapseFrames) || timelapseFrames.length === 0) {
+                if (fullLabel) fullLabel.textContent = 'Nenhum frame gravado nas últimas 24h.';
+                if (downloadGifBtn) downloadGifBtn.disabled = true;
+                if (playBtn) playBtn.disabled = true;
+                if (loader) loader.classList.add('hidden');
+                return;
+            }
+
+            if (downloadGifBtn) downloadGifBtn.disabled = false;
+            if (playBtn) playBtn.disabled = false;
+
+            slider.min = "0";
+            slider.max = String(timelapseFrames.length - 1);
+            currentFrameIndex = timelapseFrames.length - 1;
+            slider.value = String(currentFrameIndex);
+
+            if (startTimeEl && timelapseFrames[0]) {
+                startTimeEl.textContent = timelapseFrames[0].timeFormatted;
+            }
+            if (endTimeEl && timelapseFrames[timelapseFrames.length - 1]) {
+                endTimeEl.textContent = timelapseFrames[timelapseFrames.length - 1].timeFormatted;
+            }
+
+            renderFrame(currentFrameIndex);
+        } catch (e) {
+            console.error('Erro ao carregar timelapse:', e);
+            if (fullLabel) fullLabel.textContent = 'Erro ao carregar frames do timelapse.';
+        } finally {
+            if (loader) loader.classList.add('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        }
+    };
+
+    const closeModal = () => {
+        togglePlay(false);
+        modal.classList.add('opacity-0');
+        modalBox?.classList.remove('scale-100');
+        modalBox?.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    };
+
+    const renderFrame = (index) => {
+        if (!timelapseFrames[index]) return;
+        const frame = timelapseFrames[index];
+        imageEl.src = frame.url;
+        if (timeBadge) timeBadge.textContent = frame.timeFormatted;
+        if (frameCounter) frameCounter.textContent = `${index + 1}/${timelapseFrames.length}`;
+        if (fullLabel) fullLabel.textContent = frame.fullLabel || `${frame.dateFormatted} às ${frame.timeFormatted}`;
+        slider.value = String(index);
+    };
+
+    const togglePlay = (start) => {
+        if (start && timelapseFrames.length > 1) {
+            isPlayingTimelapse = true;
+            if (playBtn) {
+                playBtn.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i><span>Pausar</span>';
+                playBtn.classList.replace('bg-purple-600', 'bg-amber-600');
+                playBtn.classList.replace('hover:bg-purple-700', 'hover:bg-amber-700');
+            }
+            if (window.lucide) window.lucide.createIcons();
+
+            const speed = parseInt(speedSelect?.value || '350', 10);
+            timelapseInterval = setInterval(() => {
+                currentFrameIndex++;
+                if (currentFrameIndex >= timelapseFrames.length) {
+                    currentFrameIndex = 0;
+                }
+                renderFrame(currentFrameIndex);
+            }, speed);
+        } else {
+            isPlayingTimelapse = false;
+            if (timelapseInterval) {
+                clearInterval(timelapseInterval);
+                timelapseInterval = null;
+            }
+            if (playBtn) {
+                playBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i><span>Reproduzir</span>';
+                playBtn.classList.replace('bg-amber-600', 'bg-purple-600');
+                playBtn.classList.replace('hover:bg-amber-700', 'hover:bg-purple-700');
+            }
+            if (window.lucide) window.lucide.createIcons();
+        }
+    };
+
+    // Event Listeners
+    modalBtn.onclick = openModal;
+    closeBtn.onclick = closeModal;
+    modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    slider.oninput = (e) => {
+        if (isPlayingTimelapse) togglePlay(false);
+        currentFrameIndex = parseInt(e.target.value, 10);
+        renderFrame(currentFrameIndex);
+    };
+
+    if (playBtn) {
+        playBtn.onclick = () => {
+            togglePlay(!isPlayingTimelapse);
+        };
+    }
+
+    if (speedSelect) {
+        speedSelect.onchange = () => {
+            if (isPlayingTimelapse) {
+                togglePlay(false);
+                togglePlay(true);
+            }
+        };
+    }
+
+    // Download como GIF
+    if (downloadGifBtn) {
+        downloadGifBtn.onclick = async () => {
+            if (!timelapseFrames || timelapseFrames.length === 0) {
+                alert('Não há frames suficientes para gerar o GIF.');
+                return;
+            }
+
+            if (typeof window.gifshot === 'undefined') {
+                alert('Biblioteca de GIF carregando, tente novamente em alguns segundos.');
+                return;
+            }
+
+            downloadGifBtn.disabled = true;
+            downloadGifBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Gerando GIF...</span>';
+            if (gifStatus) {
+                gifStatus.classList.remove('hidden');
+                gifStatus.textContent = `Processando ${timelapseFrames.length} fotos em alta resolução...`;
+            }
+
+            const frameUrls = timelapseFrames.map(f => f.url);
+            const speed = parseInt(speedSelect?.value || '350', 10);
+
+            window.gifshot.createGIF({
+                images: frameUrls,
+                interval: speed / 1000,
+                gifWidth: 640,
+                gifHeight: 360,
+                numWorkers: 2,
+                progressCallback: (progress) => {
+                    if (gifStatus) {
+                        gifStatus.textContent = `Gerando GIF... ${Math.round(progress * 100)}%`;
+                    }
+                }
+            }, function(obj) {
+                downloadGifBtn.disabled = false;
+                downloadGifBtn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i><span>Baixar como GIF</span>';
+                if (window.lucide) window.lucide.createIcons();
+
+                if (!obj.error) {
+                    if (gifStatus) {
+                        gifStatus.textContent = '✅ GIF gerado com sucesso! Iniciando download...';
+                        setTimeout(() => gifStatus.classList.add('hidden'), 4000);
+                    }
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = obj.image;
+                    downloadLink.download = `timelapse-${cameraCode}-${new Date().toISOString().slice(0,10)}.gif`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } else {
+                    console.error('Erro ao gerar GIF:', obj.error);
+                    if (gifStatus) {
+                        gifStatus.textContent = '❌ Erro ao compilar GIF. Tente com menos frames.';
+                        setTimeout(() => gifStatus.classList.add('hidden'), 4000);
+                    }
+                    alert('Não foi possível gerar o GIF animado.');
+                }
+            });
+        };
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+}
+
+
+
+

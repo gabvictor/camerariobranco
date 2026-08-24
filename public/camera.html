@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Câmera ao Vivo - Rio Branco | CamRB</title>
+    <meta name="description"
+        content="Assista câmeras ao vivo em Rio Branco, Acre. Monitoramento de trânsito e segurança pública em tempo real.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://camerasriobranco.com.br/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Câmera ao Vivo - Rio Branco">
+    <meta property="og:description" content="Acompanhe o trânsito e o clima de Rio Branco em tempo real.">
+    <meta property="og:image" content="https://camerasriobranco.com.br/assets/offline.png">
+    <meta property="og:url" content="https://camerasriobranco.com.br/">
+    <meta property="og:image:secure_url" content="https://camerasriobranco.com.br/assets/offline.png">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="675">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Câmera ao Vivo - Rio Branco">
+    <meta property="twitter:description" content="Acompanhe o trânsito e o clima de Rio Branco em tempo real.">
+    <meta property="twitter:image" content="https://camerasriobranco.com.br/assets/offline.png">
+    <meta property="twitter:url" content="https://camerasriobranco.com.br/">
+    <meta name="twitter:image:alt" content="Imagem da câmera ao vivo">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6B72KFF66"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-Y6B72KFF66');
+    </script>
+
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css">
+    <script src="/script/theme.js"></script>
+
+    <!-- Google AdSense -->
+    <script async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3587198600314787"
+        crossorigin="anonymous"></script>
+</head>
+
+<body
+    class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div id="content-wrapper" class="min-h-screen flex flex-col">
+
+        <!-- Mobile Bottom Nav -->
+        <nav
+            class="bottom-nav sm:hidden fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 flex justify-around items-center pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <a href="/"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Início</span>
+            </a>
+            <a href="/mapa"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Mapa</span>
+            </a>
+            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="app-banner-controlled nav-item relative group -top-5">
+                <div
+                    class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
+                </div>
+                <span
+                    class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">App</span>
+            </a>
+            <a href="#" class="nav-item active flex flex-col items-center p-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="video" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Câmera</span>
+            </a>
+            <a href="/perfil"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Perfil</span>
+            </a>
+            <a href="/admin"
+                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Admin</span>
+            </a>
+            <a href="/dashboard"
+                class="admin-only hidden nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Dash</span>
+            </a>
+        </nav>
+
+        <div class="container mx-auto p-4 md:p-6 lg:max-w-7xl pb-20 sm:pb-6 flex-grow">
+
+            <!-- Header Section -->
+            <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
+                <div class="flex items-center gap-5 w-full md:w-auto">
+                    <a href="/" aria-label="Voltar para Início"
+                        class="group flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300">
+                        <i data-lucide="arrow-left"
+                            class="w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"></i>
+                    </a>
+
+                    <div class="flex-1 min-w-0">
+                        <div id="header-skeleton" class="animate-pulse space-y-2">
+                            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-64"></div>
+                            <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-40"></div>
+                        </div>
+
+                        <div id="header-real-content" class="hidden">
+                            <h1 id="header-title"
+                                class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate leading-tight">
+                                Carregando...</h1>
+                            <div class="flex items-center gap-3 mt-1">
+                                <span class="relative flex h-3 w-3">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden"
+                                        id="status-ping"></span>
+                                    <span
+                                        class="relative inline-flex rounded-full h-3 w-3 bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                                        id="status-dot"></span>
+                                </span>
+                                <span id="header-subtitle"
+            class="text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide">Verificando status...</span>
+        <div id="weather-widget" style="display: none;" class="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 ml-2 animate-fade-in"></div>
+    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 self-end md:self-auto">
+                    <a href="/dashboard" aria-label="Dashboard"
+                        class="admin-only hidden flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Dash</span>
+                    </a>
+                    <button onclick="window.location.reload()" aria-label="Atualizar Câmera"
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Atualizar</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+                <!-- Main Content Column -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Unified Player & Actions Card -->
+                    <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700/60 p-2 sm:p-3 flex flex-col gap-3 overflow-hidden">
+                        
+                        <!-- Player Container -->
+                        <div id="player-wrapper"
+                            class="relative bg-black rounded-2xl shadow-lg dark:shadow-[0_0_40px_-10px_rgba(79,70,229,0.15)] overflow-hidden aspect-video border border-gray-800 dark:border-gray-700 group transition-all duration-500">
+
+                            <div id="image-container"
+                                class="w-full h-full relative flex items-center justify-center bg-black">
+
+                                <!-- Live Indicator -->
+                                <div
+                                    class="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none shadow-lg">
+                                    <div class="relative flex h-2 w-2">
+                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                                         <span class="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                                    </div>
+                                    <span class="text-white text-[10px] font-bold tracking-widest uppercase text-shadow-sm">Ao Vivo</span>
+                                </div>
+
+                                <!-- Fullscreen Button -->
+                                <button id="fullscreen-btn"
+                                    class="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-xl border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105"
+                                    aria-label="Tela Cheia">
+                                    <i data-lucide="maximize" class="w-5 h-5"></i>
+                                </button>
+
+                                <!-- Feed Image -->
+                                <img id="camera-feed" src="" alt="Transmissão ao vivo"
+                                    class="absolute inset-0 w-full h-full object-contain z-10 transition-opacity duration-700 ease-in-out scale-[1.01]">
+
+                                <img id="camera-buffer" src="" alt=""
+                                    class="absolute inset-0 w-full h-full object-contain z-[15] opacity-0 transition-opacity duration-700 ease-in-out pointer-events-none scale-[1.01]">
+
+                                <!-- Loading State -->
+                                <div id="loader"
+                                    class="absolute inset-0 flex flex-col items-center justify-center z-0 bg-gray-900 border-b border-indigo-500/20">
+                                    <div class="relative">
+                                        <div
+                                            class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin">
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+                                        </div>
+                                    </div>
+                                    <span class="mt-6 text-indigo-400 text-[11px] uppercase tracking-widest font-bold animate-pulse-subtle">Conectando ao sinal...</span>
+                                </div>
+
+                                <!-- Error State -->
+                                <div id="error-message"
+                                    class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-md p-8 text-center hidden">
+                                    <div
+                                        class="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-red-500/20 flex-shrink-0">
+                                        <i data-lucide="wifi-off" class="w-10 h-10 text-red-500"></i>
+                                    </div>
+                                    <h3 class="text-white text-xl font-bold mb-3">Sinal Indisponível</h3>
+                                    <p class="text-gray-400 max-w-md text-sm leading-relaxed mb-8" id="error-text-content">
+                                        Não foi possível carregar o feed de vídeo no momento.</p>
+                                    <button onclick="window.location.reload()"
+                                        class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:-translate-y-0.5">
+                                        Tentar Novamente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Bar -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 px-2 sm:px-3 pb-1 pt-1">
+                        <div class="flex items-center gap-2">
+                            <button id="favorite-btn" aria-label="Favoritar Câmera"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 text-gray-600 dark:text-gray-400 hover:text-amber-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="star" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Favoritar</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="share-button-main" aria-label="Compartilhar"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-600 dark:text-gray-400 hover:text-indigo-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="share-2" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Compartilhar</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="embed-btn" aria-label="Gerar código de incorporação"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-indigo-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="code-2" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Embed</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="timelapse-modal-btn" aria-label="Timelapse 24 Horas"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="history" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Timelapse</span>
+                            </button>
+                            <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                            <button id="report-btn" aria-label="Reportar Problema"
+                                class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-all group active:scale-95 font-medium text-sm">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                <span class="hidden sm:inline">Reportar</span>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-900/30">
+                            <span class="relative flex h-2 w-2">
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span
+                                class="text-[10px] text-green-700 dark:text-green-400 font-bold uppercase tracking-widest">Tempo Real</span>
+                        </div>
+                    </div>
+
+                    </div> <!-- End of Unified Player & Actions Card -->
+
+                    <!-- Rio Acre Monitor Widget (Exibido nas câmeras 001426 e 001334) -->
+                    <div id="rio-acre-widget" class="hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-cyan-800 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden border border-blue-400/30">
+                        <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-cyan-400/20 rounded-full blur-2xl pointer-events-none"></div>
+                        <div class="flex items-center justify-between gap-3 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 bg-white/20 backdrop-blur-md rounded-2xl">
+                                    <i data-lucide="waves" class="w-6 h-6 text-cyan-200"></i>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-cyan-200">Telemetria Oficial • ANA / SGB-CPRM</span>
+                                    <h3 class="font-extrabold text-lg tracking-tight">Nível do Rio Acre</h3>
+                                </div>
+                            </div>
+                            <span id="rio-acre-status-badge" class="px-3 py-1 text-xs font-bold uppercase rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                Normal
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/10 mb-4">
+                            <div>
+                                <span class="text-[11px] text-cyan-200 font-medium">Nível Atual</span>
+                                <div id="rio-acre-nivel" class="text-2xl sm:text-3xl font-black text-white">Carregando...</div>
+                            </div>
+                            <div>
+                                <span class="text-[11px] text-cyan-200 font-medium">Cota de Alerta</span>
+                                <div class="text-xl sm:text-2xl font-bold text-amber-300">13,50 m</div>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <span class="text-[11px] text-cyan-200 font-medium">Transbordamento</span>
+                                <div class="text-xl sm:text-2xl font-bold text-red-300">14,00 m</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Progresso da Cota -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-[11px] text-cyan-100 font-medium">
+                                <span>Estação 13600002 (Ponte Metálica)</span>
+                                <span id="rio-acre-last-update">Atualizando...</span>
+                            </div>
+                            <div class="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                                <div id="rio-acre-progress" class="bg-gradient-to-r from-emerald-400 to-cyan-300 h-full rounded-full transition-all duration-500" style="width: 15%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Carousel -->
+                    <div class="mt-8 mb-2">
+                        <div class="flex items-center justify-between mb-4 px-1">
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                <i data-lucide="tv" class="w-4 h-4 text-indigo-500"></i> Outras Câmeras
+                            </h3>
+                            <div class="flex gap-2">
+                                <button id="carousel-prev" class="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm active:scale-95" aria-label="Anterior">
+                                    <i data-lucide="chevron-left" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i>
+                                </button>
+                                <button id="carousel-next" class="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm active:scale-95" aria-label="Próxima">
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative w-full">
+                            <div id="camera-carousel" class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 pt-1 px-1 -mx-1 smooth-scroll" style="scrollbar-width: none;">
+                                <!-- Carousel items will be injected here via JS -->
+                                <div class="w-full flex justify-center py-4">
+                                    <div class="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AdSense Slot (Wrapper melhorado) -->
+                    <div class="w-full relative flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700/60 p-4 overflow-hidden mt-6">
+                        <div class="absolute top-0 left-0 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-br-2xl z-10 uppercase tracking-widest">
+                            Publicidade
+                        </div>
+                        <ins class="adsbygoogle w-full mt-2" style="display:block" data-ad-client="ca-pub-3587198600314787"
+                            data-ad-slot="4407171290" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                    </div>
+
+
+                </div>
+
+                <!-- Sidebar Column -->
+                <div class="space-y-6">
+
+                    <!-- Camera Details -->
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                        <div
+                            class="p-5 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                            <div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                                <i data-lucide="info" class="w-5 h-5"></i>
+                            </div>
+                            <h2 id="info-title" class="text-base font-bold text-gray-900 dark:text-white">Informações</h2>
+                        </div>
+                        
+                        <div class="p-6 space-y-6">
+                            <div id="details-skeleton" class="space-y-4">
+                                <div class="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl w-full animate-pulse"></div>
+                                <div class="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl w-full animate-pulse"></div>
+                            </div>
+
+                            <div id="details-content" class="space-y-5 hidden">
+                                <div id="status-badge" class="flex items-center gap-2"></div>
+
+                                <div class="space-y-4">
+                                    <div class="group">
+                                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Localização
+                                        </h3>
+                                        <p id="camera-category" class="text-sm font-medium text-gray-900 dark:text-gray-200 pl-5 border-l-2 border-gray-100 dark:border-gray-700 group-hover:border-indigo-500 transition-colors">-</p>
+                                    </div>
+                                    
+                                    <div class="group">
+                                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Descrição
+                                        </h3>
+                                        <p id="camera-description" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed pl-5 border-l-2 border-gray-100 dark:border-gray-700 group-hover:border-indigo-500 transition-colors">-</p>
+                                    </div>
+                                </div>
+
+                                <a id="map-link" href="#" target="_blank"
+                                    class="flex items-center justify-center gap-2.5 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed group hover:-translate-y-0.5">
+                                    <i data-lucide="external-link" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                                    Ver no Mapa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Chat -->
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 flex flex-col h-[500px] overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                             <div class="flex items-center gap-3">
+                                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                                    <i data-lucide="message-circle" class="w-5 h-5"></i>
+                                </div>
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Chat ao Vivo</h2>
+                             </div>
+                            <span
+                                class="text-[10px] font-bold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">BETA</span>
+                        </div>
+
+                        <div id="comments-list"
+                            class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                            <!-- Comments will be injected here -->
+                        </div>
+
+                        <div
+                            class="p-3 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-xl">
+                            <form id="comment-form" class="relative">
+                                <input type="text" id="comment-input" aria-label="Digite seu comentário"
+                                    placeholder="Participe da conversa..."
+                                    class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-gray-400"
+                                    required autocomplete="off">
+                                <button type="submit" aria-label="Enviar comentário"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+
+
+                </div>
+            </main>
+
+        </div>
+
+        <footer
+            class="mt-auto border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 transition-colors w-full">
+            <div class="container mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div class="col-span-1 md:col-span-2">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="bg-indigo-600 p-1.5 rounded-lg">
+                                <i data-lucide="video" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <span
+                                class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">CamRB</span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
+                            Conectando Rio Branco em tempo real. Uma iniciativa para democratizar o acesso à
+                            informação de trânsito e segurança urbana através da tecnologia.
+                        </p>
+                        <div class="flex gap-4 mt-6">
+                            <a href="https://github.com/gabvictor/camerariobranco" target="_blank"
+                                class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <span class="sr-only">GitHub</span> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
+                            </a>
+                            <a href="https://www.instagram.com/gabv_ctor/" target="_blank"
+                                class="text-gray-400 hover:text-pink-600 transition-colors">
+                                <span class="sr-only">Instagram</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                            </a>
+                            <a href="mailto:suportecamrb@gmail.com"
+                                class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <span class="sr-only">Email</span>
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 md:text-right">
+                        <h3
+                            class="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
+                            Links Úteis</h3>
+                        <ul class="space-y-3 text-sm inline-block text-left md:text-right">
+                            <li><a href="https://github.com/gabvictor/camerariobranco" target="_blank"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Código
+                                    Fonte</a></li>
+                            <li><a href="/sobre"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre
+                                    Nós</a></li>
+                            <li><a href="/novidades"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Novidades</a></li>
+                            <li><a href="/termos"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos
+                                    de Uso e Privacidade</a></li>
+                            <li><a href="/admin"
+                                    class="admin-only hidden text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Área
+                                    Admin</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div
+                    class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                        &copy; 2025 <span class="font-medium text-gray-900 dark:text-white">CamRB</span>. Todos os
+                        direitos reservados.
+                    </p>
+                    <div class="flex items-center gap-1 text-xs text-gray-400">
+                        <span>Desenvolvido com</span>
+                        <i data-lucide="heart" class="w-3 h-3 text-red-500 fill-red-500"></i>
+                        <span>em Rio Branco - AC</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Ícones de fallback imediato
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Fetch site config to toggle app banner visibility
+        (async function() {
+            try {
+                const response = await fetch('/api/site-config');
+                const config = await response.json();
+                if (config.showAppBanner === false) {
+                    document.querySelectorAll('.app-banner-controlled').forEach(el => el.style.display = 'none');
+                }
+            } catch (e) { console.error('Error loading config', e); }
+        })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gifshot@0.3.2/build/gifshot.min.js"></script>
+    <script type="module" src="/script/camera-script.js"></script>
+
+    <!-- Timelapse Modal -->
+    <div id="timelapse-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md hidden transition-all duration-300 opacity-0" aria-labelledby="timelapse-modal-title" role="dialog" aria-modal="true">
+        <div id="timelapse-modal-box" class="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform scale-95 transition-transform duration-300">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl">
+                        <i data-lucide="history" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 id="timelapse-modal-title" class="font-extrabold text-lg text-gray-900 dark:text-white">Timelapse 24 Horas</h3>
+                        <p id="timelapse-modal-camera-title" class="text-xs text-gray-500 dark:text-gray-400">Histórico de imagens e trânsito ao longo do dia</p>
+                    </div>
+                </div>
+                <button id="close-timelapse-modal-btn" class="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all" aria-label="Fechar">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body / Player -->
+            <div class="p-5 space-y-4">
+                <!-- Frame Viewer -->
+                <div class="relative aspect-video bg-black rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                    <img id="timelapse-modal-image" src="" alt="Timelapse Frame" class="w-full h-full object-contain">
+                    
+                    <!-- Timestamp Badge Overlay -->
+                    <div class="absolute top-3 left-3 px-3 py-1.5 bg-black/70 backdrop-blur-md rounded-xl text-white text-xs font-mono font-bold flex items-center gap-2 border border-white/10">
+                        <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                        <span id="timelapse-modal-time-badge">--:--</span>
+                    </div>
+
+                    <!-- Frame Counter Overlay -->
+                    <div class="absolute top-3 right-3 px-3 py-1.5 bg-black/70 backdrop-blur-md rounded-xl text-white text-xs font-medium border border-white/10" id="timelapse-modal-frame-counter">
+                        0/0
+                    </div>
+
+                    <!-- Loader -->
+                    <div id="timelapse-modal-loader" class="absolute inset-0 flex items-center justify-center bg-black/60 hidden">
+                        <div class="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                </div>
+
+                <!-- Timeline Slider & Time Markers -->
+                <div class="space-y-2 pt-1">
+                    <div class="flex justify-between text-xs text-gray-400 font-medium">
+                        <span id="timelapse-modal-start-time">Início</span>
+                        <span id="timelapse-modal-full-label" class="font-bold text-gray-700 dark:text-gray-200">Arraste para selecionar o horário</span>
+                        <span id="timelapse-modal-end-time">Agora</span>
+                    </div>
+                    <input type="range" id="timelapse-modal-slider" min="0" max="0" value="0" step="1"
+                        class="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none">
+                </div>
+
+                <!-- Controls & GIF Download Bar -->
+                <div class="flex items-center justify-between flex-wrap gap-3 pt-2">
+                    <!-- Playback controls -->
+                    <div class="flex items-center gap-2">
+                        <button id="timelapse-modal-play-btn" class="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-600/25 active:scale-95">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            <span>Reproduzir</span>
+                        </button>
+                        
+                        <!-- Speed selector -->
+                        <select id="timelapse-speed-select" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none">
+                            <option value="600">0.5x</option>
+                            <option value="350" selected>1x</option>
+                            <option value="200">2x</option>
+                            <option value="100">4x</option>
+                        </select>
+                    </div>
+
+                    <!-- GIF Download Button -->
+                    <div class="flex items-center gap-2">
+                        <button id="timelapse-download-gif-btn" class="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Baixar como GIF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GIF Progress Message -->
+                <div id="timelapse-gif-status" class="hidden text-center py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    Gerando animação GIF... por favor aguarde alguns segundos.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" id="report-backdrop"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-100 dark:border-gray-700">
+                    <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-white" id="modal-title">Reportar Problema</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">O que está acontecendo com esta câmera?</p>
+                                    <div class="mt-4 space-y-3">
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="offline">
+                                            <span>Câmera Offline / Tela Preta</span>
+                                            <i data-lucide="wifi-off" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="freezing">
+                                            <span>Travando / Lenta</span>
+                                            <i data-lucide="activity" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button type="button" class="report-option w-full flex items-center justify-between p-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-transparent focus:outline-none" data-reason="wrong_location">
+                                            <span>Localização Incorreta</span>
+                                            <i data-lucide="map-pin-off" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <textarea id="report-details" rows="3" class="mt-2 block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 sm:text-sm sm:leading-6" placeholder="Detalhes adicionais (opcional)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <button type="button" id="confirm-report-btn" class="inline-flex w-full justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Enviar Reporte</button>
+                        <button type="button" id="cancel-report-btn" class="mt-3 inline-flex w-full justify-center rounded-xl bg-white dark:bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 sm:mt-0 sm:w-auto transition-colors">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

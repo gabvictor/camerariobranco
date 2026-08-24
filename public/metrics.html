@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+    <title>Métricas do Sistema | CamRB</title>
+    <meta name="description" content="Métricas e saúde do sistema CamRB: requisições, erros, proxy e status de câmeras.">
+    <link rel="canonical" href="https://camerasriobranco.com.br/metrics">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Métricas do Sistema | CamRB">
+    <meta property="og:description" content="Acompanhe métricas e saúde do sistema em tempo real.">
+    <meta property="og:image" content="https://camerasriobranco.com.br/assets/camrb.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://camerasriobranco.com.br/metrics">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Métricas do Sistema | CamRB">
+    <meta property="twitter:description" content="Acompanhe métricas e saúde do sistema em tempo real.">
+    <meta property="twitter:image" content="https://camerasriobranco.com.br/assets/camrb.png">
+    <meta property="twitter:url" content="https://camerasriobranco.com.br/metrics">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css">
+    <script src="/script/theme.js"></script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans antialiased">
+    <div class="container mx-auto p-4 md:p-6 lg:max-w-7xl">
+        <header class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <a href="/" class="flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-gray-500 dark:text-gray-400"></i>
+                </a>
+                <h1 class="text-2xl md:text-3xl font-extrabold">Métricas do Sistema</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Auth Controls -->
+                <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
+                    class="logged-in-only hidden p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors shadow-sm hover:shadow-md">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </a>
+
+                <button id="nav-logout-btn" title="Sair"
+                    class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+
+                <button id="nav-login-btn" class="logged-out-only hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+                    Entrar
+                </button>
+
+                <button id="toggle-theme" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors">
+                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                </button>
+
+                <button id="refresh-btn" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold">
+                    Atualizar
+                </button>
+                <span id="last-update" class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400"></span>
+            </div>
+        </header>
+        <main class="space-y-8">
+            <section>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Uptime</span>
+                            <i data-lucide="clock" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <h3 id="uptime" class="text-2xl font-bold mt-2">--</h3>
+                        <p id="last-request" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Última requisição: --</p>
+                    </div>
+                    <div class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Câmeras</span>
+                            <i data-lucide="video" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <h3 id="online-count" class="text-2xl font-bold mt-2">--</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="cached-count">--</span> em cache • <span id="camera-info-count">--</span> registradas</p>
+                    </div>
+                    <div class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Scanner</span>
+                            <i data-lucide="radar" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <h3 id="scan-status" class="text-2xl font-bold mt-2">--</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Próximo: <span id="next-scan">--</span></p>
+                    </div>
+                </div>
+            </section>
+            <section>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Requisições</span>
+                            <i data-lucide="activity" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                                <h4 id="req-total" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Média (ms)</p>
+                                <h4 id="req-avg" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Erros</p>
+                                <h4 id="req-errors" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Última</p>
+                                <h4 id="req-last" class="text-xl font-bold">--</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Proxy</span>
+                            <i data-lucide="image" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Sucessos</p>
+                                <h4 id="proxy-ok" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Falhas</p>
+                                <h4 id="proxy-fail" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Último OK</p>
+                                <h4 id="proxy-last-ok" class="text-xl font-bold">--</h4>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Última Falha</p>
+                                <h4 id="proxy-last-fail" class="text-xl font-bold">--</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6 pb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
+                <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
+                <a href="/admin" class="admin-only hidden hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Área Admin</a>
+                    <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
+                </div>
+                <p class="text-xs text-gray-400">
+                    &copy; 2025 CamRB.
+                </p>
+            </div>
+        </footer>
+    </div>
+    <script type="module" src="/script/metrics-script.js"></script>
+</body>
+</html>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Dashboard - Câmeras Rio Branco</title>
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid;
+            border-color: #4F46E5 transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #content-wrapper {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8">Esta área é exclusiva para administradores.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Changelog -->
+    <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+            <!-- Modal Header -->
+            <div class="relative px-6 py-8 border-b dark:border-gray-700 bg-indigo-600 text-white overflow-hidden">
+                <!-- Background Decor -->
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl"></div>
+                
+                <div class="relative flex justify-between items-start">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            </div>
+                            <h3 class="font-bold text-2xl tracking-tight">Novidades</h3>
+                        </div>
+                        <p class="text-indigo-100 text-sm font-medium opacity-90">Acompanhe as atualizações do CamRB</p>
+                    </div>
+                    <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group">
+                        <i data-lucide="x" class="w-6 h-6 text-white/80 group-hover:text-white"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Content -->
+            <div id="changelog-content" class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                <!-- Conteúdo dinâmico (changelog.js) -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-center">
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8">
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <h1 class="text-3xl font-bold">Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <button id="nav-changelog-btn" title="Novidades"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 relative">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="changelog-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    <a href="/metrics" title="Métricas do sistema"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="activity" class="w-5 h-5"></i>
+                    </a>
+                    <a href="/admin" title="Voltar ao painel de câmeras"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                    <a href="/" title="Voltar à página inicial"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="home" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Grid de Estatísticas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                
+                <!-- Card Câmeras Totais -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full">
+                        <i data-lucide="camera" class="w-8 h-8 text-emerald-600 dark:text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Câmeras Totais</p>
+                        <div id="total-cameras-stat-container">
+                            <h2 id="total-cameras-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="total-cameras-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Total de Usuários -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full">
+                        <i data-lucide="users" class="w-8 h-8 text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Usuários</p>
+                        <div id="total-users-stat-container">
+                            <h2 id="total-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="total-users-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Usuários Ativos (24h) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-blue-100 dark:bg-blue-900/50 p-4 rounded-full">
+                        <i data-lucide="activity" class="w-8 h-8 text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Usuários Ativos (24h)</p>
+                        <div id="active-users-stat-container">
+                            <h2 id="active-users-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="active-users-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Visualizações (Total) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-orange-100 dark:bg-orange-900/50 p-4 rounded-full">
+                        <i data-lucide="bar-chart-2" class="w-8 h-8 text-orange-600 dark:text-orange-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Total)</p>
+                        <div id="views-total-stat-container">
+                            <h2 id="views-total-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="views-total-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- Card Visualizações (Hoje) -->
+                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-6">
+                    <div class="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full">
+                        <i data-lucide="eye" class="w-8 h-8 text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Visualizações (Hoje)</p>
+                        <div id="views-today-stat-container">
+                            <h2 id="views-today-stat" class="text-3xl font-bold" style="display: none;">--</h2>
+                            <div id="views-today-loader" class="loader mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mapa de Calor (Heatmap) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold">Mapa de Calor (Acessos em Tempo Real)</h2>
+                    <span class="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full animate-pulse">AO VIVO</span>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Lista Top Câmeras -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-4 uppercase">Top 5 Câmeras Mais Acessadas</h3>
+                        <div id="top-cameras-list" class="space-y-3">
+                            <!-- Loader -->
+                            <div class="animate-pulse space-y-3">
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Pizza (Categorias) -->
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="categories-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Cadastros -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-lg font-bold mb-4">Novos Usuários (Últimos 7 dias)</h2>
+                <div class="relative h-64">
+                    <canvas id="signups-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Reportes de Problemas (Card Resumo) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Gerenciamento de Reportes</h2>
+                    <a href="/admin/reports" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                        Ver Todos <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">
+                    Acesse a área dedicada para visualizar e gerenciar os problemas reportados pelos usuários.
+                </p>
+                <a href="/admin/reports" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors font-medium text-sm">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    Acessar Central de Reportes
+                </a>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Comentários das Câmeras</h2>
+                    <a href="/admin/comments" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                        Ver Todos <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">
+                    Acesse a área dedicada para visualizar e moderar os comentários enviados pelos usuários.
+                </p>
+                <a href="/admin/comments" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors font-medium text-sm">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    Acessar Central de Comentários
+                </a>
+            </div>
+
+            <!-- Publicar Atualização no Site -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
+                        <i data-lucide="megaphone" class="w-6 h-6 text-amber-600 dark:text-amber-400"></i>
+                    </div>
+                    <h2 class="text-lg font-bold">Publicar Atualização no Site</h2>
+                </div>
+                <form id="changelog-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Título</label>
+                        <input type="text" id="cl-title" placeholder="Ex: Novo Layout e Correções" required
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Mensagem</label>
+                        <textarea id="cl-message" rows="4" placeholder="Descreva as novidades..." required
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <button type="submit" id="cl-submit-btn"
+                            class="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Publicar Agora</span>
+                        </button>
+                        <p id="cl-feedback" class="text-sm font-medium hidden"></p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Timelapse 24h Control Card -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
+                <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
+                            <i data-lucide="history" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Gerenciador de Timelapse 24h</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Altere o intervalo de gravação, capture fotos agora ou exclua todos os snapshots</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 font-medium" id="timelapse-stat-frames">Frames: Carregando...</span>
+                        <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 font-medium" id="timelapse-stat-size">Espaço: --</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Intervalo de Gravação
+                        </label>
+                        <select id="timelapse-interval-select" class="form-input w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm">
+                            <option value="1">A cada 1 minuto (Modo Teste Rápido)</option>
+                            <option value="5">A cada 5 minutos</option>
+                            <option value="15">A cada 15 minutos</option>
+                            <option value="30" selected>A cada 30 minutos (Padrão)</option>
+                            <option value="60">A cada 1 hora</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="save-timelapse-interval-btn" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Salvar Intervalo</span>
+                        </button>
+                        <button id="capture-timelapse-now-btn" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5" title="Capturar snapshot de todas as câmeras agora">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                            <span>Capturar Agora</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <button id="delete-all-timelapse-btn" class="w-full px-4 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-600 text-red-600 dark:text-red-400 hover:text-white border border-red-200 dark:border-red-800 hover:border-red-600 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <span>Excluir Todas as Fotos</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="timelapse-admin-feedback" class="text-xs font-medium hidden"></div>
+            </div>
+
+            <!-- Últimos Usuários Cadastrados -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-lg font-bold mb-4">Últimos Usuários Cadastrados</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Email</th>
+                                <th scope="col" class="px-6 py-3">Data de Cadastro</th>
+                                <th scope="col" class="px-6 py-3">Último Login</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-users-table-body">
+                            <!-- Rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="global-footer"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initFooter } from '/script/footer-component.js';
+        document.addEventListener('DOMContentLoaded', initFooter);
+    </script>
+    <script type="module">
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { auth } from "/script/firebase-config.js";
+        import { initAuthModal, toggleLoginModal, ADMIN_EMAIL } from "/script/auth-modal.js";
+
+        // Initialize Auth Modal
+        initAuthModal();
+
+        // Initialize Firestore
+        const db = getFirestore();
+
+        // ALTERAÇÃO: A URL do backend é agora relativa, pois a página é servida pelo mesmo servidor.
+        const BACKEND_URL = '';
+
+        const accessDeniedEl = document.getElementById('access-denied');
+        const contentWrapperEl = document.getElementById('content-wrapper');
+        const loginTriggerBtn = document.getElementById('login-trigger');
+        const logoutBtn = document.getElementById('nav-logout-btn');
+
+        if(loginTriggerBtn) {
+            loginTriggerBtn.addEventListener('click', () => toggleLoginModal(true));
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                window.location.reload();
+            });
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === ADMIN_EMAIL) {
+                accessDeniedEl.classList.add('hidden');
+                contentWrapperEl.style.display = 'block';
+                initializeDashboardLogic(user);
+            } else if (user) {
+                // Non-admin user
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                accessDeniedEl.querySelector('p').textContent = "Você não tem permissão de administrador.";
+            } else {
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                toggleLoginModal(true);
+            }
+        });
+
+        function initializeDashboardLogic(user) {
+            const applyTheme = (isDark) => document.documentElement.classList.toggle('dark', isDark);
+
+            const initializeTheme = () => {
+                const savedTheme = localStorage.getItem('theme');
+                applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
+            };
+
+            document.getElementById('toggle-theme').addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                // Recarregar o gráfico com as cores do novo tema
+                loadStats();
+            });
+
+            // Lógica de Changelog
+            const navChangelogBtn = document.getElementById('nav-changelog-btn');
+            const changelogModal = document.getElementById('changelog-modal');
+            const closeChangelogModal = document.getElementById('close-changelog-modal');
+            const changelogBadge = document.getElementById('changelog-badge');
+            const changelogContent = document.getElementById('changelog-content');
+            const changelogForm = document.getElementById('changelog-form');
+            const clFeedback = document.getElementById('cl-feedback');
+            const clSubmitBtn = document.getElementById('cl-submit-btn');
+
+            const checkChangelogNotification = () => {
+                const lastViewed = localStorage.getItem('lastViewedChangelog');
+                if (!lastViewed) {
+                    changelogBadge.classList.remove('hidden');
+                }
+            };
+
+            const openChangelogModal = async () => {
+                changelogModal.classList.remove('hidden');
+                changelogBadge.classList.add('hidden');
+                localStorage.setItem('lastViewedChangelog', new Date().toISOString());
+                
+                changelogContent.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 animate-pulse">
+                        <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p class="text-sm text-gray-500 font-medium">Buscando novidades...</p>
+                    </div>
+                `;
+                
+                try {
+                    const q = query(collection(db, 'changelog'), where('active', '==', true), orderBy('timestamp', 'desc'));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (querySnapshot.empty) {
+                        changelogContent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-12 text-center">
+                                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-full mb-4">
+                                    <i data-lucide="ghost" class="w-8 h-8 text-gray-400"></i>
+                                </div>
+                                <h4 class="text-lg font-bold text-gray-800 dark:text-gray-200">Nada por aqui ainda</h4>
+                                <p class="text-sm text-gray-500 max-w-[200px]">Fique atento para futuras atualizações do CamRB.</p>
+                            </div>
+                        `;
+                        if (window.lucide) window.lucide.createIcons();
+                        return;
+                    }
+                    
+                    changelogContent.innerHTML = '<div class="relative border-l-2 border-indigo-100 dark:border-indigo-900/50 ml-3 space-y-8 pb-4"></div>';
+                    const timelineContainer = changelogContent.firstChild;
+
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const item = `
+                            <div class="relative pl-8 animate-fade-in-up">
+                                <!-- Timeline Dot -->
+                                <div class="absolute -left-[9px] top-1 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-indigo-500 rounded-full z-10"></div>
+                                
+                                <!-- Content Card -->
+                                <div class="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all p-5 group">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                        <h3 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${data.title}</h3>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+                                            ${data.date}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line leading-relaxed">${data.message}</p>
+                                </div>
+                            </div>
+                        `;
+                        timelineContainer.insertAdjacentHTML('beforeend', item);
+                    });
+                    
+                    if (window.lucide) window.lucide.createIcons();
+                } catch (error) {
+                    console.error('Erro ao carregar changelog:', error);
+                    changelogContent.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-4">
+                                <i data-lucide="alert-circle" class="w-8 h-8 text-red-500"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-800 dark:text-gray-200">Erro ao carregar</h4>
+                            <p class="text-sm text-gray-500">Não conseguimos buscar as novidades no momento.</p>
+                        </div>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            };
+
+            navChangelogBtn.addEventListener('click', openChangelogModal);
+            if (closeChangelogModal) {
+                closeChangelogModal.addEventListener('click', () => changelogModal.classList.add('hidden'));
+            }
+            checkChangelogNotification();
+
+            // Lógica de Escrita do Changelog
+            changelogForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const title = document.getElementById('cl-title').value;
+                const message = document.getElementById('cl-message').value;
+                
+                clSubmitBtn.disabled = true;
+                clSubmitBtn.innerHTML = '<div class="loader w-4 h-4 border-2"></div><span class="ml-2">Publicando...</span>';
+                clFeedback.className = 'text-sm font-medium text-gray-500';
+                clFeedback.textContent = 'Aguarde...';
+                clFeedback.classList.remove('hidden');
+
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch('/api/changelog', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ title, message })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        clFeedback.className = 'text-sm font-medium text-green-500';
+                        clFeedback.textContent = '✅ ' + result.message;
+                        changelogForm.reset();
+                    } else {
+                        throw new Error(result.error || 'Erro ao publicar');
+                    }
+                } catch (error) {
+                    clFeedback.className = 'text-sm font-medium text-red-500';
+                    clFeedback.textContent = '❌ ' + error.message;
+                } finally {
+                    clSubmitBtn.disabled = false;
+                    clSubmitBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Publicar Agora</span>';
+                    if (window.lucide) window.lucide.createIcons();
+                    setTimeout(() => clFeedback.classList.add('hidden'), 5000);
+                }
+            });
+
+            document.getElementById('refresh-reports-btn')?.addEventListener('click', () => {
+                // Se um dia houver tabela de reportes no dashboard, implementar aqui
+                console.log('Refresh reports clicked');
+            });
+
+            async function loadStats() {
+                try {
+                    // Pega o token de autenticação do usuário logado
+                    const token = await user.getIdToken();
+
+                    // Faz a chamada para a API do backend, enviando o token para verificação
+                    const response = await fetch(`${BACKEND_URL}/api/dashboard-data`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Falha ao buscar dados.');
+                    }
+
+                    const stats = await response.json();
+
+                    document.getElementById('total-users-stat').textContent = stats.totalUsers;
+                    document.getElementById('total-cameras-stat').textContent = stats.totalCameras;
+                    document.getElementById('active-users-stat').textContent = stats.activeUsers24h;
+                    document.getElementById('views-today-stat').textContent = stats.viewsToday;
+                    document.getElementById('views-total-stat').textContent = stats.totalViews;
+
+                    // Render Top Cameras
+                    const topCamerasList = document.getElementById('top-cameras-list');
+                    topCamerasList.innerHTML = '';
+                    
+                    if (stats.topCameras && stats.topCameras.length > 0) {
+                        stats.topCameras.forEach((cam, index) => {
+                            const percent = Math.round((cam.views / stats.viewsToday) * 100) || 0;
+                            const item = document.createElement('div');
+                            item.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors";
+                            item.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <span class="text-lg font-bold text-gray-400 w-6">#${index + 1}</span>
+                                    <div>
+                                        <p class="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[150px]">${cam.nome || 'Câmera ' + cam.codigo}</p>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-[10px] bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">${cam.codigo}</span>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">${cam.views} views</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500" style="width: ${percent}%"></div>
+                                    </div>
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 w-8 text-right">${percent}%</span>
+                                </div>
+                            `;
+                            topCamerasList.appendChild(item);
+                        });
+                    } else {
+                        topCamerasList.innerHTML = '<p class="text-sm text-gray-500">Sem dados de visualização hoje.</p>';
+                    }
+
+                    // Render Recent Users Table
+                    const tableBody = document.getElementById('recent-users-table-body');
+                    tableBody.innerHTML = '';
+                    stats.recentUsers.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600";
+                        row.innerHTML = `
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${user.email}</td>
+                            <td class="px-6 py-4">${new Date(user.creationTime).toLocaleString('pt-BR')}</td>
+                            <td class="px-6 py-4">${user.lastSignInTime ? new Date(user.lastSignInTime).toLocaleString('pt-BR') : 'Nunca'}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    renderChart(stats.signupsByDay);
+                    renderCategoryChart(stats.categoryData);
+
+                } catch (error) {
+                    console.error("Falha ao carregar estatísticas:", error);
+                    document.getElementById('total-users-stat').textContent = 'Erro';
+                    document.getElementById('total-cameras-stat').textContent = 'Erro';
+                    document.getElementById('active-users-stat').textContent = 'Erro';
+                    document.getElementById('views-today-stat').textContent = 'Erro';
+                    document.getElementById('views-total-stat').textContent = 'Erro';
+                } finally {
+                    document.getElementById('total-users-loader').style.display = 'none';
+                    document.getElementById('total-users-stat').style.display = 'block';
+                    document.getElementById('total-cameras-loader').style.display = 'none';
+                    document.getElementById('total-cameras-stat').style.display = 'block';
+                    document.getElementById('active-users-loader').style.display = 'none';
+                    document.getElementById('active-users-stat').style.display = 'block';
+                    
+                    document.getElementById('views-today-loader').style.display = 'none';
+                    document.getElementById('views-today-stat').style.display = 'block';
+                    document.getElementById('views-total-loader').style.display = 'none';
+                    document.getElementById('views-total-stat').style.display = 'block';
+                }
+            }
+
+            function renderChart(data) {
+                const ctx = document.getElementById('signups-chart').getContext('2d');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                // Destruir gráfico antigo se existir, para evitar sobreposição ao trocar de tema, etc.
+                if (window.mySignupsChart) {
+                    window.mySignupsChart.destroy();
+                }
+
+                window.mySignupsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Novos Usuários',
+                            data: data.values,
+                            borderColor: '#4F46E5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, stepSize: 1 }
+                            },
+                            x: {
+                                grid: { color: 'transparent' },
+                                ticks: { color: textColor }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderCategoryChart(data) {
+                const ctx = document.getElementById('categories-chart').getContext('2d');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                // Destruir gráfico antigo se existir
+                if (window.myCategoryChart) {
+                    window.myCategoryChart.destroy();
+                }
+
+                window.myCategoryChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.values,
+                            backgroundColor: [
+                                '#4F46E5', // Indigo
+                                '#10B981', // Emerald
+                                '#F59E0B', // Amber
+                                '#EF4444', // Red
+                                '#8B5CF6', // Violet
+                                '#EC4899', // Pink
+                                '#6366F1', // Indigo Light
+                                '#14B8A6'  // Teal
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: textColor,
+                                    boxWidth: 12,
+                                    padding: 15,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            async function setupDashboardTimelapseControls() {
+                const intervalSelect = document.getElementById('timelapse-interval-select');
+                const saveIntervalBtn = document.getElementById('save-timelapse-interval-btn');
+                const captureNowBtn = document.getElementById('capture-timelapse-now-btn');
+                const deleteAllBtn = document.getElementById('delete-all-timelapse-btn');
+                const statFrames = document.getElementById('timelapse-stat-frames');
+                const statSize = document.getElementById('timelapse-stat-size');
+                const feedback = document.getElementById('timelapse-admin-feedback');
+
+                const showFeedback = (msg, isError = false) => {
+                    if (!feedback) return;
+                    feedback.className = `text-xs font-semibold ${isError ? 'text-red-500' : 'text-emerald-500'}`;
+                    feedback.textContent = msg;
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 5000);
+                };
+
+                const loadTimelapseStats = async () => {
+                    try {
+                        const token = await user.getIdToken();
+                        const res = await fetch('/api/timelapse-admin/stats', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!res.ok) return;
+                        const stats = await res.json();
+                        if (statFrames) statFrames.textContent = `Frames: ${stats.totalFrames || 0} (${stats.cameraCount || 0} câmeras)`;
+                        if (statSize) statSize.textContent = `Espaço: ${stats.totalSizeFormatted || '0 MB'}`;
+                        if (intervalSelect && stats.intervalMinutes) {
+                            intervalSelect.value = String(stats.intervalMinutes);
+                        }
+                    } catch (_) {}
+                };
+
+                saveIntervalBtn?.addEventListener('click', async () => {
+                    try {
+                        const token = await user.getIdToken();
+                        const minutes = intervalSelect.value;
+                        saveIntervalBtn.disabled = true;
+
+                        const res = await fetch('/api/timelapse-admin/config', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ intervalMinutes: minutes })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showFeedback(`✅ Intervalo atualizado para ${minutes} minuto(s)!`);
+                            loadTimelapseStats();
+                        } else {
+                            throw new Error(data.error || 'Falha ao salvar');
+                        }
+                    } catch (e) {
+                        showFeedback(`❌ ${e.message}`, true);
+                    } finally {
+                        saveIntervalBtn.disabled = false;
+                    }
+                });
+
+                captureNowBtn?.addEventListener('click', async () => {
+                    try {
+                        const token = await user.getIdToken();
+                        captureNowBtn.disabled = true;
+                        captureNowBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Capturando...</span>';
+
+                        const res = await fetch('/api/timelapse-admin/capture-now', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showFeedback('✅ Captura de todas as câmeras online realizada!');
+                            loadTimelapseStats();
+                        } else {
+                            throw new Error(data.error || 'Falha na captura');
+                        }
+                    } catch (e) {
+                        showFeedback(`❌ ${e.message}`, true);
+                    } finally {
+                        captureNowBtn.disabled = false;
+                        captureNowBtn.innerHTML = '<i data-lucide="camera" class="w-4 h-4"></i><span>Capturar Agora</span>';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                });
+
+                deleteAllBtn?.addEventListener('click', async () => {
+                    if (!confirm('Tem certeza de que deseja excluir permanentemente todas as fotos de timelapse salvas no servidor?')) return;
+                    try {
+                        const token = await user.getIdToken();
+                        deleteAllBtn.disabled = true;
+
+                        const res = await fetch('/api/timelapse-admin/delete-all', {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showFeedback('✅ Todos os snapshots foram excluídos com sucesso!');
+                            loadTimelapseStats();
+                        } else {
+                            throw new Error(data.error || 'Falha ao excluir');
+                        }
+                    } catch (e) {
+                        showFeedback(`❌ ${e.message}`, true);
+                    } finally {
+                        deleteAllBtn.disabled = false;
+                    }
+                });
+
+                loadTimelapseStats();
+            }
+
+            initializeTheme();
+
+            // Start loading stats & timelapse controls
+            setupDashboardTimelapseControls();
+            loadStats();
+            
+            // Auto refresh stats every 30s
+            setInterval(loadStats, 30000);
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Mapa Interativo de Câmeras - Rio Branco | CamRB</title>
+    <meta name="description"
+        content="🗺️ Mapa em Tempo Real: Encontre câmeras de trânsito e segurança em Rio Branco. Visualize todos os pontos de monitoramento no mapa interativo agora.">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Mapa de Câmeras | CamRB">
+    <meta property="og:description" content="Mapa interativo com todas as câmeras de Rio Branco.">
+
+    <meta property="og:image" content="https://camerasriobranco.com.br/assets/camrb.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://camerasriobranco.com.br/mapa">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://camerasriobranco.com.br/mapa">
+    <meta property="twitter:title" content="Mapa de Câmeras | CamRB">
+    <meta property="twitter:description" content="Mapa interativo com todas as câmeras de Rio Branco.">
+    <meta property="twitter:image" content="https://camerasriobranco.com.br/assets/camrb.png">
+
+    <meta name="twitter:image:alt" content="Mapa das câmeras de Rio Branco">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6B72KFF66"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y6B72KFF66');
+    </script>
+
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/global.css">
+    <script src="/script/theme.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #map-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+            z-index: 10;
+            background-color: #e5e7eb;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px !important;
+            box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 8px 16px -4px rgba(0, 0, 0, 0.12) !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: 280px !important;
+            line-height: normal !important;
+        }
+
+        .leaflet-container a.leaflet-popup-close-button {
+            top: 8px !important;
+            right: 8px !important;
+            color: white !important;
+            background: rgba(0,0,0,0.45) !important;
+            border-radius: 50% !important;
+            width: 24px !important;
+            height: 24px !important;
+            font: 16px/24px Tahoma, Verdana, sans-serif !important;
+            font-weight: bold;
+            text-align: center !important;
+            padding: 0 !important;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: all 0.2s ease;
+            z-index: 20;
+        }
+
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: white !important;
+            background: rgba(0,0,0,0.7) !important;
+            transform: scale(1.05);
+        }
+
+        .custom-leaflet-icon {
+            background: transparent;
+            border: none;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            transition: filter 0.2s ease, transform 0.2s ease;
+        }
+        
+        .custom-leaflet-icon:hover {
+            filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
+        }
+
+        /* Dark mode overrides for Leaflet */
+        .dark .leaflet-popup-content-wrapper,
+        .dark .leaflet-popup-tip {
+            background-color: #1f2937 !important;
+            border-color: rgba(75, 85, 99, 0.4);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
+        }
+
+        /* Adjust Leaflet controls for mobile bottom nav */
+        @media (max-width: 640px) {
+            .leaflet-bottom {
+                bottom: 80px !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="relative bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div id="map-wrapper" class="relative w-full h-full">
+        <!-- Floating Header -->
+        <header class="absolute top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto md:min-w-[320px] z-[1000] pointer-events-none">
+            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-2 sm:gap-4 pointer-events-auto border border-gray-200 dark:border-gray-700 transition-colors overflow-hidden min-w-0">
+                <a href="/" title="Voltar para Início"
+                    class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-700 dark:text-gray-200">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div class="flex-1 min-w-0">
+                    <h1 class="font-bold text-gray-900 dark:text-white text-sm leading-tight truncate">CamRB</h1>
+                    <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rio Branco - AC</p>
+                </div>
+
+                <div id="weather-widget" style="display: none;" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 animate-fade-in"></div>
+                
+                <!-- Auth Controls -->
+                <button id="map-login-btn" title="Entrar" class="logged-out-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="log-in" class="w-5 h-5"></i>
+                </button>
+                <a href="/perfil" id="map-profile-btn" title="Meu Perfil" class="logged-in-only hidden flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </a>
+                <button id="map-logout-btn" title="Sair" class="logged-in-only hidden flex-shrink-0 p-2 rounded-xl transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Changelog -->
+                <button id="nav-changelog-btn" title="Novidades" class="relative flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="changelog-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full hidden"></span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button id="map-theme-toggle" class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                </button>
+                
+                <a href="/dashboard" title="Dashboard"
+                    class="admin-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400" style="display:none">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                </a>
+
+                <a href="/sobre" title="Sobre Nós"
+                    class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Map Container -->
+        <div id="map" class="w-full h-full z-0"></div>
+
+        <!-- Changelog Modal -->
+        <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1002] hidden flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+                <!-- Modal Header -->
+                <div class="relative px-6 py-8 border-b dark:border-gray-700 bg-indigo-600 text-white overflow-hidden">
+                    <!-- Background Decor -->
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                    <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl"></div>
+                    
+                    <div class="relative flex justify-between items-start">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </div>
+                                <h3 class="font-bold text-2xl tracking-tight">Novidades</h3>
+                            </div>
+                            <p class="text-indigo-100 text-sm font-medium opacity-90">Acompanhe as atualizações do CamRB</p>
+                        </div>
+                        <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group">
+                            <i data-lucide="x" class="w-6 h-6 text-white/80 group-hover:text-white"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Content -->
+                <div id="changelog-content" class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                    <!-- Conteúdo dinâmico (changelog.js) -->
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-center">
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Controls (Locate Me) -->
+        <div class="absolute bottom-24 sm:bottom-8 right-4 z-[999] flex flex-col gap-2">
+             <button id="locate-btn" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Minha Localização">
+                <i data-lucide="crosshair" class="w-6 h-6"></i>
+             </button>
+        </div>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav
+            class="bottom-nav sm:hidden fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[1001] flex justify-around items-center pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <a href="/"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Início</span>
+            </a>
+            <a href="/mapa"
+                class="nav-item active flex flex-col items-center p-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Mapa</span>
+            </a>
+            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="app-banner-controlled nav-item relative group -top-5">
+                <div
+                    class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
+                </div>
+                <span
+                    class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">App</span>
+            </a>
+            <a href="/#search-input"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="search" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Buscar</span>
+            </a>
+            <a href="/perfil"
+                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Perfil</span>
+            </a>
+            <a href="/admin"
+                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
+                <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Admin</span>
+            </a>
+            <a href="/dashboard"
+                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Dash</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script type="module" src="/script/mapa-script.js"></script>
+    <script>
+        // Fetch site config to toggle app banner visibility
+        (async function() {
+            try {
+                const response = await fetch('/api/site-config');
+                const config = await response.json();
+                if (config.showAppBanner === false) {
+                    document.querySelectorAll('.app-banner-controlled').forEach(el => el.style.display = 'none');
+                }
+            } catch (e) { console.error('Error loading config', e); }
+        })();
+    </script>
+    <script type="module">
+        import { initChangelog } from '/script/changelog.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initChangelog();
+        });
+    </script>
+</body>
+
+</html>
