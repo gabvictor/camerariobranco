@@ -347,30 +347,41 @@
 
                     switch (l.level) {
                         case 'ERROR':
-                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/60 font-bold">ERROR</span>';
+                            levelBadge = '<span class="px-2 py-0.5 rounded-md bg-red-950/80 text-red-400 border border-red-800/60 font-bold text-[10px]">ERRO</span>';
                             textColor = 'text-red-300';
                             break;
                         case 'WARN':
-                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/60 font-bold">WARN</span>';
+                            levelBadge = '<span class="px-2 py-0.5 rounded-md bg-amber-950/80 text-amber-400 border border-amber-800/60 font-bold text-[10px]">ALERTA</span>';
                             textColor = 'text-amber-200';
                             break;
                         case 'STREAM':
-                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold">STREAM</span>';
+                            levelBadge = '<span class="px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold text-[10px]">STREAM</span>';
                             textColor = 'text-emerald-200';
                             break;
                         default:
-                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60 font-bold">INFO</span>';
-                            textColor = 'text-gray-300';
+                            levelBadge = '<span class="px-2 py-0.5 rounded-md bg-blue-950/80 text-blue-400 border border-blue-800/60 font-bold text-[10px]">INFO</span>';
+                            textColor = 'text-gray-200';
                     }
 
-                    const metaStr = l.meta ? `<span class="text-gray-500 ml-2">${escapeHtml(JSON.stringify(l.meta))}</span>` : '';
+                    let catBadgeClass = 'bg-gray-800 text-gray-300';
+                    let catIcon = '⚙️';
+                    if (l.category === 'TRANSMISSÃO' || l.category === 'STREAM') { catBadgeClass = 'bg-emerald-950 text-emerald-300 border border-emerald-800/50'; catIcon = '📹'; }
+                    else if (l.category === 'VARREDURA' || l.category === 'SCANNER') { catBadgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-800/50'; catIcon = '🔄'; }
+                    else if (l.category === 'TIMELAPSE') { catBadgeClass = 'bg-purple-950 text-purple-300 border border-purple-800/50'; catIcon = '📸'; }
+                    else if (l.category === 'SEGURANÇA' || l.category === 'SECURITY') { catBadgeClass = 'bg-amber-950 text-amber-300 border border-amber-800/50'; catIcon = '🔒'; }
+                    else if (l.category === 'BANCO DE DADOS' || l.category === 'DATABASE') { catBadgeClass = 'bg-cyan-950 text-cyan-300 border border-cyan-800/50'; catIcon = '💾'; }
+
+                    const metaStr = l.meta ? `<div class="mt-1 text-[11px] text-gray-400 bg-gray-950/60 p-2 rounded border border-gray-800 font-mono">${escapeHtml(JSON.stringify(l.meta, null, 2))}</div>` : '';
 
                     return `
-                        <div class="log-row flex items-start gap-2 py-1 px-2 rounded transition-colors border-l-2 ${l.level === 'ERROR' ? 'border-red-500' : l.level === 'WARN' ? 'border-amber-500' : l.level === 'STREAM' ? 'border-emerald-500' : 'border-transparent'}">
-                            <span class="text-gray-500 shrink-0 select-none">[${l.timeFormatted}]</span>
+                        <div class="log-row flex items-start gap-2.5 py-1.5 px-3 rounded-xl transition-colors border-l-2 ${l.level === 'ERROR' ? 'border-red-500 bg-red-950/10' : l.level === 'WARN' ? 'border-amber-500 bg-amber-950/10' : l.level === 'STREAM' ? 'border-emerald-500 bg-emerald-950/10' : 'border-gray-800 hover:bg-gray-800/50'}">
+                            <span class="text-gray-500 shrink-0 select-none font-mono text-[11px]">${l.timeFormatted}</span>
                             <span class="shrink-0">${levelBadge}</span>
-                            <span class="px-1.5 py-0.5 rounded bg-gray-800 text-indigo-300 text-[10px] font-semibold shrink-0 select-none">${escapeHtml(l.category)}</span>
-                            <span class="${textColor} break-all flex-grow">${escapeHtml(l.message)}${metaStr}</span>
+                            <span class="px-2 py-0.5 rounded-md ${catBadgeClass} text-[10px] font-bold shrink-0 select-none flex items-center gap-1">${catIcon} ${escapeHtml(l.category)}</span>
+                            <div class="flex-grow">
+                                <span class="${textColor} text-xs leading-relaxed font-medium">${escapeHtml(l.message)}</span>
+                                ${metaStr}
+                            </div>
                         </div>
                     `;
                 }).join('');

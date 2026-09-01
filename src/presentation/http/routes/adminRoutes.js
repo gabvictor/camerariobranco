@@ -36,6 +36,9 @@ function adminRoutes(reportController, dashboardController) {
     // Changelog
     router.post('/changelog',           verifyAdmin,       reportController.createChangelog);
 
+    // Dashboard
+    router.get('/dashboard-data',       verifyAdmin,       dashboardController.getDashboard);
+
     // Logs & Resource Monitor (SSE Stream e REST)
     router.get('/admin/logs/stream', verifyAdmin, (req, res) => {
         const logger = require('../../../infrastructure/logging/SystemLogger');
