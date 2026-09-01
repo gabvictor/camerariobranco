@@ -1,9 +1,20 @@
 import { db } from "./firebase-config.js";
+import { initAuthModal, initGlobalAuthUI } from "./auth-modal.js";
 import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Lucide Icons
+    // Initialize Auth & Icons
+    initAuthModal();
+    initGlobalAuthUI();
     if (window.lucide) window.lucide.createIcons();
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('toggle-theme');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            if (window.toggleTheme) window.toggleTheme();
+        });
+    }
 
     const loader = document.getElementById('novidades-loader');
     const container = document.getElementById('timeline-container');

@@ -3,7 +3,7 @@ const { admin } = require('../../../config/firebaseAdmin');
 
 /**
  * @controller ReportController
- * Gerencia os endpoints de reportes de câmeras.
+ * Gerencia os endpoints de reportes de câmeras e configurações administrativas.
  */
 class ReportController {
     /**
@@ -20,8 +20,12 @@ class ReportController {
         this.delete        = this.delete.bind(this);
         this.listComments  = this.listComments.bind(this);
         this.deleteComment = this.deleteComment.bind(this);
+        this.listSuggestions = this.listSuggestions.bind(this);
+        this.updateSuggestionStatus = this.updateSuggestionStatus.bind(this);
+        this.deleteSuggestion = this.deleteSuggestion.bind(this);
         this.createChangelog = this.createChangelog.bind(this);
         this.getConfig     = this.getConfig.bind(this);
+        this.getMe         = this.getMe.bind(this);
     }
 
     setDb(db) { this._db = db; return this; }
@@ -118,6 +122,67 @@ class ReportController {
         } catch { res.status(500).json({ error: 'Erro ao excluir comentário' }); }
     }
 
+    /** GET /api/suggestions */
+    async listSuggestions(req, res) {
+        try {
+            if (!this._db) return res.json([]);
+            let snapshot;
+            try {
+                snapshot = await this._db.collection('suggestions').orderBy('createdAt', 'desc').limit(100).get();
+            } catch (queryErr) {
+                console.warn('Fallback sem orderBy para suggestions:', queryErr.message);
+                snapshot = await this._db.collection('suggestions').limit(100).get();
+            }
+
+            const items = snapshot.docs.map(docSnap => {
+                const data = docSnap.data();
+                let dateFormatted = 'Data não informada';
+                if (data.createdAt) {
+                    if (typeof data.createdAt.toDate === 'function') {
+                        dateFormatted = data.createdAt.toDate().toLocaleString('pt-BR');
+                    } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+                        dateFormatted = new Date(data.createdAt).toLocaleString('pt-BR');
+                    }
+                }
+                return {
+                    id: docSnap.id,
+                    ...data,
+                    createdAtFormatted: dateFormatted
+                };
+            });
+            res.setHeader('Cache-Control', 'no-store');
+            res.json(items);
+        } catch (error) {
+            console.error('Erro ao listar sugestões:', error);
+            res.status(500).json({ error: 'Erro ao listar sugestões' });
+        }
+    }
+
+    /** PUT /api/suggestion/:id/status */
+    async updateSuggestionStatus(req, res) {
+        try {
+            if (!this._db) return res.status(500).json({ error: 'DB indisponível' });
+            const { status } = req.body;
+            await this._db.collection('suggestions').doc(req.params.id).update({
+                status: status || 'lido'
+            });
+            res.json({ success: true, message: 'Status atualizado com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao atualizar sugestão' });
+        }
+    }
+
+    /** DELETE /api/suggestion/:id */
+    async deleteSuggestion(req, res) {
+        try {
+            if (!this._db) return res.status(500).json({ error: 'DB indisponível' });
+            await this._db.collection('suggestions').doc(req.params.id).delete();
+            res.json({ success: true });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao excluir sugestão' });
+        }
+    }
+
     /** POST /api/changelog */
     async createChangelog(req, res) {
         try {
@@ -134,10 +199,20 @@ class ReportController {
         } catch { res.status(500).json({ error: 'Erro ao publicar novidade' }); }
     }
 
+    /** GET /api/auth/me */
+    getMe(req, res) {
+        res.json({
+            authenticated: Boolean(req.user),
+            isAdmin: Boolean(req.userIsAdmin),
+            email: req.user?.email || null
+        });
+    }
+
     /** GET /api/config */
     getConfig(req, res) {
-        const { ADMIN_EMAIL } = require('../../../config/firebaseAdmin');
-        res.json({ adminEmail: ADMIN_EMAIL });
+        res.json({
+            siteConfigured: true
+        });
     }
 }
 

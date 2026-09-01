@@ -3,6 +3,13 @@ npm-debug.log
 .git
 .gitignore
 .env
+.env.*
+serviceAccountKey.json
+serviceAccountKey*.json
+*firebase-adminsdk*.json
+*.pem
+*.key
+*.cert
 .gemini
 .agents
 *.log

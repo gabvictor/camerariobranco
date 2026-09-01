@@ -2,10 +2,12 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url=/?login=true">
     <title>Redirecionando...</title>
     <script>
-        window.location.href = "/?login=true";
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect') || '';
+        const target = redirect ? `/?login=true&redirect=${encodeURIComponent(redirect)}` : '/?login=true';
+        window.location.replace(target);
     </script>
 </head>
 <body>

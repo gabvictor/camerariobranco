@@ -8,7 +8,13 @@ const ENV_SECRET_PATH = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
 const resolveSecretPath = () => {
     const candidates = [ENV_SECRET_PATH, DEPLOY_SECRET_PATH, LOCAL_SECRET_PATH].filter(Boolean);
-    return candidates.find(candidate => fs.existsSync(candidate));
+    return candidates.find(candidate => {
+        try {
+            return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
+        } catch {
+            return false;
+        }
+    });
 };
 
 let db;

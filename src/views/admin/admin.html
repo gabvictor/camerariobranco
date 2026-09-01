@@ -222,28 +222,116 @@
             </div>
         </div>
         <div class="container mx-auto p-4 md:p-8">
-            <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
-                <h1 class="text-3xl font-bold">Painel de Administração</h1>
-                <div class="flex items-center gap-4">
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                            <i data-lucide="video" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Gerenciador de Câmeras
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Edite nomes, categorias, coordenadas e permissões públicas/privadas das câmeras.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
                     <!-- App Banner Toggle -->
                     <label class="relative inline-flex items-center cursor-pointer mr-2" title="Habilitar/Desabilitar Banner do App">
                         <input type="checkbox" id="app-banner-toggle" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300 hidden sm:inline">Banner App</span>
+                        <span class="ml-3 text-xs font-bold text-gray-900 dark:text-gray-300 hidden sm:inline">Banner App</span>
                     </label>
 
                     <button id="toggle-theme" title="Alternar tema"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="sun"
-                            class="w-5 h-5 block dark:hidden"></i><i data-lucide="moon"
-                            class="w-5 h-5 hidden dark:block"></i></button>
-                <button id="nav-logout-btn" title="Sair"
-                    class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
-                <a href="/" title="Voltar à página inicial"
-                        class="btn btn-secondary"><i data-lucide="arrow-left"
-                            class="w-5 h-5 mr-2 -ml-1"></i><span>Voltar</span></a></div>
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site"
+                        class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair"
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
             </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- Live Stream Speed / Interval Control Card -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
+                <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Velocidade da Transmissão ao Vivo (Stream das Câmeras)</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Ajuste o intervalo de atualização das câmeras (0s, 2s, 4s...) para economizar rede ou obter máxima fluidez</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5" id="current-stream-interval-badge">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            Ativo: <span id="current-stream-interval-text">0 ms (Velocidade Máxima)</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Intervalo entre Atualizações
+                        </label>
+                        <select id="stream-interval-select" class="form-input w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm">
+                            <option value="0">0 ms - Velocidade Máxima / Imediato (Máxima Fluidez)</option>
+                            <option value="500">500 ms - 2 quadros por segundo (Alta Velocidade)</option>
+                            <option value="1000">1.000 ms - 1 segundo (Padrão Moderado)</option>
+                            <option value="2000">2.000 ms - 2 segundos (Econômico / Menor tráfego)</option>
+                            <option value="3000">3.000 ms - 3 segundos (Baixo consumo)</option>
+                            <option value="4000">4.000 ms - 4 segundos (Mínimo tráfego de rede)</option>
+                            <option value="6000">6.000 ms - 6 segundos (Ultra econômico)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <button id="save-stream-interval-btn" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Salvar Velocidade</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="stream-admin-feedback" class="text-xs font-medium hidden"></div>
+            </div>
 
             <!-- Timelapse 24h Control Card -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
@@ -320,19 +408,7 @@
                 </div>
             </div>
 
-            <footer class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6 pb-8">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div class="flex flex-wrap justify-center md:justify-start gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                            <a href="/sobre" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Sobre Nós</a>
-                            <a href="/novidades" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Novidades</a>
-                            <a href="/termos" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Termos de Uso</a>
-                            <a href="https://github.com/gabvictor/CamRB" target="_blank" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">GitHub</a>
-                        </div>
-                        <p class="text-xs text-gray-400">
-                            &copy; 2025 CamRB. Todos os direitos reservados.
-                        </p>
-                    </div>
-            </footer>
+            <div id="global-footer"></div>
         </div>
         <div id="toast"></div>
     </div>
@@ -340,10 +416,12 @@
     <script type="module">
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { auth } from "/script/firebase-config.js";
-        import { initAuthModal, toggleLoginModal, ADMIN_EMAIL } from "/script/auth-modal.js";
+        import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
 
-        // Initialize Auth Modal
+        // Initialize Auth Modal & Footer
         initAuthModal();
+        initFooter();
 
         // --- Configuração do Site (Banner App) ---
         const appBannerToggle = document.getElementById('app-banner-toggle');
@@ -416,8 +494,14 @@
             });
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email === ADMIN_EMAIL) {
+        onAuthStateChanged(auth, async (user) => {
+            let isAdmin = false;
+            if (user) {
+                isAdmin = await syncAdminSession(user);
+            }
+
+            if (user && isAdmin) {
+                window.adminToken = await user.getIdToken();
                 accessDeniedEl.classList.add('hidden');
                 contentWrapperEl.style.display = 'block';
                 initializeAdminLogic();
@@ -425,17 +509,13 @@
                 contentWrapperEl.style.display = 'none';
                 accessDeniedEl.classList.remove('hidden');
                 
-                // If logged in but not admin, maybe show a different message?
-                // For now, the generic "Restricted Access" is fine, but we shouldn't auto-trigger login modal if they are already logged in.
                 if (!user) {
                     toggleLoginModal(true);
                 } else {
-                    // User is logged in but not admin.
-                    // Update access denied text or just leave it.
                     const p = accessDeniedEl.querySelector('p');
-                    if(p) p.textContent = `Acesso negado para ${user.email}. Esta área é exclusiva para administradores.`;
+                    if (p) p.textContent = `Acesso negado para ${user.email}. Esta área é exclusiva para administradores.`;
                     const btn = document.getElementById('login-trigger');
-                    if(btn) btn.textContent = "Entrar com outra conta";
+                    if (btn) btn.textContent = "Entrar com outra conta";
                 }
             }
         });
@@ -531,6 +611,13 @@
             elements.closeModalBtn.addEventListener('click', closeEditModal);
             elements.cancelModalBtn.addEventListener('click', closeEditModal);
 
+            const escapeHtml = (value = '') => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
             const createCameraRow = (camera) => {
                 const div = document.createElement('div');
                 div.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm flex items-center justify-between gap-4';
@@ -539,29 +626,25 @@
                 const levelText = camera.level === 3 ? ' (Privado)' : ' (Público)';
 
                 const cacheBuster = Math.round(Date.now() / 15000) * 15000;
-                // CORREÇÃO: Adiciona o token do admin para permitir visualização de câmeras privadas (nível 3)
-                // O token é obtido de forma síncrona se já estiver carregado, ou pode ser passado como argumento.
-                // Como createCameraRow é chamado após o loadCameras que verifica auth, o auth.currentUser deve estar disponível.
-                // Mas para garantir o token atualizado, idealmente deveríamos pegar antes. 
-                // Simplificação: vamos assumir que o usuário está logado e injetar um token global ou pegar via promise (mas src é string).
-                // Solução: O script já tem o token no escopo se passarmos para createCameraRow ou usarmos uma variável global.
-                
-                // Vamos usar window.adminToken que definiremos no loadCameras
                 const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
-                const imageUrl = `/proxy/camera/${camera.codigo}?t=${cacheBuster}${tokenParam}`;
+                const safeCode = escapeHtml(camera.codigo);
+                const safeName = escapeHtml(camera.nome);
+                const safeCategory = escapeHtml(camera.categoria);
+                const safeDesc = escapeHtml(camera.descricao || 'Sem descrição');
+                const imageUrl = `/proxy/camera/${safeCode}?t=${cacheBuster}${tokenParam}`;
 
                 div.innerHTML = `
                     <div class="flex items-center gap-4 overflow-hidden">
                         <div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative skeleton-pulse">
-                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover rounded-md" alt="Câmera ${camera.codigo}">
+                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover rounded-md" alt="Câmera ${safeCode}">
                             <div class="absolute bottom-1 right-1">${statusBadge}</div>
                         </div>
                         <div class="overflow-hidden">
                             <p class="font-bold text-lg truncate flex items-center gap-2">
-                                ${camera.nome}
+                                ${safeName}
                             </p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${camera.codigo} &bull; ${camera.categoria}<span class="font-semibold">${levelText}</span></p>
-                            <p class="text-xs text-gray-400 mt-1 italic description-text">${camera.descricao || 'Sem descrição'}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${safeCode} &bull; ${safeCategory}<span class="font-semibold">${levelText}</span></p>
+                            <p class="text-xs text-gray-400 mt-1 italic description-text">${safeDesc}</p>
                         </div>
                     </div>
                     <div class="flex-shrink-0 flex gap-2">
@@ -840,6 +923,74 @@
                 loadTimelapseStats();
             }
 
+            async function setupStreamSpeedAdminControls() {
+                const streamSelect = document.getElementById('stream-interval-select');
+                const saveStreamBtn = document.getElementById('save-stream-interval-btn');
+                const currentText = document.getElementById('current-stream-interval-text');
+                const feedback = document.getElementById('stream-admin-feedback');
+
+                const formatIntervalText = (val) => {
+                    const num = parseInt(val, 10);
+                    if (num === 0) return '0 ms (Velocidade Máxima / Imediato)';
+                    if (num < 1000) return `${num} ms`;
+                    return `${num / 1000} segundo(s)`;
+                };
+
+                const showFeedback = (msg, isError = false) => {
+                    if (!feedback) return;
+                    feedback.className = `text-xs font-semibold ${isError ? 'text-red-500' : 'text-emerald-500'}`;
+                    feedback.textContent = msg;
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 5000);
+                };
+
+                const loadStreamConfig = async () => {
+                    try {
+                        const res = await fetch('/api/site-config');
+                        if (!res.ok) return;
+                        const cfg = await res.json();
+                        const val = cfg.cameraStreamIntervalMs !== undefined ? cfg.cameraStreamIntervalMs : 0;
+                        if (streamSelect) streamSelect.value = String(val);
+                        if (currentText) currentText.textContent = formatIntervalText(val);
+                    } catch (_) {}
+                };
+
+                saveStreamBtn?.addEventListener('click', async () => {
+                    try {
+                        const user = auth.currentUser;
+                        if (!user) return;
+                        const token = await user.getIdToken();
+                        const intervalMs = parseInt(streamSelect.value, 10);
+                        saveStreamBtn.disabled = true;
+
+                        const res = await fetch('/api/site-config', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ cameraStreamIntervalMs: intervalMs })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showFeedback(`✅ Velocidade do stream salva! Quadros atualizados a cada ${formatIntervalText(intervalMs)}.`);
+                            showToast(`Velocidade do stream alterada para ${formatIntervalText(intervalMs)}!`, 'success');
+                            if (currentText) currentText.textContent = formatIntervalText(intervalMs);
+                        } else {
+                            throw new Error(data.message || 'Falha ao salvar');
+                        }
+                    } catch (e) {
+                        showFeedback(`❌ ${e.message}`, true);
+                        showToast(e.message, 'error');
+                    } finally {
+                        saveStreamBtn.disabled = false;
+                    }
+                });
+
+                loadStreamConfig();
+            }
+
+            setupStreamSpeedAdminControls();
             setupTimelapseAdminControls();
             loadCameras();
             lucide.createIcons();

@@ -1,6 +1,6 @@
 import { auth, db } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
-import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
+import { initAuthModal, toggleLoginModal, initGlobalAuthUI, syncAdminSession } from "./auth-modal.js";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { initTour } from "./tour.js";
@@ -15,16 +15,20 @@ const escapeHtml = (value = '') => String(value)
 fetchWeather();
 initGlobalAuthUI();
 
-// Track Visit
-fetch('/api/track-visit', { method: 'POST' })
-    .catch(err => console.error('Error tracking visit:', err));
+// Track Visit (uma vez a cada 24h por visitante para economizar banco)
+if (!document.cookie.includes('camrb_visited_today=1')) {
+    fetch('/api/track-visit', { method: 'POST' })
+        .catch(err => console.error('Error tracking visit:', err));
+}
 
 // Check for login query param
 const params = new URLSearchParams(window.location.search);
+const redirectParam = params.get('redirect');
 if (params.get('login') === 'true') {
-    window.history.replaceState({}, document.title, "/");
     // Small delay to ensure modal logic is ready
-    setTimeout(() => toggleLoginModal(true), 500);
+    setTimeout(() => {
+        if (!currentUser) toggleLoginModal(true);
+    }, 500);
 }
 
 let currentUser = null;
@@ -64,38 +68,43 @@ const initAdSense = (attempts = 0) => {
     }
 };
 
+let globalFetchFavorites = null;
+
+// Initialize app logic immediately without waiting for auth state
+if (!isAppInitialized) {
+    initializeAppLogic();
+    fetchWeather();
+    isAppInitialized = true;
+}
+
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     
+    if (user && redirectParam && redirectParam.startsWith('/')) {
+        const isAdmin = await syncAdminSession(user);
+        if (isAdmin) {
+            window.history.replaceState({}, document.title, "/");
+            window.location.replace(redirectParam);
+            return;
+        } else {
+            window.history.replaceState({}, document.title, "/");
+            console.warn("[AUTH] Usuário conectado não possui privilégios de administrador.");
+        }
+    }
+    
     // Always show content wrapper for both logged in and logged out users
-    document.getElementById('content-wrapper').style.display = 'flex';
+    const wrapper = document.getElementById('content-wrapper');
+    if (wrapper) wrapper.style.display = 'flex';
     
-    // Inicia a verificação com um pequeno delay inicial
     setTimeout(() => initAdSense(), 200);
-    
-    // UI Elements for Login/Logout state
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
 
-    if (user) {
-        document.getElementById('username-display').textContent = `, ${user.displayName || user.email}`;
+    const userDisplay = document.getElementById('username-display');
+    if (userDisplay) {
+        userDisplay.textContent = user ? `, ${user.displayName || user.email}` : '';
+    }
 
-        // Initialize logic after user is set, to load favorites
-        if (!isAppInitialized) {
-            initializeAppLogic();
-            fetchWeather(); // Fetch weather data
-            isAppInitialized = true;
-        }
-    } else {
-        // Logged out state UI
-        document.getElementById('username-display').textContent = '';
-        
-        // Initialize logic for visitors too
-        if (!isAppInitialized) {
-            initializeAppLogic();
-            fetchWeather();
-            isAppInitialized = true;
-        }
+    if (globalFetchFavorites) {
+        await globalFetchFavorites();
     }
 });
 
@@ -120,7 +129,10 @@ function initializeAppLogic() {
         modalNextButton: document.getElementById('modal-next'),
         embedButton: document.getElementById('embed-button'),
         paginationControls: document.getElementById('pagination-controls'),
-        updateProgressBar: document.getElementById('update-progress-bar'),
+        liveStatusText: document.getElementById('live-status-text'),
+        liveCountdownText: document.getElementById('live-countdown-text'),
+        refreshCamerasBtn: document.getElementById('refresh-cameras-btn'),
+        refreshIcon: document.getElementById('refresh-icon'),
         categoryToggleBtn: document.getElementById('category-toggle-btn'),
         categoryToggleIcon: document.getElementById('category-toggle-icon'),
         categoryFiltersContainer: document.getElementById('category-filters-container'),
@@ -135,7 +147,8 @@ function initializeAppLogic() {
         currentCategoryFilter: 'all',
         sortBy: 'default', // 'default' or 'views'
         userLocation: null,
-        updateInterval: 5 * 60 * 1000,
+        updateInterval: 30 * 1000, // 30 seconds
+        lastSnapshotTimestamp: Date.now(),
         modalUpdateInterval: null,
         currentModalIndex: -1,
         currentPage: 1,
@@ -178,50 +191,96 @@ function initializeAppLogic() {
 
     const createCameraCard = (camera) => {
         const card = document.createElement('div');
-        card.className = `camera-card group flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/60 transition-all duration-300 transform hover:-translate-y-1.5 overflow-hidden`;
+        card.className = `camera-card group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200 overflow-hidden cursor-pointer`;
         card.dataset.codigo = camera.codigo;
         card.dataset.status = camera.status;
         const isOnline = camera.status === 'online';
         const isFavorite = state.favorites.includes(camera.codigo);
-        const imageUrl = isOnline ? `/proxy/camera/${escapeHtml(camera.codigo)}` : `/assets/offline.png`;
+        const imageUrl = isOnline ? `/proxy/camera/${escapeHtml(camera.codigo)}?t=${state.lastSnapshotTimestamp || Date.now()}` : `/assets/offline.png`;
 
         let distanceBadge = '';
         if (camera.distance !== undefined) {
-            distanceBadge = `<span class="px-2.5 py-1 text-[10px] font-bold tracking-wider rounded-full bg-black/60 backdrop-blur-md text-white flex items-center gap-1 border border-white/10"><i data-lucide="map-pin" class="w-3 h-3 text-indigo-300"></i>${camera.distance.toFixed(1)} km</span>`;
+            distanceBadge = `<span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-black/70 text-white flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-indigo-300"></i>${camera.distance.toFixed(1)} km</span>`;
         }
 
         let viewsBadge = '';
         if (camera.views > 0) {
-             viewsBadge = `<span class="flex items-center text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-gray-700/50 px-2 py-1 rounded-md tracking-wide" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1 opacity-70"></i>${camera.views}</span>`;
+             viewsBadge = `<span class="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1 opacity-70"></i>${camera.views}</span>`;
         }
 
         card.innerHTML = `
-            <div class="relative w-full aspect-video bg-gray-200 dark:bg-gray-800/80 overflow-hidden">
-                <a href="/camera/${escapeHtml(camera.codigo)}" class="block w-full h-full cursor-pointer" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${escapeHtml(camera.codigo)}', 'item_name': '${escapeHtml(camera.nome)}'});">
-                    <img src="${imageUrl}" alt="Câmera ${escapeHtml(camera.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" loading="lazy">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </a>
+            <div class="relative w-full aspect-video bg-gray-900 overflow-hidden">
+                <div class="w-full h-full">
+                    <img src="${imageUrl}" alt="Câmera ${escapeHtml(camera.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out" loading="lazy" onerror="this.src='/assets/offline.png'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    <!-- Hover: "Ver câmera" label -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <span class="bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow flex items-center gap-1.5">
+                            <i data-lucide="play" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            Ver câmera
+                        </span>
+                    </div>
+                </div>
                 
-                <!-- Overlays on Image -->
-                <div class="absolute top-3 left-3 flex gap-2 pointer-events-none z-20">
-                    ${!isOnline ? '<span class="status-badge px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm text-white bg-red-500 border border-white/20">Offline</span>' : ''}
+                <!-- Status & Distance Badges (Top Left) -->
+                <div class="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20">
+                    ${isOnline ? `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded bg-black/75 text-emerald-400 border border-emerald-500/40 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Ao Vivo
+                        </span>
+                    ` : `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded bg-black/75 text-red-400 border border-red-500/40 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                            Offline
+                        </span>
+                    `}
                     ${distanceBadge}
                 </div>
 
-                <div class="absolute top-3 right-3 flex flex-col gap-2 z-10 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                    <button title="Favoritar" class="favorite-btn ${isFavorite ? 'is-favorite' : ''} bg-black/40 backdrop-blur-md hover:bg-black/60 p-2.5 rounded-full text-white shadow-lg border border-white/20 transition-colors" onclick="gtag('event', 'favorite_camera', {'event_category': 'engagement', 'event_label': '${escapeHtml(camera.codigo)}'});">
-                        <i data-lucide="star" class="w-4 h-4 pointer-events-none transition-colors"></i>
+                <!-- Favorite Button (Top Right) -->
+                <div class="absolute top-2 right-2 z-20">
+                    <button title="${isFavorite ? 'Remover dos favoritos' : 'Favoritar câmera'}" class="favorite-btn ${isFavorite ? 'is-favorite' : ''} p-2.5 rounded-lg bg-black/60 hover:bg-black/80 text-white shadow transition-all active:scale-95 cursor-pointer" onclick="gtag('event', 'favorite_camera', {'event_category': 'engagement', 'event_label': '${escapeHtml(camera.codigo)}'});">
+                        <i data-lucide="star" class="w-4 h-4 pointer-events-none ${isFavorite ? 'text-amber-400 fill-amber-400' : 'text-white'}"></i>
                     </button>
                 </div>
             </div>
-            <div class="p-4 flex-grow flex flex-col justify-between gap-3 bg-white dark:bg-gray-800">
-                <a href="/camera/${escapeHtml(camera.codigo)}" class="font-bold text-gray-900 dark:text-white truncate text-base hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="${escapeHtml(camera.nome)}" onclick="gtag('event', 'select_content', {'content_type': 'camera', 'item_id': '${escapeHtml(camera.codigo)}', 'item_name': '${escapeHtml(camera.nome)}'});">${escapeHtml(camera.nome)}</a>
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate max-w-[130px]" title="${escapeHtml(camera.categoria)}">${escapeHtml(camera.categoria)}</span>
-                    ${viewsBadge}
+
+            <!-- Card Bottom Info -->
+            <div class="p-3.5 flex-grow flex flex-col justify-between gap-2.5 bg-white dark:bg-gray-800">
+                <span class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title="${escapeHtml(camera.nome)}">
+                    ${escapeHtml(camera.nome)}
+                </span>
+                <div class="flex justify-between items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/80 px-2 py-1 rounded truncate max-w-[140px]" title="${escapeHtml(camera.categoria)}">
+                        ${escapeHtml(camera.categoria)}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        ${viewsBadge}
+                        <span class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 dark:group-hover:text-white text-indigo-600 dark:text-indigo-400 text-xs font-medium transition-colors" title="Abrir câmera">
+                            <span class="hidden sm:inline">Ver</span>
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </span>
+                    </div>
                 </div>
             </div>
         `;
+
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.favorite-btn')) return;
+            if (window.gtag) {
+                gtag('event', 'select_content', {
+                    'content_type': 'camera',
+                    'item_id': camera.codigo,
+                    'item_name': camera.nome
+                });
+            }
+            if (e.ctrlKey || e.metaKey || e.button === 1) {
+                window.open(`/camera/${encodeURIComponent(camera.codigo)}`, '_blank');
+            } else {
+                window.location.href = `/camera/${encodeURIComponent(camera.codigo)}`;
+            }
+        });
 
         card.querySelector('.favorite-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -318,7 +377,6 @@ function initializeAppLogic() {
 
         if (window.lucide) window.lucide.createIcons();
         renderPaginationControls();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         
         // Initialize new ads
         setTimeout(() => initAdSense(), 100);
@@ -340,6 +398,9 @@ function initializeAppLogic() {
                 button.addEventListener('click', () => {
                     state.currentPage = page;
                     renderCurrentPage();
+                    if (elements.cameraGrid) {
+                        elements.cameraGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 });
             }
             return button;
@@ -371,7 +432,7 @@ function initializeAppLogic() {
         elements.paginationControls.appendChild(createButton('&raquo;', state.currentPage + 1, state.currentPage === totalPages));
     };
 
-    const applyFilters = () => {
+    const applyFilters = (resetPage = true) => {
         let filtered = [...state.allCameras]; // Create a copy to avoid mutating source
 
         // Simplified Status Filter
@@ -416,7 +477,12 @@ function initializeAppLogic() {
         }
 
         state.filteredCameras = filtered;
-        state.currentPage = 1;
+        if (resetPage) {
+            state.currentPage = 1;
+        } else {
+            const totalPages = Math.ceil(state.filteredCameras.length / state.itemsPerPage) || 1;
+            if (state.currentPage > totalPages) state.currentPage = totalPages;
+        }
         renderCurrentPage();
     };
 
@@ -429,7 +495,6 @@ function initializeAppLogic() {
         if (state.currentStatusFilter === 'online') {
             const onlineCount = state.allCameras.filter(c => c.status === 'online').length;
             if (onlineCount === 0 && state.allCameras.length > 0) {
-                // console.log("No online cameras found, switching to 'all'");
                 state.currentStatusFilter = 'all';
                 const allBtn = document.querySelector('[data-filter="all"]');
                 if (allBtn) {
@@ -441,8 +506,23 @@ function initializeAppLogic() {
 
         updateCounts();
         updateCategoryFilters();
-        applyFilters();
+        applyFilters(false);
+        refreshCardImages();
         if (elements.lastUpdatedSpan) elements.lastUpdatedSpan.textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+    };
+
+    const refreshCardImages = () => {
+        state.lastSnapshotTimestamp = Date.now();
+        if (!elements.cameraGrid) return;
+        const cards = elements.cameraGrid.querySelectorAll('.camera-card');
+        cards.forEach(card => {
+            const code = card.dataset.codigo;
+            const isOnline = card.dataset.status === 'online';
+            const img = card.querySelector('img');
+            if (img && isOnline && code) {
+                img.src = `/proxy/camera/${code}?t=${state.lastSnapshotTimestamp}`;
+            }
+        });
     };
 
     const fetchCameraStatus = async () => {
@@ -482,6 +562,11 @@ function initializeAppLogic() {
         if (elements.countOnline) elements.countOnline.textContent = onlineCount;
         if (elements.countOffline) elements.countOffline.textContent = state.allCameras.length - onlineCount;
         if (elements.countFavorites) elements.countFavorites.textContent = state.favorites.length;
+        // Update header status bar
+        const headerOnline = document.getElementById('count-online-header');
+        const headerAll = document.getElementById('count-all-header');
+        if (headerOnline) headerOnline.textContent = onlineCount;
+        if (headerAll) headerAll.textContent = state.allCameras.length;
     };
 
     const updateCategoryFilters = () => {
@@ -521,11 +606,30 @@ function initializeAppLogic() {
     };
 
     const initListeners = () => {
+        const searchClearBtn = document.getElementById('search-clear-btn');
+
         if (elements.searchInput) {
             elements.searchInput.addEventListener('input', e => {
                 state.currentSearch = e.target.value;
+                if (searchClearBtn) {
+                    if (e.target.value.length > 0) {
+                        searchClearBtn.classList.remove('hidden');
+                    } else {
+                        searchClearBtn.classList.add('hidden');
+                    }
+                }
                 applyFilters();
             });
+
+            if (searchClearBtn) {
+                searchClearBtn.addEventListener('click', () => {
+                    elements.searchInput.value = '';
+                    state.currentSearch = '';
+                    searchClearBtn.classList.add('hidden');
+                    elements.searchInput.focus();
+                    applyFilters();
+                });
+            }
         }
 
         // Global Click Listener for Delegation
@@ -667,6 +771,20 @@ function initializeAppLogic() {
             });
         }
 
+        if (new URLSearchParams(window.location.search).has('busca') && elements.searchInput) {
+            setTimeout(() => {
+                elements.searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                elements.searchInput.focus();
+            }, 300);
+        }
+
+        if (elements.refreshCamerasBtn) {
+            elements.refreshCamerasBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                triggerManualRefresh();
+            });
+        }
+
         if (elements.closeModalButton) elements.closeModalButton.addEventListener('click', closeModal);
         if (elements.modal) elements.modal.addEventListener('click', (e) => e.target === elements.modal && closeModal());
         if (elements.modalPrevButton) elements.modalPrevButton.addEventListener('click', (e) => { e.stopPropagation(); navigateModal(-1); });
@@ -680,33 +798,91 @@ function initializeAppLogic() {
         });
     };
 
-    const startUpdateIndicator = (duration) => {
-        if (!elements.updateProgressBar) return;
-        elements.updateProgressBar.style.transition = 'none';
-        elements.updateProgressBar.style.width = '0%';
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                elements.updateProgressBar.style.transition = `width ${duration / 1000}s linear`;
-                elements.updateProgressBar.style.width = '100%';
-            });
-        });
+    let countdownRemaining = 60;
+    let countdownIntervalId = null;
+    let syncTimeoutId = null;
+    let isFetchingStatus = false;
+
+    const updateCountdownUI = () => {
+        if (elements.liveCountdownText) {
+            elements.liveCountdownText.textContent = `(${countdownRemaining}s)`;
+        }
+    };
+
+    const resetCountdown = () => {
+        countdownRemaining = Math.round(state.updateInterval / 1000);
+        updateCountdownUI();
+    };
+
+    const startCountdownTimer = () => {
+        if (countdownIntervalId) clearInterval(countdownIntervalId);
+        resetCountdown();
+        countdownIntervalId = setInterval(() => {
+            if (countdownRemaining > 0) {
+                countdownRemaining--;
+                updateCountdownUI();
+            }
+        }, 1000);
+    };
+
+    const triggerManualRefresh = async () => {
+        if (isFetchingStatus) return;
+        isFetchingStatus = true;
+        if (syncTimeoutId) clearTimeout(syncTimeoutId);
+
+        if (elements.refreshIcon) elements.refreshIcon.classList.add('animate-spin');
+        if (elements.liveStatusText) elements.liveStatusText.textContent = 'Atualizando...';
+
+        try {
+            await fetchCameraStatus();
+            refreshCardImages();
+            if (elements.liveStatusText) elements.liveStatusText.textContent = 'Atualizado!';
+            setTimeout(() => {
+                if (elements.liveStatusText) elements.liveStatusText.textContent = 'Ao Vivo';
+            }, 1500);
+        } catch (error) {
+            console.error("Manual refresh error:", error);
+            if (elements.liveStatusText) elements.liveStatusText.textContent = 'Ao Vivo';
+        } finally {
+            if (elements.refreshIcon) elements.refreshIcon.classList.remove('animate-spin');
+            isFetchingStatus = false;
+            resetCountdown();
+            syncTimeoutId = setTimeout(syncLoop, state.updateInterval);
+        }
     };
 
     const syncLoop = async () => {
+        if (isFetchingStatus) return;
         try {
-            startUpdateIndicator(state.updateInterval);
+            isFetchingStatus = true;
+            resetCountdown();
+            if (elements.refreshIcon) elements.refreshIcon.classList.add('animate-spin');
+
             await fetchCameraStatus();
+            refreshCardImages();
+
+            if (elements.refreshIcon) elements.refreshIcon.classList.remove('animate-spin');
         } catch (error) {
             console.error("Sync loop error:", error);
+            if (elements.refreshIcon) elements.refreshIcon.classList.remove('animate-spin');
         } finally {
-            setTimeout(syncLoop, state.updateInterval);
+            isFetchingStatus = false;
+            syncTimeoutId = setTimeout(syncLoop, state.updateInterval);
         }
     };
 
     const init = () => {
+        globalFetchFavorites = fetchFavorites;
         if (window.lucide) window.lucide.createIcons();
         initListeners();
+        
+        // Immediate 0ms render from SSR if available
+        if (Array.isArray(window.INITIAL_CAMERAS) && window.INITIAL_CAMERAS.length > 0) {
+            processDataUpdate(window.INITIAL_CAMERAS);
+        }
+
         fetchFavorites();
+        startCountdownTimer();
         syncLoop();
         initTour();
     };
@@ -856,5 +1032,3 @@ window.showToast = (message, type = 'success') => {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 };
-
-

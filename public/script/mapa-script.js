@@ -2,10 +2,12 @@ import { auth } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initAuthModal, initGlobalAuthUI, toggleLoginModal } from "./auth-modal.js";
+import { initTour } from "./tour.js";
 
-// Initialize Auth Logic
+// Initialize Auth Logic & Tour
 initAuthModal();
 initGlobalAuthUI();
+initTour();
 
 // Theme Toggle Logic (Initialize once)
 const themeToggleBtn = document.getElementById('map-theme-toggle');

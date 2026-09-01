@@ -1,42 +1,41 @@
 {
-  "version": 2.1,
-  "lastUpdated": "Março de 2026",
+  "version": 3.0,
+  "lastUpdated": "Agosto de 2026",
   "content": [
     {
-      "type": "date",
-      "text": "Última atualização: Março de 2026"
-    },
-    {
       "type": "paragraph",
-      "text": "O CamRB é um projeto independente de utilidade pública. Ao acessar, criar uma conta ou utilizar este serviço, você (\"Usuário\") concorda integralmente com os Termos de Uso e Política de Privacidade descritos abaixo."
+      "text": "O CamRB (disponível no endereço oficial camerasriobranco.com.br e em aplicativo móvel) é um projeto independente de utilidade pública e tecnologia cívica. Ao navegar no site, criar uma conta ou utilizar quaisquer de nossas ferramentas, você (\"Usuário\") declara estar ciente e concordar integralmente com estes Termos de Uso e Política de Privacidade e Cookies."
     },
     {
       "type": "title",
-      "text": "1. Natureza do Serviço e Fonte das Imagens"
+      "text": "1. Natureza do Serviço e Origem das Imagens"
     },
     {
       "type": "paragraph",
-      "text": "O CamRB funciona exclusivamente como um AGREGADOR TECNOLÓGICO. Nós não possuímos, não operamos, não mantemos e não temos controle direto sobre nenhuma das câmeras exibidas."
+      "text": "O CamRB atua estritamente como um AGREGADOR TECNOLÓGICO de utilidade pública. Não possuímos, não operamos e não realizamos manutenção física em nenhuma das câmeras de monitoramento urbano exibidas."
     },
     {
       "type": "paragraph",
-      "text": "Todas as imagens são de domínio público e são retransmitidas diretamente dos portais oficiais da Prefeitura de Rio Branco e órgãos competentes, incluindo, mas não se limitando a:"
+      "text": "Todas as transmissões são originárias de fontes e portais públicos oficiais do Município de Rio Branco - AC e órgãos conveniados, tais como:"
     },
     {
       "type": "listItem",
+      "boldPrefix": "Trânsito Urbano:",
       "text": "Portal De Olho no Trânsito (deolhonotransito.riobranco.ac.gov.br)"
     },
     {
       "type": "listItem",
-      "text": "Portal De Olho no Rio (deolhonorio.riobranco.ac.gov.br)"
+      "boldPrefix": "Monitoramento Hidrológico:",
+      "text": "Portal De Olho no Rio e telemetria oficial da Defesa Civil / ANA / CPRM"
     },
     {
       "type": "listItem",
+      "boldPrefix": "Infraestrutura Urbana:",
       "text": "Portal De Olho na Obra (deolhonaobra.riobranco.ac.gov.br)"
     },
     {
       "type": "paragraph",
-      "text": "O CamRB atua apenas facilitando o acesso a essas informações que já são públicas, organizando-as em uma interface unificada."
+      "text": "Nossa missão é unificar essas fontes abertas em uma plataforma moderna, acessível, rápida e gratuita para toda a população de Rio Branco e visitantes."
     },
     {
       "type": "title",
@@ -44,109 +43,126 @@
     },
     {
       "type": "paragraph",
-      "text": "Como o CamRB apenas retransmite sinais de terceiros, não garantimos a disponibilidade contínua das imagens. Falhas de energia, manutenção técnica ou interrupções de internet na fonte original (Prefeitura) resultarão na indisponibilidade da câmera em nossa plataforma."
+      "text": "Por depender de sinais e infraestrutura de terceiros (servidores municipais, fornecimento de energia e redes de telecomunicação), o CamRB não garante o funcionamento ininterrupto das transmissões."
     },
     {
       "type": "paragraph",
-      "text": "O desenvolvedor não se responsabiliza por:"
+      "text": "O desenvolvedor e os mantenedores do projeto não se responsabilizam por:"
     },
     {
       "type": "listItem",
-      "text": "Conteúdo visualizado nas transmissões;"
+      "text": "Indisponibilidade temporária ou permanente de câmeras específicas;"
     },
     {
       "type": "listItem",
-      "text": "Decisões tomadas com base nas imagens (ex: rotas de trânsito);"
+      "text": "Eventuais imprecisões nas condições de trânsito ou níveis pluviométricos informados;"
     },
     {
       "type": "listItem",
-      "text": "Interrupções no serviço causadas por terceiros."
+      "text": "Decisões práticas ou rotas tomadas pelo usuário com base nas imagens;"
+    },
+    {
+      "type": "listItem",
+      "text": "Cenas ou eventos de terceiros captados em vias públicas durante as transmissões ao vivo."
     },
     {
       "type": "title",
-      "text": "3. Uso Aceitável e Proibições"
+      "text": "3. Regras de Conduta e Uso Permitido"
     },
     {
       "type": "paragraph",
-      "text": "O Usuário concorda em utilizar o serviço apenas para fins informativos pessoais. É estritamente proibido:"
+      "text": "O uso do CamRB é livre e gratuito para fins pessoais e informativos. É expressamente proibido:"
     },
     {
       "type": "listItem",
-      "text": "Utilizar as imagens para fins comerciais sem autorização;"
+      "text": "Utilizar o serviço para perseguir, vigiar ilegalmente ou assediar qualquer indivíduo;"
     },
     {
       "type": "listItem",
-      "text": "Utilizar as imagens para perseguir, assediar ou monitorar ilegalmente indivíduos;"
+      "text": "Comercializar ou cobrar pelo acesso aos feeds e serviços disponibilizados gratuitamente pelo CamRB;"
     },
     {
       "type": "listItem",
-      "text": "Tentar contornar as proteções de segurança do site;"
+      "text": "Realizar ataques cibernéticos, automações não autorizadas (scraping abusivo) ou sobrecarregar a infraestrutura (DDoS);"
     },
     {
       "type": "listItem",
-      "text": "Realizar engenharia reversa ou sobrecarregar nossos servidores (DDoS);"
-    },
-    {
-      "type": "listItem",
-      "text": "Publicar comentários com conteúdo ofensivo, discriminatório, discurso de ódio, spam ou que violem as leis brasileiras."
+      "text": "Publicar na área de comentários conteúdos difamatórios, discurso de ódio, spam, ofensas ou violações à legislação brasileira vigente."
     },
     {
       "type": "paragraph",
-      "text": "O CamRB reserva-se o direito de excluir comentários e banir ou suspender contas de usuários que violem estas regras, sem aviso prévio."
+      "text": "Reservamo-nos o direito de moderar, ocultar comentários indevidos e banir contas que desrespeitem estas normas, sem necessidade de aviso prévio."
     },
     {
       "type": "title",
-      "text": "4. Privacidade e Dados (LGPD)"
+      "text": "4. Política de Cookies e Publicidade (Google AdSense)"
     },
     {
       "type": "paragraph",
-      "text": "Respeitamos sua privacidade e operamos em conformidade com as boas práticas de proteção de dados:"
+      "text": "Para manter o projeto 100% gratuito e sustentável, utilizamos pequenos arquivos de texto armazenados no seu dispositivo (\"cookies\"). Nossos cookies são divididos em três finalidades claras:"
     },
     {
       "type": "listItem",
-      "boldPrefix": "Não Gravamos:",
-      "text": "O CamRB não armazena histórico de vídeos ou imagens das câmeras. O serviço é estritamente 'ao vivo'."
+      "boldPrefix": "1. Cookies Essenciais de Funcionamento:",
+      "text": "Salvam sua preferência visual de modo escuro ou claro (theme) e previnem lentidão ao navegar entre as páginas."
     },
     {
       "type": "listItem",
-      "boldPrefix": "Dados de Cadastro:",
-      "text": "Se você criar uma conta, armazenamos apenas seu e-mail, nome e foto de perfil (fornecidos pelo Google Firebase) exclusivamente para autenticação e gestão de perfil. Não compartilhamos esses dados com terceiros."
+      "boldPrefix": "2. Cookies de Desempenho e Navegação:",
+      "text": "Evitam requisições repetidas aos nossos servidores no mesmo dia (camrb_visited_today), reduzindo o consumo de internet no seu celular."
     },
     {
       "type": "listItem",
-      "boldPrefix": "Interação e Comentários:",
-      "text": "Ao publicar um comentário em nossa plataforma, você concorda que seu nome de exibição e o conteúdo da mensagem se tornarão públicos para outros usuários. O CamRB não se responsabiliza pelas opiniões emitidas por terceiros."
+      "boldPrefix": "3. Cookies de Publicidade e Parceiros (Google AdSense):",
+      "text": "Fornecedores terceiros, incluindo o Google, utilizam cookies para veicular anúncios com base nas visitas anteriores do usuário a este ou a outros websites. O uso de cookies de publicidade permite ao Google e a seus parceiros veicular anúncios úteis e relevantes para você."
     },
     {
-      "type": "listItem",
-      "boldPrefix": "Reportes de Falhas:",
-      "text": "Ao utilizar o sistema de 'Reportar Problema', coletamos o seu e-mail e dados básicos do seu navegador (User-Agent) unicamente para fins de diagnóstico técnico e combate a abusos."
-    },
-    {
-      "type": "listItem",
-      "boldPrefix": "Cookies e Analytics:",
-      "text": "Utilizamos cookies básicos para lembrar suas preferências (como tema escuro) e Google Analytics para estatísticas anônimas de acesso."
+      "type": "paragraph",
+      "text": "Você pode gerenciar suas preferências a qualquer momento clicando no botão \"Gerenciar Cookies\" no rodapé do site, ou desativar a publicidade personalizada acessando as Configurações de Anúncios do Google (www.google.com/settings/ads)."
     },
     {
       "type": "title",
-      "text": "5. Contato e Suporte"
+      "text": "5. Privacidade e Proteção de Dados (LGPD - Lei 13.709/2018)"
     },
     {
       "type": "paragraph",
-      "text": "Para reportar falhas, solicitar a remoção de conteúdo, esclarecer dúvidas ou tratar de assuntos relacionados à LGPD, entre em contato exclusivamente pelo e-mail oficial:"
+      "text": "Tratamos seus dados com seriedade, aplicando o princípio da minimização da coleta:"
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Imagens em Tempo Real:",
+      "text": "O CamRB não armazena gravações contínuas de segurança nem gravações das transmissões públicas. As câmeras funcionam em streaming estritamente ao vivo."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Conta de Usuário:",
+      "text": "Caso você opte por criar uma conta (via e-mail ou login social seguro do Google), guardamos apenas seu nome/apelido, e-mail e lista de câmeras favoritas. Seus dados nunca são vendidos ou repassados a empresas terceiras."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Seus Direitos como Titular:",
+      "text": "Você tem o direito de solicitar a qualquer momento a confirmação de existência de tratamento, a correção de dados incompletos ou a exclusão definitiva da sua conta e de comentários publicados."
+    },
+    {
+      "type": "title",
+      "text": "6. Canal de Atendimento e Encarregado de Dados"
     },
     {
       "type": "paragraph",
-      "boldPrefix": "E-mail:",
+      "text": "Para exercer seus direitos de privacidade, reportar problemas técnicos em câmeras, solicitar remoção de conteúdo ou enviar sugestões, entre em contato diretamente pelo nosso canal oficial de suporte:"
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "E-mail de Suporte:",
       "text": "suportecamrb@gmail.com"
     },
     {
       "type": "title",
-      "text": "6. Alterações nos Termos"
+      "text": "7. Atualizações destes Termos"
     },
     {
       "type": "paragraph",
-      "text": "Reservamo-nos o direito de atualizar estes termos a qualquer momento para refletir mudanças na legislação ou no serviço. O uso continuado da plataforma implica na aceitação dos novos termos."
+      "text": "Estes termos podem ser atualizados periodicamente para acompanhar melhorias no sistema ou exigências legais. A data da versão mais recente estará sempre indicada no topo desta página."
     }
   ]
 }

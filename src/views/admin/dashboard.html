@@ -105,37 +105,68 @@
 
     <div id="content-wrapper">
         <div class="container mx-auto p-4 md:p-8">
-            <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
-                <h1 class="text-3xl font-bold">Dashboard</h1>
-                <div class="flex items-center gap-4">
-                    <button id="toggle-theme" title="Alternar tema"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
-                    </button>
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                            <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Dashboard Administrativo
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Métricas de tráfego, câmeras mais acessadas, telemetria e sistema.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
                     <button id="nav-changelog-btn" title="Novidades"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 relative">
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm relative">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         <span id="changelog-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
                     </button>
-                    <a href="/metrics" title="Métricas do sistema"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="activity" class="w-5 h-5"></i>
-                    </a>
-                    <a href="/admin" title="Voltar ao painel de câmeras"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site"
+                        class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
                     </a>
                     <button id="nav-logout-btn" title="Sair"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
                         <i data-lucide="log-out" class="w-5 h-5"></i>
                     </button>
-                    <a href="/" title="Voltar à página inicial"
-                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="home" class="w-5 h-5"></i>
-                    </a>
                 </div>
             </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
 
             <!-- Grid de Estatísticas -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -309,6 +340,52 @@
                 </form>
             </div>
 
+            <!-- Live Stream Speed / Interval Control Card -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
+                <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Velocidade da Transmissão ao Vivo (Stream das Câmeras)</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Ajuste o intervalo de atualização das câmeras (0s, 2s, 4s...) para economizar rede ou obter máxima fluidez</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5" id="current-stream-interval-badge">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            Ativo: <span id="current-stream-interval-text">0 ms (Velocidade Máxima)</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Intervalo entre Atualizações
+                        </label>
+                        <select id="stream-interval-select" class="form-input w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm">
+                            <option value="0">0 ms - Velocidade Máxima / Imediato (Máxima Fluidez)</option>
+                            <option value="500">500 ms - 2 quadros por segundo (Alta Velocidade)</option>
+                            <option value="1000">1.000 ms - 1 segundo (Padrão Moderado)</option>
+                            <option value="2000">2.000 ms - 2 segundos (Econômico / Menor tráfego)</option>
+                            <option value="3000">3.000 ms - 3 segundos (Baixo consumo)</option>
+                            <option value="4000">4.000 ms - 4 segundos (Mínimo tráfego de rede)</option>
+                            <option value="6000">6.000 ms - 6 segundos (Ultra econômico)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <button id="save-stream-interval-btn" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Salvar Velocidade</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="stream-admin-feedback" class="text-xs font-medium hidden"></div>
+            </div>
+
             <!-- Timelapse 24h Control Card -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
                 <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
@@ -393,7 +470,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { auth } from "/script/firebase-config.js";
-        import { initAuthModal, toggleLoginModal, ADMIN_EMAIL } from "/script/auth-modal.js";
+        import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
 
         // Initialize Auth Modal
         initAuthModal();
@@ -420,8 +497,13 @@
             });
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email === ADMIN_EMAIL) {
+        onAuthStateChanged(auth, async (user) => {
+            let isAdmin = false;
+            if (user) {
+                isAdmin = await syncAdminSession(user);
+            }
+
+            if (user && isAdmin) {
                 accessDeniedEl.classList.add('hidden');
                 contentWrapperEl.style.display = 'block';
                 initializeDashboardLogic(user);
@@ -620,23 +702,33 @@
                     document.getElementById('views-today-stat').textContent = stats.viewsToday;
                     document.getElementById('views-total-stat').textContent = stats.totalViews;
 
+                    const escapeHtml = (value = '') => String(value ?? '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+
                     // Render Top Cameras
                     const topCamerasList = document.getElementById('top-cameras-list');
                     topCamerasList.innerHTML = '';
                     
                     if (stats.topCameras && stats.topCameras.length > 0) {
                         stats.topCameras.forEach((cam, index) => {
-                            const percent = Math.round((cam.views / stats.viewsToday) * 100) || 0;
+                            const percent = Math.round((cam.views / (stats.viewsToday || 1)) * 100) || 0;
+                            const safeCamName = escapeHtml(cam.nome || 'Câmera ' + cam.codigo);
+                            const safeCamCode = escapeHtml(cam.codigo);
+                            const safeCamViews = Number(cam.views) || 0;
                             const item = document.createElement('div');
                             item.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors";
                             item.innerHTML = `
                                 <div class="flex items-center gap-3">
                                     <span class="text-lg font-bold text-gray-400 w-6">#${index + 1}</span>
                                     <div>
-                                        <p class="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[150px]">${cam.nome || 'Câmera ' + cam.codigo}</p>
+                                        <p class="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[150px]">${safeCamName}</p>
                                         <div class="flex items-center gap-2 mt-0.5">
-                                            <span class="text-[10px] bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">${cam.codigo}</span>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">${cam.views} views</p>
+                                            <span class="text-[10px] bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">${safeCamCode}</span>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">${safeCamViews} views</p>
                                         </div>
                                     </div>
                                 </div>
@@ -659,10 +751,13 @@
                     stats.recentUsers.forEach(user => {
                         const row = document.createElement('tr');
                         row.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600";
+                        const safeEmail = escapeHtml(user.email || 'Anônimo');
+                        const safeCreated = user.creationTime ? new Date(user.creationTime).toLocaleString('pt-BR') : '-';
+                        const safeLastSign = user.lastSignInTime ? new Date(user.lastSignInTime).toLocaleString('pt-BR') : 'Nunca';
                         row.innerHTML = `
-                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${user.email}</td>
-                            <td class="px-6 py-4">${new Date(user.creationTime).toLocaleString('pt-BR')}</td>
-                            <td class="px-6 py-4">${user.lastSignInTime ? new Date(user.lastSignInTime).toLocaleString('pt-BR') : 'Nunca'}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${safeEmail}</td>
+                            <td class="px-6 py-4">${safeCreated}</td>
+                            <td class="px-6 py-4">${safeLastSign}</td>
                         `;
                         tableBody.appendChild(row);
                     });
@@ -903,9 +998,73 @@
                 loadTimelapseStats();
             }
 
+            async function setupDashboardStreamSpeedControls() {
+                const streamSelect = document.getElementById('stream-interval-select');
+                const saveStreamBtn = document.getElementById('save-stream-interval-btn');
+                const currentText = document.getElementById('current-stream-interval-text');
+                const feedback = document.getElementById('stream-admin-feedback');
+
+                const formatIntervalText = (val) => {
+                    const num = parseInt(val, 10);
+                    if (num === 0) return '0 ms (Velocidade Máxima / Imediato)';
+                    if (num < 1000) return `${num} ms`;
+                    return `${num / 1000} segundo(s)`;
+                };
+
+                const showFeedback = (msg, isError = false) => {
+                    if (!feedback) return;
+                    feedback.className = `text-xs font-semibold ${isError ? 'text-red-500' : 'text-emerald-500'}`;
+                    feedback.textContent = msg;
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 5000);
+                };
+
+                const loadStreamConfig = async () => {
+                    try {
+                        const res = await fetch('/api/site-config');
+                        if (!res.ok) return;
+                        const cfg = await res.json();
+                        const val = cfg.cameraStreamIntervalMs !== undefined ? cfg.cameraStreamIntervalMs : 0;
+                        if (streamSelect) streamSelect.value = String(val);
+                        if (currentText) currentText.textContent = formatIntervalText(val);
+                    } catch (_) {}
+                };
+
+                saveStreamBtn?.addEventListener('click', async () => {
+                    try {
+                        const token = await user.getIdToken();
+                        const intervalMs = parseInt(streamSelect.value, 10);
+                        saveStreamBtn.disabled = true;
+
+                        const res = await fetch('/api/site-config', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ cameraStreamIntervalMs: intervalMs })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showFeedback(`✅ Velocidade do stream salva! Quadros atualizados a cada ${formatIntervalText(intervalMs)}.`);
+                            if (currentText) currentText.textContent = formatIntervalText(intervalMs);
+                        } else {
+                            throw new Error(data.message || 'Falha ao salvar');
+                        }
+                    } catch (e) {
+                        showFeedback(`❌ ${e.message}`, true);
+                    } finally {
+                        saveStreamBtn.disabled = false;
+                    }
+                });
+
+                loadStreamConfig();
+            }
+
             initializeTheme();
 
             // Start loading stats & timelapse controls
+            setupDashboardStreamSpeedControls();
             setupDashboardTimelapseControls();
             loadStats();
             

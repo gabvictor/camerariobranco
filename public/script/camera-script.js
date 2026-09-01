@@ -1,22 +1,20 @@
 import { auth, db } from "./firebase-config.js";
 import { fetchWeather } from "./weather.js";
 import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
+import { initFooter } from "./footer-component.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, addDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+initFooter();
+initAuthModal();
+initGlobalAuthUI();
 
-const escapeHtml = (value = '') => String(value)
+const escapeHtml = (value = '') => String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-
-
-
-// Inicializa o modal de autenticação
-initAuthModal();
-initGlobalAuthUI();
 
 // Toast Notification System (Duplicate or Shared)
 if (!window.showToast) {
@@ -31,21 +29,20 @@ if (!window.showToast) {
         }
 
         const toast = document.createElement('div');
-        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${
-            type === 'error' 
-                ? 'bg-red-500/90 text-white' 
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${type === 'error'
+                ? 'bg-red-500/90 text-white'
                 : 'bg-gray-900/90 text-white dark:bg-white/90 dark:text-gray-900'
-        }`;
+            }`;
 
         const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
-        
+
         toast.innerHTML = `
             <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
             <p class="text-sm font-medium">${message}</p>
         `;
 
         container.appendChild(toast);
-        if(window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons();
 
         // Animate In
         requestAnimationFrame(() => {
@@ -67,7 +64,7 @@ let commentsUnsubscribe = null;
 const contentWrapper = document.getElementById('content-wrapper');
 if (contentWrapper) {
     contentWrapper.style.display = 'block';
-    
+
     // Inicializar AdSense com verificação robusta de visibilidade
     const initAdSense = (attempts = 0) => {
         const adSlots = document.querySelectorAll('.adsbygoogle');
@@ -100,7 +97,7 @@ if (contentWrapper) {
             }
         }
     };
-    
+
     // Inicia a verificação
     setTimeout(() => initAdSense(), 200);
 }
@@ -132,7 +129,7 @@ function initializeComments(user, cameraCode) {
         loginMsg.className = "p-4 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700";
         loginMsg.innerHTML = "<button id='comment-login-btn' class='text-indigo-600 hover:underline font-medium bg-transparent border-0 p-0 cursor-pointer'>Faça login</button> para participar do chat.";
         commentForm.parentNode.appendChild(loginMsg);
-        
+
         const loginBtn = document.getElementById('comment-login-btn');
         if (loginBtn) {
             loginBtn.addEventListener('click', (e) => {
@@ -153,7 +150,7 @@ function initializeComments(user, cameraCode) {
 
     // Escuta em tempo real
     commentsUnsubscribe = onSnapshot(q, (snapshot) => {
-        commentsList.innerHTML = ''; 
+        commentsList.innerHTML = '';
         if (snapshot.empty) {
             commentsList.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 mt-8 space-y-2">
@@ -163,15 +160,15 @@ function initializeComments(user, cameraCode) {
                     <p class="text-sm font-medium">Nenhum comentário ainda.</p>
                 </div>
             `;
-            if(window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
             return;
         }
-        
+
         snapshot.forEach(docSnapshot => {
             const comment = docSnapshot.data();
             const commentEl = document.createElement('div');
             commentEl.className = 'py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0 animate-fade-in group';
-            
+
             // Formatação de data segura
             let dateStr = 'agora';
             if (comment.timestamp) {
@@ -180,11 +177,11 @@ function initializeComments(user, cameraCode) {
 
             const isOwner = user && user.uid === comment.userId;
             // Admin logic check (optional, but UI only shows for owner for now as per request)
-            
-            const deleteBtn = isOwner 
+
+            const deleteBtn = isOwner
                 ? `<button class="delete-btn ml-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500" data-id="${docSnapshot.id}" title="Excluir Comentário">
                      <i data-lucide="trash-2" class="w-3 h-3"></i>
-                   </button>` 
+                   </button>`
                 : '';
 
             commentEl.innerHTML = `
@@ -203,12 +200,12 @@ function initializeComments(user, cameraCode) {
             `;
             commentsList.appendChild(commentEl);
         });
-        
-        if(window.lucide) window.lucide.createIcons();
+
+        if (window.lucide) window.lucide.createIcons();
     }, (error) => {
         console.error("Erro ao carregar comentários:", error);
         if (error.code === 'permission-denied') {
-             commentsList.innerHTML = `
+            commentsList.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 mt-8 space-y-2">
                     <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-full">
                         <i data-lucide="lock" class="w-6 h-6 text-red-400"></i>
@@ -217,8 +214,8 @@ function initializeComments(user, cameraCode) {
                      <button id='error-login-btn' class='mt-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium bg-transparent border-0 p-0 cursor-pointer transition-colors'>Entrar agora</button>
                 </div>
             `;
-            if(window.lucide) window.lucide.createIcons();
-            
+            if (window.lucide) window.lucide.createIcons();
+
             const loginBtn = document.getElementById('error-login-btn');
             if (loginBtn) {
                 loginBtn.addEventListener('click', (e) => {
@@ -248,7 +245,7 @@ function initializeComments(user, cameraCode) {
             }
         });
     }
-    
+
     // Evita múltiplos listeners no formulário
     if (commentForm.dataset.listenerAttached === 'true') return;
     commentForm.dataset.listenerAttached = 'true';
@@ -257,12 +254,12 @@ function initializeComments(user, cameraCode) {
     commentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = commentInput.value.trim();
-        
+
         if (text && user) {
             commentInput.disabled = true;
             submitButton.disabled = true;
             submitButton.innerHTML = '<div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>';
-            
+
             try {
                 await addDoc(commentsColRef, {
                     text: text,
@@ -278,7 +275,7 @@ function initializeComments(user, cameraCode) {
                 commentInput.disabled = false;
                 submitButton.disabled = false;
                 submitButton.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i>';
-                if(window.lucide) window.lucide.createIcons();
+                if (window.lucide) window.lucide.createIcons();
                 commentInput.focus();
             }
         }
@@ -304,7 +301,7 @@ async function initializeCameraLogic(user) {
     }
 
     // console.log("Initializing Camera Logic. Code:", cameraCode);
-    
+
     // Mapeamento de elementos do DOM
     const el = {
         // Header
@@ -314,16 +311,16 @@ async function initializeCameraLogic(user) {
         subtitle: document.getElementById('header-subtitle'),
         statusPing: document.getElementById('status-ping'),
         statusDot: document.getElementById('status-dot'),
-        
+
         // Player
         playerWrapper: document.getElementById('player-wrapper'),
+        canvas: document.getElementById('camera-canvas'),
         feed: document.getElementById('camera-feed'),
-        buffer: document.getElementById('camera-buffer'), // Adicione esta linha
         loader: document.getElementById('loader'),
         error: document.getElementById('error-message'),
         errorText: document.getElementById('error-text-content'),
         fullscreenBtn: document.getElementById('fullscreen-btn'),
-        
+
         // Sidebar Info
         detailsSkeleton: document.getElementById('details-skeleton'),
         detailsContent: document.getElementById('details-content'),
@@ -331,7 +328,7 @@ async function initializeCameraLogic(user) {
         description: document.getElementById('camera-description'),
         statusBadge: document.getElementById('status-badge'),
         mapLink: document.getElementById('map-link'),
-        
+
         // Actions
         shareBtn: document.getElementById('share-button-main'),
         likeBtn: document.getElementById('like-btn'),
@@ -341,13 +338,13 @@ async function initializeCameraLogic(user) {
     };
 
     if (window.lucide) window.lucide.createIcons();
-    
+
     // --- 1. Validação do Código da Câmera ---
     if (!cameraCode) {
         handleErrorState(el, 'Nenhum código de câmera fornecido.', true);
         return;
     }
-    
+
     // Inicia comentários independente do sucesso da câmera
     initializeComments(user, cameraCode);
 
@@ -366,7 +363,7 @@ async function initializeCameraLogic(user) {
         .then(cameras => {
             // console.log("Cameras fetched:", cameras.length);
             const camera = cameras.find(c => c.codigo === cameraCode);
-            
+
             if (camera) {
                 // console.log("Camera found:", camera);
                 setupCameraInterface(camera, el, cameraCode);
@@ -411,81 +408,81 @@ async function initializeCameraLogic(user) {
                 });
             });
 
-        // Close Modal
-        const closeReportModal = () => {
-            reportModal.classList.add('hidden');
-        };
+            // Close Modal
+            const closeReportModal = () => {
+                reportModal.classList.add('hidden');
+            };
 
-        if (cancelReportBtn) cancelReportBtn.addEventListener('click', closeReportModal);
-        if (reportBackdrop) reportBackdrop.addEventListener('click', closeReportModal);
+            if (cancelReportBtn) cancelReportBtn.addEventListener('click', closeReportModal);
+            if (reportBackdrop) reportBackdrop.addEventListener('click', closeReportModal);
 
-        // Select Reason
-        reportOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                // Deselect all
-                reportOptions.forEach(opt => {
-                    opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
-                    opt.classList.add('border-transparent');
-                });
-                
-                // Select clicked
-                option.classList.remove('border-transparent');
-                option.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
-                selectedReason = option.dataset.reason;
-            });
-        });
-
-        // Submit Report
-        if (confirmReportBtn) {
-            confirmReportBtn.addEventListener('click', async () => {
-                if (!selectedReason) {
-                    window.showToast('Selecione um motivo para o reporte.', 'error');
-                    return;
-                }
-
-                const details = document.getElementById('report-details').value;
-                const originalText = confirmReportBtn.innerText;
-                confirmReportBtn.innerText = 'Enviando...';
-                confirmReportBtn.disabled = true;
-
-                try {
-                    const response = await fetch('/api/report', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            cameraId: cameraCode,
-                            issueType: selectedReason,
-                            description: details,
-                            userEmail: user ? user.email : 'anonymous'
-                        })
+            // Select Reason
+            reportOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Deselect all
+                    reportOptions.forEach(opt => {
+                        opt.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                        opt.classList.add('border-transparent');
                     });
 
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        window.showToast('Obrigado! Seu reporte foi enviado.', 'success');
-                        closeReportModal();
-                    } else {
-                        throw new Error(data.error || 'Erro ao enviar');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    window.showToast('Erro ao enviar reporte. Tente novamente.', 'error');
-                } finally {
-                    confirmReportBtn.innerText = originalText;
-                    confirmReportBtn.disabled = false;
-                }
+                    // Select clicked
+                    option.classList.remove('border-transparent');
+                    option.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900/20');
+                    selectedReason = option.dataset.reason;
+                });
             });
+
+            // Submit Report
+            if (confirmReportBtn) {
+                confirmReportBtn.addEventListener('click', async () => {
+                    if (!selectedReason) {
+                        window.showToast('Selecione um motivo para o reporte.', 'error');
+                        return;
+                    }
+
+                    const details = document.getElementById('report-details').value;
+                    const originalText = confirmReportBtn.innerText;
+                    confirmReportBtn.innerText = 'Enviando...';
+                    confirmReportBtn.disabled = true;
+
+                    try {
+                        const response = await fetch('/api/report', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                cameraId: cameraCode,
+                                issueType: selectedReason,
+                                description: details,
+                                userEmail: user ? user.email : 'anonymous'
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            window.showToast('Obrigado! Seu reporte foi enviado.', 'success');
+                            closeReportModal();
+                        } else {
+                            throw new Error(data.error || 'Erro ao enviar');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        window.showToast('Erro ao enviar reporte. Tente novamente.', 'error');
+                    } finally {
+                        confirmReportBtn.innerText = originalText;
+                        confirmReportBtn.disabled = false;
+                    }
+                });
+            }
         }
     }
-}
 
-    if (localStorage.getItem('camrb_camera_tour_trigger') === 'pending') {
+    if (!localStorage.getItem('camrb_tour_seen_camera')) {
         setTimeout(() => {
             initCameraTour(user);
-            localStorage.setItem('camrb_camera_tour_trigger', 'done');
+            localStorage.setItem('camrb_tour_seen_camera', 'true');
         }, 1500);
     }
 }
@@ -500,8 +497,8 @@ function setupCameraInterface(camera, el, cameraCode) {
     updateMetaTags(camera, pageTitle);
 
     // B. Preenche Textos
-    if(el.title) el.title.textContent = camera.nome;
-    if(el.description) {
+    if (el.title) el.title.textContent = camera.nome;
+    if (el.description) {
         if (camera.descricao) {
             // Escapa HTML primeiro contra XSS e depois formata Markdown (**texto** -> <strong>texto</strong>)
             let safeText = escapeHtml(camera.descricao);
@@ -509,19 +506,19 @@ function setupCameraInterface(camera, el, cameraCode) {
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br>')
                 .replace(/(Condições climáticas)/, '<br>$1');
-            
+
             el.description.innerHTML = formattedDesc;
         } else {
             el.description.textContent = 'Monitoramento em tempo real';
         }
     }
-    
+
     // C. Atualiza Badge de Status e Ping
     const isOnline = camera.status === 'online';
-    
+
     // Ping no Header
-    if(el.statusPing) {
-        if(isOnline) {
+    if (el.statusPing) {
+        if (isOnline) {
             el.statusPing.classList.remove('hidden');
             el.statusDot.classList.remove('bg-gray-300', 'dark:bg-gray-600', 'bg-red-500');
             el.statusDot.classList.add('bg-emerald-500');
@@ -538,18 +535,18 @@ function setupCameraInterface(camera, el, cameraCode) {
 
     // Badge na Sidebar
     if (el.statusBadge) {
-        el.statusBadge.innerHTML = isOnline 
+        el.statusBadge.innerHTML = isOnline
             ? `<span class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Online</span>`
             : `<span class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div> Offline</span>`;
     }
 
     // Link do Mapa
-    if(el.mapLink) {
-        if (camera.coords) { 
-            el.mapLink.href = `/mapa?code=${cameraCode}`; 
+    if (el.mapLink) {
+        if (camera.coords) {
+            el.mapLink.href = `/mapa?code=${cameraCode}`;
             el.mapLink.removeAttribute('disabled');
             el.mapLink.classList.remove('opacity-50', 'cursor-not-allowed');
-        } else { 
+        } else {
             el.mapLink.setAttribute('disabled', 'true');
             el.mapLink.removeAttribute('href');
             el.mapLink.classList.add('opacity-50', 'cursor-not-allowed');
@@ -579,104 +576,180 @@ function toggleSkeletons(el, showLoading) {
     } else {
         el.headerSkeleton?.classList.add('hidden');
         el.detailsSkeleton?.classList.add('hidden');
-        
         el.headerRealContent?.classList.remove('hidden');
         el.headerRealContent?.classList.add('animate-fade-in');
-        
         el.detailsContent?.classList.remove('hidden');
         el.detailsContent?.classList.add('animate-fade-in');
     }
 }
 
 /**
- * Gerencia o loop de atualização da imagem
+ * Inicializa a transmissão de vídeo das câmeras com suporte adaptativo:
+ * - 0ms (Modo Instantâneo): Conecta ao Stream MJPEG contínuo direto de alta velocidade
+ * - >= 500ms (0.5s para frente): Ativa a transição suave de fusão óptica (cross-fade) entre quadros
  */
-function startVideoFeed(el, cameraCode) { 
-    if(!el.feed || !el.buffer) return; 
+async function startVideoFeed(el, cameraCode) {
+    const feed = el.feed || document.getElementById('camera-feed');
+    const feedNext = document.getElementById('camera-feed-next');
+    if (!feed) return;
 
-    if (videoInterval) clearInterval(videoInterval); 
-
-    let consecutiveErrors = 0; 
-    let hasShownValidImage = false; 
-    let lastSuccessAt = 0; 
-    
-    // Variável que controla qual imagem será usada como "fundo invisível"
-    let useBufferForNextFrame = true; 
-
-    // Dispara o evento do Google Analytics APENAS UMA VEZ quando a câmera abre,
-    // em vez de disparar a cada 3 segundos (evita spam e bloqueio no GA4)
-    if (window.gtag) { 
-        window.gtag('event', 'camera_view_started', { camera_code: cameraCode }); 
+    if (videoInterval) {
+        clearTimeout(videoInterval);
+        clearInterval(videoInterval);
+        videoInterval = null;
     }
 
-    const updateImage = () => { 
-        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`; 
-        
-        const imgToLoad = useBufferForNextFrame ? el.buffer : el.feed; 
-        const imgCurrentlyVisible = useBufferForNextFrame ? el.feed : el.buffer; 
+    if (window.gtag) {
+        window.gtag('event', 'camera_view_started', { camera_code: cameraCode });
+    }
 
-imgToLoad.onload = () => { 
-            consecutiveErrors = 0; 
-            hasShownValidImage = true; 
-            lastSuccessAt = Date.now(); 
-            
-            if (el.loader) el.loader.classList.add('hidden'); 
-            if (el.error) el.error.classList.add('hidden'); 
-            
-            if (el.subtitle) { 
-                el.subtitle.textContent = "Online"; 
-                el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold"; 
-            } 
+    // 1. Obtém o intervalo configurado no painel administrativo (/api/site-config)
+    let streamIntervalMs = 0;
+    try {
+        const configRes = await fetch('/api/site-config');
+        if (configRes.ok) {
+            const cfg = await configRes.json();
+            if (typeof cfg.cameraStreamIntervalMs === 'number') {
+                streamIntervalMs = cfg.cameraStreamIntervalMs;
+            }
+        }
+    } catch (_) {}
 
-            // 1. A nova imagem aparece imediatamente (fazendo o fade-in por cima)
-            imgToLoad.classList.remove('opacity-0'); 
-
-            // 2. Esperamos a nova imagem aparecer totalmente para esconder a antiga
-            // O tempo de 300ms é o padrão das classes 'duration-300' do Tailwind. 
-            // Se a transição ainda piscar, você pode testar aumentar para 500.
-            setTimeout(() => {
-                imgCurrentlyVisible.classList.add('opacity-0'); 
-            }, 300);
-
-            // Inverte as posições para o próximo ciclo 
-            useBufferForNextFrame = !useBufferForNextFrame; 
+    // Modo 0ms: Conecta diretamente ao fluxo contínuo MJPEG (Velocidade Máxima / Sem transição)
+    if (streamIntervalMs < 500) {
+        feed.onload = () => {
+            if (el.loader) el.loader.classList.add('hidden');
+            if (el.error) {
+                el.error.classList.add('hidden');
+                el.error.classList.remove('flex');
+            }
+            if (el.subtitle) {
+                el.subtitle.textContent = "Online";
+                el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold";
+            }
         };
 
-        imgToLoad.onerror = () => { 
-            consecutiveErrors++; 
+        feed.onerror = () => {
+            if (el.loader) el.loader.classList.add('hidden');
+            if (el.error) {
+                if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Aguardando conexão...';
+                el.error.classList.remove('hidden');
+                el.error.classList.add('flex');
+            }
+            if (el.subtitle) {
+                el.subtitle.textContent = "Sinal Interrompido";
+                el.subtitle.className = "text-red-500 font-bold";
+            }
 
-            const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000); 
-            
-            // Se falhou menos de 3 vezes ou estava OK agorinha, tenta de novo na surdina
-            if (recentlyOk || consecutiveErrors < 3) { 
-                return; 
-            } 
+            setTimeout(() => {
+                if (feed) feed.src = `/stream/camera/${cameraCode}?t=${Date.now()}`;
+            }, 3000);
+        };
 
-            // Se realmente caiu, mostra a imagem de erro
-            if (el.loader) el.loader.classList.add('hidden'); 
-            
-            imgToLoad.src = '/assets/offline.png'; 
-            imgToLoad.classList.remove('opacity-0'); 
-            imgCurrentlyVisible.classList.add('opacity-0'); 
-            useBufferForNextFrame = !useBufferForNextFrame; 
-            
-            if (el.error) { 
-                if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Tentando reconectar...'; 
-                el.error.classList.remove('hidden'); 
-                el.error.classList.add('flex'); 
-            } 
-            if (el.subtitle) { 
-                el.subtitle.textContent = "Sinal Interrompido"; 
-                el.subtitle.className = "text-red-500 font-bold"; 
-            } 
-        }; 
+        feed.src = `/stream/camera/${cameraCode}`;
+        return;
+    }
 
-        // Inicia o carregamento invisível 
-        imgToLoad.src = proxyUrl; 
-    }; 
+    // Modo >= 500ms (0.5s para frente): Transição suave de fusão óptica entre quadros
+    let consecutiveErrors = 0;
+    let hasShownValidImage = false;
+    let lastSuccessAt = 0;
+    let isRequestInFlight = false;
+    let currentActiveImg = feed;
+    let nextInactiveImg = feedNext || feed;
 
-    updateImage(); 
-    videoInterval = setInterval(updateImage, 3000); 
+    const transitionDuration = Math.min(280, Math.floor(streamIntervalMs * 0.45));
+
+    const scheduleNextFrame = (delay = streamIntervalMs) => {
+        if (videoInterval) clearTimeout(videoInterval);
+        videoInterval = setTimeout(updateFrameWithTransition, delay);
+    };
+
+    const updateFrameWithTransition = () => {
+        if (isRequestInFlight) return;
+        if (document.hidden) {
+            scheduleNextFrame(1500);
+            return;
+        }
+
+        isRequestInFlight = true;
+        const proxyUrl = `/proxy/camera/${cameraCode}?t=${Date.now()}`;
+
+        const preloader = new Image();
+
+        preloader.onload = () => {
+            isRequestInFlight = false;
+            consecutiveErrors = 0;
+            hasShownValidImage = true;
+            lastSuccessAt = Date.now();
+
+            if (el.loader) el.loader.classList.add('hidden');
+            if (el.error) {
+                el.error.classList.add('hidden');
+                el.error.classList.remove('flex');
+            }
+            if (el.subtitle) {
+                el.subtitle.textContent = "Online";
+                el.subtitle.className = "text-emerald-600 dark:text-emerald-400 font-bold";
+            }
+
+            if (nextInactiveImg && nextInactiveImg !== currentActiveImg) {
+                // Prepara a imagem nova na camada de cima e faz o cross-fade suave
+                nextInactiveImg.src = proxyUrl;
+                nextInactiveImg.style.zIndex = '12';
+                currentActiveImg.style.zIndex = '11';
+                nextInactiveImg.style.transition = `opacity ${transitionDuration}ms ease-in-out`;
+                nextInactiveImg.style.opacity = '1';
+
+                setTimeout(() => {
+                    // Após a transição, esconde a camada anterior e inverte os buffers
+                    currentActiveImg.style.opacity = '0';
+                    currentActiveImg.style.transition = 'none';
+                    currentActiveImg.style.zIndex = '11';
+
+                    const temp = currentActiveImg;
+                    currentActiveImg = nextInactiveImg;
+                    nextInactiveImg = temp;
+                }, transitionDuration);
+            } else {
+                feed.src = proxyUrl;
+            }
+
+            scheduleNextFrame(streamIntervalMs);
+        };
+
+        preloader.onerror = () => {
+            isRequestInFlight = false;
+            consecutiveErrors++;
+
+            const recentlyOk = hasShownValidImage && (Date.now() - lastSuccessAt < 60000);
+
+            if (recentlyOk || consecutiveErrors < 3) {
+                scheduleNextFrame(2500);
+                return;
+            }
+
+            if (el.loader) el.loader.classList.add('hidden');
+            feed.src = '/assets/offline.png';
+
+            if (el.error) {
+                if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Tentando reconectar...';
+                el.error.classList.remove('hidden');
+                el.error.classList.add('flex');
+            }
+            if (el.subtitle) {
+                el.subtitle.textContent = "Sinal Interrompido";
+                el.subtitle.className = "text-red-500 font-bold";
+            }
+
+            scheduleNextFrame(4000);
+        };
+
+        preloader.src = proxyUrl;
+    };
+
+    // Primeiro disparo
+    updateFrameWithTransition();
 }
 
 /**
@@ -686,25 +759,25 @@ function setupCarousel(allCameras, currentCode) {
     const carouselContainer = document.getElementById('camera-carousel');
     const prevBtn = document.getElementById('carousel-prev');
     const nextBtn = document.getElementById('carousel-next');
-    
+
     if (!carouselContainer) return;
-    
+
     const onlineOthers = allCameras
         .filter(c => c.status === 'online' && c.codigo !== currentCode)
         .sort(() => 0.5 - Math.random());
-        
+
     if (onlineOthers.length === 0) {
         carouselContainer.parentNode.parentNode.style.display = 'none';
         return;
     }
-    
+
     carouselContainer.innerHTML = '';
-    
+
     onlineOthers.slice(0, 15).forEach(cam => {
         const item = document.createElement('a');
         item.href = `/camera/${cam.codigo}`;
         item.className = 'snap-start shrink-0 w-44 sm:w-56 flex flex-col gap-2 rounded-xl group relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-2 hover:shadow-md hover:border-indigo-500/50 transition-all cursor-pointer';
-        item.onclick = function(e) {
+        item.onclick = function (e) {
             if (window.gtag) gtag('event', 'carousel_click', { 'camera_code': cam.codigo });
         };
         item.innerHTML = `
@@ -726,7 +799,7 @@ function setupCarousel(allCameras, currentCode) {
         `;
         carouselContainer.appendChild(item);
     });
-    
+
     if (prevBtn && nextBtn) {
         prevBtn.addEventListener('click', () => {
             carouselContainer.scrollBy({ left: -300, behavior: 'smooth' });
@@ -775,7 +848,7 @@ function setupActionButtons(el, cameraCode, user) {
                 icon.setAttribute('data-lucide', 'maximize');
                 if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
             }
-            if(window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
         });
     }
 
@@ -787,6 +860,36 @@ function setupActionButtons(el, cameraCode, user) {
 
     // 5. Favorite Button
     setupFavoriteButton(el.favoriteBtn, cameraCode, user);
+
+    // 6. Snapshot Capture Buttons
+    const snapshotBtn = document.getElementById('snapshot-btn');
+    const playerSnapshotBtn = document.getElementById('player-snapshot-btn');
+    const handleSnapshot = () => captureCameraSnapshot(cameraCode);
+    if (snapshotBtn) snapshotBtn.addEventListener('click', handleSnapshot);
+    if (playerSnapshotBtn) playerSnapshotBtn.addEventListener('click', handleSnapshot);
+}
+
+function captureCameraSnapshot(cameraCode) {
+    try {
+        const canvas = document.getElementById('camera-canvas');
+        const link = document.createElement('a');
+        link.download = `camrb-${cameraCode}-${Date.now()}.jpg`;
+
+        if (canvas && canvas.toDataURL) {
+            link.href = canvas.toDataURL('image/jpeg', 0.95);
+        } else {
+            link.href = `/proxy/camera/${cameraCode}?t=${Date.now()}`;
+        }
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.showToast?.('📸 Foto da câmera capturada e baixada com sucesso!');
+    } catch (e) {
+        console.error('Erro ao capturar foto:', e);
+        window.showToast?.('Erro ao salvar imagem.', 'error');
+    }
 }
 
 function initCameraTour(user) {
@@ -866,13 +969,13 @@ function initCameraTour(user) {
 function handleErrorState(el, message, critical = false) {
     toggleSkeletons(el, false);
 
-    if(el.title) el.title.textContent = "Erro";
-    if(el.category) el.category.textContent = "-";
-    if(el.description) el.description.textContent = message;
-    
-    if(el.loader) el.loader.classList.add('hidden');
-    if(el.error) {
-        if(el.errorText) el.errorText.textContent = message;
+    if (el.title) el.title.textContent = "Erro";
+    if (el.category) el.category.textContent = "-";
+    if (el.description) el.description.textContent = message;
+
+    if (el.loader) el.loader.classList.add('hidden');
+    if (el.error) {
+        if (el.errorText) el.errorText.textContent = message;
         el.error.classList.remove('hidden');
         el.error.classList.add('flex');
     }
@@ -894,37 +997,37 @@ function setupShareButton(btn, imgElement, cameraCode) {
         };
 
         const originalContent = btn.innerHTML;
-        
+
         // Verifica se é mobile (critério simples: suporte a navigator.share e tela pequena ou touch)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.share && window.innerWidth < 768);
 
         if (isMobile && navigator.share && navigator.canShare) {
-             btn.innerHTML = '<div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>';
-             try {
+            btn.innerHTML = '<div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>';
+            try {
                 if (navigator.canShare(shareData)) {
                     await navigator.share(shareData);
                     if (window.gtag) window.gtag('event', 'camera_share', { camera_code: cameraCode, platform: 'native' });
                 } else {
                     throw new Error('Dados de compartilhamento inválidos');
                 }
-             } catch (err) {
-                 // Se cancelar ou falhar, volta ao normal silenciosamente ou com fallback
-                 console.warn("Compartilhamento nativo cancelado ou falhou:", err);
-             } finally {
-                 btn.innerHTML = originalContent;
-                 if(window.lucide) window.lucide.createIcons();
-             }
+            } catch (err) {
+                // Se cancelar ou falhar, volta ao normal silenciosamente ou com fallback
+                console.warn("Compartilhamento nativo cancelado ou falhou:", err);
+            } finally {
+                btn.innerHTML = originalContent;
+                if (window.lucide) window.lucide.createIcons();
+            }
         } else {
             // Desktop: Copiar para área de transferência
             try {
                 await navigator.clipboard.writeText(shareUrl);
                 btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-500"></i> <span class="text-green-600 font-medium text-sm">Copiado!</span>`;
-                if(window.lucide) window.lucide.createIcons();
+                if (window.lucide) window.lucide.createIcons();
                 if (window.gtag) window.gtag('event', 'camera_share', { camera_code: cameraCode, platform: 'clipboard' });
-                
-                setTimeout(() => { 
-                    btn.innerHTML = originalContent; 
-                    if(window.lucide) window.lucide.createIcons();
+
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    if (window.lucide) window.lucide.createIcons();
                 }, 2000);
             } catch (clipboardErr) {
                 alert('Copie o link do navegador para compartilhar.');
@@ -988,7 +1091,7 @@ function setupEmbedButton(btn, cameraCode) {
  */
 async function setupFavoriteButton(btn, cameraCode, user) {
     if (!btn) return;
-    
+
     // Check initial state
     if (user) {
         try {
@@ -1003,11 +1106,11 @@ async function setupFavoriteButton(btn, cameraCode, user) {
                     btn.classList.remove('text-gray-600', 'dark:text-gray-400');
                     const icon = btn.querySelector('i');
                     const text = btn.querySelector('span');
-                    if(icon) {
+                    if (icon) {
                         icon.setAttribute('fill', 'currentColor');
                         icon.classList.add('fill-amber-500');
                     }
-                    if(text) text.textContent = 'Favorito';
+                    if (text) text.textContent = 'Favorito';
                 }
             }
         } catch (err) {
@@ -1030,19 +1133,19 @@ async function setupFavoriteButton(btn, cameraCode, user) {
         if (isActive) {
             btn.classList.remove('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/20');
             btn.classList.add('text-gray-600', 'dark:text-gray-400');
-            if(icon) {
+            if (icon) {
                 icon.setAttribute('fill', 'none');
                 icon.classList.remove('fill-amber-500');
             }
-            if(text) text.textContent = 'Favoritar';
+            if (text) text.textContent = 'Favoritar';
         } else {
             btn.classList.add('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/20');
             btn.classList.remove('text-gray-600', 'dark:text-gray-400');
-            if(icon) {
+            if (icon) {
                 icon.setAttribute('fill', 'currentColor');
                 icon.classList.add('fill-amber-500');
             }
-            if(text) text.textContent = 'Favorito';
+            if (text) text.textContent = 'Favorito';
         }
 
         try {
@@ -1082,12 +1185,12 @@ function updateMetaTags(camera, title) {
     const description = `Assista agora a câmera ao vivo de ${camera.nome}. ${camera.descricao || 'Monitoramento em tempo real.'}`;
     const imageUrl = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
     const shareUrl = `${location.origin}/camera/${camera.codigo}`;
-    
+
     const setMeta = (selector, attr, value) => {
         let element = document.querySelector(selector);
         if (!element) {
             element = document.createElement('meta');
-            if(selector.includes('property')) {
+            if (selector.includes('property')) {
                 element.setAttribute('property', selector.replace('meta[property="', '').replace('"]', ''));
             } else {
                 element.setAttribute('name', selector.replace('meta[name="', '').replace('"]', ''));
@@ -1376,7 +1479,7 @@ function initTimelapsePlayer(cameraCode, camera) {
                         gifStatus.textContent = `Gerando GIF... ${Math.round(progress * 100)}%`;
                     }
                 }
-            }, function(obj) {
+            }, function (obj) {
                 downloadGifBtn.disabled = false;
                 downloadGifBtn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i><span>Baixar como GIF</span>';
                 if (window.lucide) window.lucide.createIcons();
@@ -1388,7 +1491,7 @@ function initTimelapsePlayer(cameraCode, camera) {
                     }
                     const downloadLink = document.createElement('a');
                     downloadLink.href = obj.image;
-                    downloadLink.download = `timelapse-${cameraCode}-${new Date().toISOString().slice(0,10)}.gif`;
+                    downloadLink.download = `timelapse-${cameraCode}-${new Date().toISOString().slice(0, 10)}.gif`;
                     document.body.appendChild(downloadLink);
                     downloadLink.click();
                     document.body.removeChild(downloadLink);

@@ -15,7 +15,7 @@ services:
       # Persiste as fotos do timelapse gravadas no disco do host
       - ./public/timelapse:/app/public/timelapse
       # Monta a credencial do Firebase de forma segura (somente leitura)
-      - /home/gabv/server/secrets/serviceAccountKey.json:/app/serviceAccountKey.json:ro
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/health"]
       interval: 30s

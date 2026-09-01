@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Recursos & Sistema em Tempo Real - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
+        .progress-bar-fill { transition: width 0.5s ease-in-out; }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Top Admin Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                            <i data-lucide="cpu" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Monitor de Recursos & Sistema
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Consumo de CPU, memória RAM, transmissões ativas de vídeo e métricas de tráfego.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site" class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- Real-time Live Header Status -->
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Atualização em tempo real (a cada 2s)</span>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-mono text-gray-500 dark:text-gray-400">
+                    <span>Uptime do Processo: <strong id="res-process-uptime" class="text-gray-900 dark:text-white">--</strong></span>
+                    <span>Node: <strong id="res-node-version" class="text-gray-900 dark:text-white">--</strong></span>
+                </div>
+            </div>
+
+            <!-- Primary Resource Gauges -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- CPU Usage Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                                <i data-lucide="cpu" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-900 dark:text-white">Uso de CPU</h3>
+                                <p class="text-xs text-gray-500" id="res-cpu-cores">-- Cores</p>
+                            </div>
+                        </div>
+                        <span id="res-cpu-percent" class="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">0%</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div id="res-cpu-bar" class="progress-bar-fill bg-blue-500 h-full rounded-full w-0"></div>
+                    </div>
+
+                    <div class="text-xs text-gray-500 flex justify-between pt-1">
+                        <span>Carga Média (1m, 5m, 15m):</span>
+                        <span id="res-load-avg" class="font-mono text-gray-700 dark:text-gray-300">--</span>
+                    </div>
+                </div>
+
+                <!-- RAM Memory Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl">
+                                <i data-lucide="hard-drive" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-900 dark:text-white">Memória RAM</h3>
+                                <p class="text-xs text-gray-500" id="res-mem-summary">Processo vs Sistema</p>
+                            </div>
+                        </div>
+                        <span id="res-mem-percent" class="text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">0%</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div id="res-mem-bar" class="progress-bar-fill bg-purple-500 h-full rounded-full w-0"></div>
+                    </div>
+
+                    <div class="text-xs text-gray-500 space-y-1 pt-1">
+                        <div class="flex justify-between">
+                            <span>Processo Node (RSS):</span>
+                            <span id="res-process-rss" class="font-mono font-bold text-gray-900 dark:text-white">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Heap Utilizado:</span>
+                            <span id="res-heap-used" class="font-mono text-gray-700 dark:text-gray-300">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Streams Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                                <i data-lucide="video" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-900 dark:text-white">Transmissões MJPEG</h3>
+                                <p class="text-xs text-gray-500">Fluxos de vídeo ao vivo</p>
+                            </div>
+                        </div>
+                        <span id="res-active-streams-count" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">0</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
+                            <div class="text-[10px] uppercase font-bold text-gray-400">Total Visualizadores</div>
+                            <div id="res-total-subscribers" class="text-lg font-black text-gray-900 dark:text-white font-mono">0</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
+                            <div class="text-[10px] uppercase font-bold text-gray-400">Tamanho Timelapse</div>
+                            <div id="res-timelapse-size" class="text-lg font-black text-gray-900 dark:text-white font-mono">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active MJPEG Streams Table -->
+            <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between flex-wrap gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Transmissões ao Vivo Ativas no Servidor</h2>
+                            <p class="text-xs text-gray-500">Câmeras com conexões contínuas abertas</p>
+                        </div>
+                    </div>
+                    <span id="streams-table-badge" class="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold rounded-full text-xs">
+                        0 streams ativos
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 uppercase font-bold text-[10px]">
+                            <tr>
+                                <th class="py-3 px-6">Código</th>
+                                <th class="py-3 px-6">Nome da Câmera</th>
+                                <th class="py-3 px-6">Assinantes Conectados</th>
+                                <th class="py-3 px-6">Tamanho do Frame</th>
+                                <th class="py-3 px-6">Status da Conexão</th>
+                            </tr>
+                        </thead>
+                        <tbody id="streams-table-body" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-gray-400">
+                                    Nenhuma câmera com transmissão ativa no momento.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Server Environment & Storage Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Server Environment Info -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-3 text-xs">
+                    <h3 class="font-bold text-sm text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="server" class="w-4 h-4 text-indigo-500"></i> Informações do Ambiente
+                    </h3>
+                    <div class="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-700/40">
+                        <span class="text-gray-500">Plataforma / Arquitetura:</span>
+                        <span id="res-platform" class="font-mono font-bold text-gray-900 dark:text-white">--</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-700/40">
+                        <span class="text-gray-500">Modelo do Processador:</span>
+                        <span id="res-cpu-model" class="font-mono text-gray-700 dark:text-gray-300">--</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-gray-500">Uptime do Sistema Operacional:</span>
+                        <span id="res-sys-uptime" class="font-mono text-gray-700 dark:text-gray-300">--</span>
+                    </div>
+                </div>
+
+                <!-- Network / Proxy Metrics -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-3 text-xs">
+                    <h3 class="font-bold text-sm text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Métricas do Proxy & Rede
+                    </h3>
+                    <div class="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-700/40">
+                        <span class="text-gray-500">Requisições Proxy com Sucesso:</span>
+                        <span id="res-proxy-success" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">0</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-700/40">
+                        <span class="text-gray-500">Falhas de Conexão com Prefeitura:</span>
+                        <span id="res-proxy-failures" class="font-mono font-bold text-red-500">0</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-gray-500">Visualizações Totais Registradas:</span>
+                        <span id="res-total-views" class="font-mono font-bold text-gray-900 dark:text-white">0</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script de Inicialização -->
+    <script type="module">
+        import { auth } from "/script/firebase-config.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initAuthModal, toggleLoginModal } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        initAuthModal();
+        initFooter();
+
+        let refreshTimer = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            const accessDenied = document.getElementById('access-denied');
+            const contentWrapper = document.getElementById('content-wrapper');
+
+            if (!user) {
+                accessDenied.classList.remove('hidden');
+                contentWrapper.style.display = 'none';
+                return;
+            }
+
+            try {
+                const token = await user.getIdToken();
+                const authRes = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const authData = await authRes.json();
+
+                if (!authData.isAdmin) {
+                    accessDenied.classList.remove('hidden');
+                    contentWrapper.style.display = 'none';
+                    return;
+                }
+
+                // Autenticado como Admin
+                accessDenied.classList.add('hidden');
+                contentWrapper.style.display = 'block';
+
+                setupResourceMonitor(user);
+
+            } catch (err) {
+                console.error("Erro ao autenticar recursos:", err);
+                accessDenied.classList.remove('hidden');
+            }
+        });
+
+        // Logout
+        document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = '/login';
+        });
+
+        document.getElementById('login-trigger')?.addEventListener('click', () => {
+            toggleLoginModal(true);
+        });
+
+        function setupResourceMonitor(user) {
+            let eventSource = null;
+
+            const connectStream = async () => {
+                try {
+                    const token = await user.getIdToken();
+                    if (eventSource) eventSource.close();
+
+                    eventSource = new EventSource(`/api/admin/system-resources/stream?token=${encodeURIComponent(token)}`);
+                    
+                    eventSource.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            renderResources(data);
+                        } catch (_) {}
+                    };
+
+                    eventSource.onerror = () => {
+                        setTimeout(connectStream, 3000);
+                    };
+                } catch (err) {
+                    console.error("Erro ao conectar stream de recursos:", err);
+                }
+            };
+
+            const renderResources = (d) => {
+                if (!d) return;
+
+                // CPU
+                const cpu = d.hardware.cpuPercent || 0;
+                document.getElementById('res-cpu-percent').textContent = `${cpu}%`;
+                document.getElementById('res-cpu-bar').style.width = `${cpu}%`;
+                document.getElementById('res-cpu-cores').textContent = `${d.hardware.cpuCount} Núcleos (${d.hardware.arch})`;
+                if (d.hardware.loadAverage) {
+                    document.getElementById('res-load-avg').textContent = d.hardware.loadAverage.map(n => n.toFixed(2)).join(', ');
+                }
+
+                // RAM
+                const mem = d.memory;
+                const sysPercent = mem.system.usedPercent || 0;
+                document.getElementById('res-mem-percent').textContent = `${sysPercent}%`;
+                document.getElementById('res-mem-bar').style.width = `${sysPercent}%`;
+                document.getElementById('res-mem-summary').textContent = `${mem.system.usedFormatted} de ${mem.system.totalFormatted}`;
+                document.getElementById('res-process-rss').textContent = mem.process.rssFormatted;
+                document.getElementById('res-heap-used').textContent = `${mem.process.heapUsedFormatted} / ${mem.process.heapTotalFormatted}`;
+
+                // Streams
+                const streamData = d.streaming;
+                document.getElementById('res-active-streams-count').textContent = streamData.activeStreamsCount || 0;
+                document.getElementById('res-total-subscribers').textContent = streamData.totalSubscribers || 0;
+                document.getElementById('streams-table-badge').textContent = `${streamData.activeStreamsCount} streams ativos`;
+
+                // Timelapse & Storage
+                document.getElementById('res-timelapse-size').textContent = d.timelapse.totalSizeFormatted || '0 MB';
+
+                // Environment & Uptime
+                document.getElementById('res-process-uptime').textContent = d.uptime.processUptimeFormatted;
+                document.getElementById('res-sys-uptime').textContent = d.uptime.systemUptimeFormatted;
+                document.getElementById('res-node-version').textContent = d.hardware.nodeVersion;
+                document.getElementById('res-platform').textContent = `${d.hardware.platform} (${d.hardware.arch})`;
+                document.getElementById('res-cpu-model').textContent = d.hardware.cpuModel;
+
+                // Network
+                document.getElementById('res-proxy-success').textContent = d.network.proxySuccess.toLocaleString('pt-BR');
+                document.getElementById('res-proxy-failures').textContent = d.network.proxyFailures.toLocaleString('pt-BR');
+                document.getElementById('res-total-views').textContent = d.network.totalViews.toLocaleString('pt-BR');
+
+                // Streams Table
+                const tbody = document.getElementById('streams-table-body');
+                if (streamData.streams && streamData.streams.length > 0) {
+                    tbody.innerHTML = streamData.streams.map(s => `
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td class="py-3 px-6 font-mono font-bold text-indigo-600 dark:text-indigo-400">${s.code}</td>
+                            <td class="py-3 px-6 font-semibold text-gray-900 dark:text-white">${escapeHtml(s.name)}</td>
+                            <td class="py-3 px-6 font-mono">
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold">
+                                    ${s.subscribersCount} visualizadores
+                                </span>
+                            </td>
+                            <td class="py-3 px-6 font-mono text-gray-600 dark:text-gray-300">${s.frameSizeFormatted}</td>
+                            <td class="py-3 px-6">
+                                <span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Transmitindo
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-400">
+                                Nenhuma câmera sendo assistida no momento.
+                            </td>
+                        </tr>
+                    `;
+                }
+            };
+
+            const escapeHtml = (str) => String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
+            connectStream();
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

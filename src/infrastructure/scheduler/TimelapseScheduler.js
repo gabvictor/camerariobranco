@@ -152,6 +152,41 @@ class TimelapseScheduler {
     }
 
     /**
+     * Retorna a lista de todas as câmeras que possuem frames gravados
+     */
+    getAvailableCamerasWithTimelapses() {
+        const list = [];
+        if (!fs.existsSync(this.storageDir)) return list;
+
+        try {
+            const cameraDirs = fs.readdirSync(this.storageDir);
+            for (const code of cameraDirs) {
+                const camDir = path.join(this.storageDir, code);
+                if (!fs.statSync(camDir).isDirectory()) continue;
+
+                const frames = this.getFrames(code);
+                if (frames.length > 0) {
+                    const cam = this.cameraCache.get(code);
+                    list.push({
+                        codigo: code,
+                        nome: cam ? (cam.nome || `Câmera ${code}`) : `Câmera ${code}`,
+                        localizacao: cam ? (cam.localizacao || '') : '',
+                        bairro: cam ? (cam.bairro || '') : '',
+                        status: cam ? cam.status : 'online',
+                        frameCount: frames.length,
+                        latestThumbnail: frames[frames.length - 1].url,
+                        lastUpdated: frames[frames.length - 1].fullLabel
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('[TIMELAPSE_AVAILABLE_ERROR]', e.message);
+        }
+
+        return list;
+    }
+
+    /**
      * Altera o intervalo de captura dinamicamente
      * @param {number} minutes
      */

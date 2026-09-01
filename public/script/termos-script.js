@@ -1,19 +1,18 @@
-
-import { auth } from "./firebase-config.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initAuthModal, initGlobalAuthUI, toggleLoginModal } from "./auth-modal.js";
+import { initAuthModal, initGlobalAuthUI } from "./auth-modal.js";
+import { initFooter } from "./footer-component.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Auth
+    // Initialize Auth UI
     initAuthModal();
     initGlobalAuthUI();
 
-
+    // Initialize Footer
+    initFooter();
 
     // Initialize Lucide icons
     if (window.lucide) window.lucide.createIcons();
 
-    // Theme toggle logic (reuse if possible, or simple implementation)
+    // Theme toggle logic
     const themeBtn = document.getElementById('toggle-theme');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
@@ -35,7 +34,7 @@ async function fetchTermos() {
         const data = await response.json();
         
         if (data.lastUpdated && dateSpan) {
-            dateSpan.textContent = `Última atualização: ${data.lastUpdated}`;
+            dateSpan.textContent = `Versão ${data.version || '3.0'} — Atualizado em ${data.lastUpdated}`;
         }
 
         container.innerHTML = ''; // Clear loader
@@ -43,42 +42,44 @@ async function fetchTermos() {
         let currentList = null;
 
         data.content.forEach(item => {
-            // Handle List Items grouping
             if (item.type === 'listItem') {
                 if (!currentList) {
                     currentList = document.createElement('ul');
-                    currentList.className = "list-disc pl-6 space-y-2 mb-4";
+                    currentList.className = "space-y-3 mb-6 pl-2";
                     container.appendChild(currentList);
                 }
                 const li = document.createElement('li');
+                li.className = "flex items-start gap-2.5 text-sm sm:text-base";
+                
+                const dot = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 flex-shrink-0"></span>`;
                 if (item.boldPrefix) {
-                    li.innerHTML = `<span class="font-semibold text-gray-900 dark:text-white">${item.boldPrefix}</span> ${item.text}`;
+                    li.innerHTML = `${dot}<div><strong class="font-bold text-gray-900 dark:text-white">${item.boldPrefix}</strong> <span class="text-gray-600 dark:text-gray-300">${item.text}</span></div>`;
                 } else {
-                    li.textContent = item.text;
+                    li.innerHTML = `${dot}<span class="text-gray-600 dark:text-gray-300">${item.text}</span>`;
                 }
                 currentList.appendChild(li);
             } else {
-                // If we encounter non-list item, close current list
                 currentList = null;
 
                 if (item.type === 'title') {
                     const h2 = document.createElement('h2');
-                    h2.className = "text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4";
+                    h2.className = "text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white mt-8 mb-3 pb-2 border-b border-gray-100 dark:border-gray-700/80 flex items-center gap-2";
                     h2.textContent = item.text;
                     container.appendChild(h2);
                 } else if (item.type === 'paragraph') {
                     const p = document.createElement('p');
+                    p.className = "text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed mb-4";
                     if (item.boldPrefix) {
-                        p.innerHTML = `<span class="font-semibold text-gray-900 dark:text-white">${item.boldPrefix}</span> ${item.text}`;
+                        p.innerHTML = `<strong class="font-bold text-gray-900 dark:text-white">${item.boldPrefix}</strong> ${item.text}`;
                     } else {
                         p.textContent = item.text;
                     }
                     container.appendChild(p);
-                } else if (item.type === 'date') {
-                    // Already handled in header, but can add here if needed
                 }
             }
         });
+
+        if (window.lucide) window.lucide.createIcons();
 
     } catch (error) {
         console.error(error);

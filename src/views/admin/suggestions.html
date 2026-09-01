@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Sugestões e Mensagens - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #content-wrapper { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Top Admin Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                            <i data-lucide="inbox" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Sugestões e Mensagens
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Mensagens enviadas por usuários através da página de contato e sugestões.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site" class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                    <span id="tab-suggestions-badge" class="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black hidden">0</span>
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Mensagens</div>
+                    <div id="stat-total" class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-1">0</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-indigo-200 dark:border-indigo-800/40 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <span>💡 Novas Câmeras</span>
+                    </div>
+                    <div id="stat-novas-cameras" class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">0</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-red-200 dark:border-red-800/40 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <span>⚠️ Problemas</span>
+                    </div>
+                    <div id="stat-problemas" class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400 mt-1">0</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-amber-200 dark:border-amber-800/40 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <span>⏳ Pendentes</span>
+                    </div>
+                    <div id="stat-pendentes" class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">0</div>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button data-filter="all" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm">
+                        Todas
+                    </button>
+                    <button data-filter="pendente" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        Pendentes
+                    </button>
+                    <button data-filter="sugestao_camera" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        💡 Novas Câmeras
+                    </button>
+                    <button data-filter="reportar_problema" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        ⚠️ Problemas
+                    </button>
+                    <button data-filter="resolvido" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        ✅ Resolvidas
+                    </button>
+                </div>
+
+                <button id="btn-refresh" class="px-3.5 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-indigo-600 hover:text-white text-gray-700 dark:text-gray-300 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Atualizar</span>
+                </button>
+            </div>
+
+            <!-- Suggestions List -->
+            <div id="suggestions-container" class="space-y-4">
+                <!-- Skeleton Loading -->
+                <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 animate-pulse h-28"></div>
+            </div>
+
+            <div id="global-footer"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { auth } from "/script/firebase-config.js";
+        import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        let allSuggestions = [];
+        let currentFilter = 'all';
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initAuthModal();
+            initFooter();
+            if (window.lucide) window.lucide.createIcons();
+
+            const themeBtn = document.getElementById('toggle-theme');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', () => {
+                    if (window.toggleTheme) window.toggleTheme();
+                });
+            }
+
+            const logoutBtn = document.getElementById('nav-logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    await signOut(auth);
+                    await fetch('/api/auth/session-logout', { method: 'POST' });
+                    window.location.href = '/';
+                });
+            }
+
+            document.getElementById('login-trigger')?.addEventListener('click', () => toggleLoginModal(true));
+
+            // Auth check with Firebase
+            onAuthStateChanged(auth, async (user) => {
+                let isAdmin = false;
+                if (user) {
+                    isAdmin = await syncAdminSession(user);
+                }
+
+                if (user && isAdmin) {
+                    currentUser = user;
+                    document.getElementById('access-denied').classList.add('hidden');
+                    document.getElementById('content-wrapper').style.display = 'block';
+                    loadSuggestions();
+                } else if (user) {
+                    document.getElementById('content-wrapper').style.display = 'none';
+                    document.getElementById('access-denied').classList.remove('hidden');
+                    document.getElementById('access-denied').querySelector('p').textContent = "Você não tem permissão de administrador.";
+                } else {
+                    document.getElementById('content-wrapper').style.display = 'none';
+                    document.getElementById('access-denied').classList.remove('hidden');
+                    toggleLoginModal(true);
+                }
+            });
+
+            // Refresh Button
+            document.getElementById('btn-refresh')?.addEventListener('click', loadSuggestions);
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => {
+                        b.className = 'filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
+                    });
+                    btn.className = 'filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm';
+                    currentFilter = btn.getAttribute('data-filter');
+                    renderSuggestions();
+                });
+            });
+        });
+
+        async function loadSuggestions() {
+            const container = document.getElementById('suggestions-container');
+            if (!container) return;
+
+            try {
+                const token = currentUser ? await currentUser.getIdToken() : '';
+                const res = await fetch('/api/suggestions', {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (!res.ok) throw new Error('Falha ao carregar');
+                allSuggestions = await res.json();
+                updateStats();
+                renderSuggestions();
+            } catch (err) {
+                container.innerHTML = `
+                    <div class="p-8 text-center bg-red-50 dark:bg-red-900/20 text-red-600 rounded-2xl">
+                        <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                        <p class="font-bold">Erro ao carregar mensagens do banco de dados.</p>
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function updateStats() {
+            const total = allSuggestions.length;
+            const novas = allSuggestions.filter(s => s.tipo === 'sugestao_camera' || s.tipo === 'sugestao').length;
+            const problemas = allSuggestions.filter(s => s.tipo === 'reportar_problema' || s.tipo === 'problema').length;
+            const pendentes = allSuggestions.filter(s => s.status === 'pendente' || !s.status).length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-novas-cameras').textContent = novas;
+            document.getElementById('stat-problemas').textContent = problemas;
+            document.getElementById('stat-pendentes').textContent = pendentes;
+
+            const badge = document.getElementById('tab-suggestions-badge');
+            if (badge && pendentes > 0) {
+                badge.textContent = pendentes;
+                badge.classList.remove('hidden');
+            }
+        }
+
+        function renderSuggestions() {
+            const container = document.getElementById('suggestions-container');
+            if (!container) return;
+
+            let filtered = allSuggestions;
+            if (currentFilter === 'pendente') {
+                filtered = allSuggestions.filter(s => s.status === 'pendente' || !s.status);
+            } else if (currentFilter === 'resolvido') {
+                filtered = allSuggestions.filter(s => s.status === 'resolvido');
+            } else if (currentFilter === 'sugestao_camera') {
+                filtered = allSuggestions.filter(s => s.tipo === 'sugestao_camera' || s.tipo === 'sugestao');
+            } else if (currentFilter === 'reportar_problema') {
+                filtered = allSuggestions.filter(s => s.tipo === 'reportar_problema' || s.tipo === 'problema');
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="p-12 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700/80 text-gray-500 dark:text-gray-400">
+                        <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-3 opacity-40"></i>
+                        <h3 class="text-base font-bold text-gray-800 dark:text-gray-200">Nenhuma mensagem nesta visualização</h3>
+                        <p class="text-xs mt-1">Todas as sugestões foram atendidas ou arquivadas.</p>
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = '';
+            filtered.forEach(s => {
+                const card = document.createElement('div');
+                const isPendente = s.status === 'pendente' || !s.status;
+                const isResolvido = s.status === 'resolvido';
+
+                let tipoBadge = '<span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">💡 Nova Câmera</span>';
+                if (s.tipo === 'reportar_problema' || s.tipo === 'problema') {
+                    tipoBadge = '<span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠️ Problema</span>';
+                } else if (s.tipo === 'parceria') {
+                    tipoBadge = '<span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">🤝 Parceria</span>';
+                } else if (s.tipo === 'duvida_outro' || s.tipo === 'outro') {
+                    tipoBadge = '<span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">❓ Dúvida</span>';
+                }
+
+                card.className = `p-6 bg-white dark:bg-gray-800 rounded-3xl border ${isPendente ? 'border-amber-300 dark:border-amber-800/80 shadow-md' : 'border-gray-200 dark:border-gray-700/80 shadow-sm'} transition-all`;
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                ${tipoBadge}
+                                <span class="text-xs text-gray-400 font-medium">${s.createdAtFormatted || 'Recente'}</span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isResolvido ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}">
+                                    ${s.status || 'Pendente'}
+                                </span>
+                            </div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                                ${s.nome || 'Anônimo'} ${s.email ? `<span class="text-xs font-normal text-gray-500 dark:text-gray-400">(${s.email})</span>` : ''}
+                            </h3>
+                            ${s.cameraOuLocal ? `<div class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5">📍 Local: ${s.cameraOuLocal}</div>` : ''}
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${s.email ? `
+                                <a href="mailto:${s.email}?subject=Retorno sobre sugestão no CamRB" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-indigo-600 hover:text-white text-gray-700 dark:text-gray-200 text-xs font-bold transition-colors" title="Responder por E-mail">
+                                    <i data-lucide="mail" class="w-4 h-4"></i>
+                                </a>
+                            ` : ''}
+                            <button data-action="status" data-id="${s.id}" data-newstatus="${isResolvido ? 'pendente' : 'resolvido'}" class="px-3 py-2 rounded-xl ${isResolvido ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-600 hover:text-white' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white'} text-xs font-bold transition-colors flex items-center gap-1.5">
+                                <i data-lucide="${isResolvido ? 'rotate-ccw' : 'check'}" class="w-3.5 h-3.5"></i>
+                                <span>${isResolvido ? 'Reabrir' : 'Marcar Resolvido'}</span>
+                            </button>
+                            <button data-action="delete" data-id="${s.id}" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 transition-colors" title="Excluir mensagem">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mensagem Body -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/40 text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap border border-gray-100 dark:border-gray-700/50">
+                        ${s.mensagem}
+                    </div>
+                `;
+
+                // Action Listeners
+                card.querySelector('button[data-action="status"]')?.addEventListener('click', async (e) => {
+                    const btn = e.currentTarget;
+                    const id = btn.getAttribute('data-id');
+                    const newStatus = btn.getAttribute('data-newstatus');
+                    btn.disabled = true;
+                    try {
+                        const token = currentUser ? await currentUser.getIdToken() : '';
+                        await fetch(`/api/suggestion/${id}/status`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        await loadSuggestions();
+                    } catch (err) {
+                        alert('Erro ao atualizar status.');
+                    }
+                });
+
+                card.querySelector('button[data-action="delete"]')?.addEventListener('click', async (e) => {
+                    if (!confirm('Tem certeza que deseja excluir esta mensagem?')) return;
+                    const btn = e.currentTarget;
+                    const id = btn.getAttribute('data-id');
+                    btn.disabled = true;
+                    try {
+                        const token = currentUser ? await currentUser.getIdToken() : '';
+                        await fetch(`/api/suggestion/${id}`, {
+                            method: 'DELETE',
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
+                        await loadSuggestions();
+                    } catch (err) {
+                        alert('Erro ao excluir mensagem.');
+                    }
+                });
+
+                container.appendChild(card);
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

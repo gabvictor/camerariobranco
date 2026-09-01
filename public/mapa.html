@@ -7,11 +7,14 @@
 
     <link rel="icon" href="/assets/icone.png" type="image/png">
     <link rel="apple-touch-icon" href="/assets/icone.png">
+    <link rel="manifest" href="/manifest.json">
 
     <title>Mapa Interativo de Câmeras - Rio Branco | CamRB</title>
     <meta name="description"
         content="🗺️ Mapa em Tempo Real: Encontre câmeras de trânsito e segurança em Rio Branco. Visualize todos os pontos de monitoramento no mapa interativo agora.">
     <meta name="robots" content="index, follow">
+    <meta name="google-adsense-account" content="ca-pub-3587198600314787">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3587198600314787" crossorigin="anonymous"></script>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -45,11 +48,12 @@
         gtag('config', 'G-Y6B72KFF66');
     </script>
 
-    <link rel="stylesheet" href="/css/output.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css">
+    <link rel="stylesheet" href="/css/output.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/global.css">
-    <script src="/script/theme.js"></script>
+    <link rel="stylesheet" href="/css/global.css?v=2">
+    <script src="/script/theme.js?v=2"></script>
     <style>
         body,
         html {
@@ -140,52 +144,87 @@
 
 <body class="relative bg-gray-50 dark:bg-gray-900 overflow-hidden">
     <div id="map-wrapper" class="relative w-full h-full">
-        <!-- Floating Header -->
-        <header class="absolute top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto md:min-w-[320px] z-[1000] pointer-events-none">
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-2 sm:gap-4 pointer-events-auto border border-gray-200 dark:border-gray-700 transition-colors overflow-hidden min-w-0">
-                <a href="/" title="Voltar para Início"
-                    class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-700 dark:text-gray-200">
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                </a>
-                <div class="flex-1 min-w-0">
-                    <h1 class="font-bold text-gray-900 dark:text-white text-sm leading-tight truncate">CamRB</h1>
-                    <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rio Branco - AC</p>
+        <!-- ─── Top Navigation Bar ─────────────────────────────── -->
+        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-sm">
+            <div class="container mx-auto px-4">
+                <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
+                    <!-- Brand + Navigation Links -->
+                    <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+                        <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
+                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
+                                <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                            </div>
+                            <div class="leading-tight">
+                                <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</div>
+                                <div class="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-gray-500 -mt-0.5 hidden xs:block">Rio Branco • AC</div>
+                            </div>
+                        </a>
+
+                        <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
+                        <nav class="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                            <a href="/rio" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
+                                <span>Rio Acre</span>
+                            </a>
+                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
+                                <span>Timelapses</span>
+                            </a>
+                            <a href="/mapa" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
+                                <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
+                                <span>Mapa</span>
+                            </a>
+                            <a href="/sobre" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
+                                <span>Sobre</span>
+                            </a>
+                        </nav>
+                    </div>
+
+                    <!-- Right Controls -->
+                    <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                        <button id="nav-changelog-btn" title="Novidades"
+                            class="relative p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            <i data-lucide="bell" class="w-4 h-4 text-amber-500"></i>
+                            <span id="changelog-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                        </button>
+
+                        <button id="start-tour-btn" title="Guia / Ajuda"
+                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-blue-500"></i>
+                        </button>
+
+                        <button id="toggle-theme" title="Alternar tema"
+                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
+                            <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
+                        </button>
+
+                        <!-- Logged Out: Entrar Button -->
+                        <button id="login-btn" class="logged-out-only hidden px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer">
+                            Entrar
+                        </button>
+
+                        <!-- Admin Dashboard Button -->
+                        <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
+                            class="admin-only hidden px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
+                            <span class="hidden sm:inline">Painel</span>
+                        </a>
+
+                        <!-- Logged In: Perfil Link & Logout Button -->
+                        <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
+                            class="logged-in-only hidden px-2.5 sm:px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                            <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                            <span class="hidden sm:inline">Perfil</span>
+                        </a>
+
+                        <button id="logout-btn" title="Sair da conta"
+                            class="logged-in-only hidden p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
-
-                <div id="weather-widget" style="display: none;" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 animate-fade-in"></div>
-                
-                <!-- Auth Controls -->
-                <button id="map-login-btn" title="Entrar" class="logged-out-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400">
-                    <i data-lucide="log-in" class="w-5 h-5"></i>
-                </button>
-                <a href="/perfil" id="map-profile-btn" title="Meu Perfil" class="logged-in-only hidden flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
-                    <i data-lucide="user" class="w-5 h-5"></i>
-                </a>
-                <button id="map-logout-btn" title="Sair" class="logged-in-only hidden flex-shrink-0 p-2 rounded-xl transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
-
-                <!-- Changelog -->
-                <button id="nav-changelog-btn" title="Novidades" class="relative flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    <span id="changelog-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full hidden"></span>
-                </button>
-
-                <!-- Theme Toggle -->
-                <button id="map-theme-toggle" class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
-                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
-                </button>
-                
-                <a href="/dashboard" title="Dashboard"
-                    class="admin-only flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400" style="display:none">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                </a>
-
-                <a href="/sobre" title="Sobre Nós"
-                    class="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-600 dark:text-gray-300">
-                    <i data-lucide="info" class="w-5 h-5"></i>
-                </a>
             </div>
         </header>
 
@@ -236,46 +275,29 @@
              </button>
         </div>
 
-        <!-- Bottom Navigation (Mobile) -->
-        <nav
-            class="bottom-nav sm:hidden fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[1001] flex justify-around items-center pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-            <a href="/"
-                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Início</span>
+        <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[1001] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
+            <a href="/" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="home" class="w-5 h-5 text-indigo-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Início</span>
             </a>
-            <a href="/mapa"
-                class="nav-item active flex flex-col items-center p-2 text-indigo-600 dark:text-indigo-400">
-                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Mapa</span>
+            <a href="/rio" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="waves" class="w-5 h-5 text-blue-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Rio Acre</span>
             </a>
-            <a href="https://github.com/gabvictor/CamRB/releases" target="_blank" class="app-banner-controlled nav-item relative group -top-5">
-                <div
-                    class="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-600/30 border-4 border-gray-50 dark:border-gray-900 transform group-hover:-translate-y-1 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg>
+            <a href="/?busca=1" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+                <div class="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="search" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
                 </div>
-                <span
-                    class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">App</span>
+                <span class="text-[10px] font-semibold mt-0.5">Busca</span>
             </a>
-            <a href="/#search-input"
-                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                <i data-lucide="search" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Buscar</span>
+            <a href="/timelapses" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="clock" class="w-5 h-5 text-purple-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Timelapses</span>
             </a>
-            <a href="/perfil"
-                class="nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Perfil</span>
-            </a>
-            <a href="/admin"
-                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
-                <i data-lucide="lock" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Admin</span>
-            </a>
-            <a href="/dashboard"
-                class="admin-only nav-item flex flex-col items-center p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" style="display:none">
-                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>
-                <span class="text-[10px] font-medium">Dash</span>
+            <a href="/mapa" class="nav-item active flex flex-col items-center justify-center p-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 font-bold flex-1 text-center min-h-[48px]">
+                <i data-lucide="map" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+                <span class="text-[10px] mt-0.5">Mapa</span>
             </a>
         </nav>
     </div>
@@ -283,20 +305,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-
-    <script type="module" src="/script/mapa-script.js"></script>
-    <script>
-        // Fetch site config to toggle app banner visibility
-        (async function() {
-            try {
-                const response = await fetch('/api/site-config');
-                const config = await response.json();
-                if (config.showAppBanner === false) {
-                    document.querySelectorAll('.app-banner-controlled').forEach(el => el.style.display = 'none');
-                }
-            } catch (e) { console.error('Error loading config', e); }
-        })();
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <script type="module" src="/script/mapa-script.js?v=2"></script>
     <script type="module">
         import { initChangelog } from '/script/changelog.js';
         document.addEventListener('DOMContentLoaded', () => {

@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /api/
 
 Sitemap: https://camerasriobranco.com.br/sitemap.xml

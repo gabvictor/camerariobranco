@@ -1,4 +1,5 @@
 import { initAuthModal, initGlobalAuthUI } from "./auth-modal.js";
+import { initFooter } from "./footer-component.js";
 
 const fmtTime = (ms) => {
     const s = Math.floor(ms / 1000);
@@ -40,9 +41,10 @@ async function loadHealth() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Auth
+    // Initialize Auth & Footer
     initAuthModal();
     initGlobalAuthUI();
+    initFooter();
 
     // Theme Toggle
     const themeToggleBtn = $('toggle-theme');

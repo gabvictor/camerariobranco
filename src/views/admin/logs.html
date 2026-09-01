@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Logs do Sistema em Tempo Real - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+        .log-row:hover { background-color: rgba(99, 102, 241, 0.05); }
+        .dark .log-row:hover { background-color: rgba(99, 102, 241, 0.1); }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Top Admin Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                            <i data-lucide="terminal" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Logs do Servidor
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Monitoramento estruturado de eventos, streams MJPEG, requisições proxy e sistema.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site" class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-300">
+                        <i data-lucide="list" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase font-bold text-gray-400">Total Logs</div>
+                        <div id="stat-total" class="text-lg font-black text-gray-900 dark:text-white">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase font-bold text-blue-500">Info</div>
+                        <div id="stat-info" class="text-lg font-black text-gray-900 dark:text-white">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-amber-50 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase font-bold text-amber-500">Alertas</div>
+                        <div id="stat-warn" class="text-lg font-black text-gray-900 dark:text-white">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-red-50 dark:bg-red-900/30 rounded-xl text-red-600 dark:text-red-400">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase font-bold text-red-500">Erros</div>
+                        <div id="stat-error" class="text-lg font-black text-gray-900 dark:text-white">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1">
+                    <div class="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                        <i data-lucide="video" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase font-bold text-emerald-500">Streams</div>
+                        <div id="stat-stream" class="text-lg font-black text-gray-900 dark:text-white">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls & Filters Toolbar -->
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Filter Level Buttons -->
+                    <button class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm" data-level="ALL">Todos</button>
+                    <button class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" data-level="INFO">Info</button>
+                    <button class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" data-level="STREAM">Streams</button>
+                    <button class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" data-level="WARN">Alertas</button>
+                    <button class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" data-level="ERROR">Erros</button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 flex-grow sm:flex-grow-0">
+                    <!-- Search Input -->
+                    <div class="relative flex-grow sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <input type="text" id="log-search-input" placeholder="Buscar nos logs..." class="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Auto Refresh -->
+                    <select id="auto-refresh-select" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none">
+                        <option value="2000" selected>Auto-atualizar (2s)</option>
+                        <option value="5000">Auto-atualizar (5s)</option>
+                        <option value="10000">Auto-atualizar (10s)</option>
+                        <option value="0">Pausar</option>
+                    </select>
+
+                    <!-- Action Buttons -->
+                    <button id="refresh-logs-btn" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors" title="Atualizar agora">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                    <button id="download-logs-btn" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors" title="Baixar Logs (.json)">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <button id="clear-logs-btn" class="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-red-200 dark:border-red-800" title="Limpar buffer de logs">
+                        Limpar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal / Logs Stream View -->
+            <div class="bg-gray-900 text-gray-100 rounded-2xl shadow-xl border border-gray-800 overflow-hidden">
+                <!-- Terminal Header Bar -->
+                <div class="flex items-center justify-between px-4 py-3 bg-gray-950 border-b border-gray-800 text-xs text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                        </div>
+                        <span class="font-mono text-gray-300 font-bold ml-2">Console de Logs em Tempo Real</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="live-indicator" class="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> AO VIVO
+                        </span>
+                        <span id="logs-count-badge" class="px-2 py-0.5 bg-gray-800 rounded text-gray-300 font-mono text-[11px]">0 entradas</span>
+                    </div>
+                </div>
+
+                <!-- Log Entries List -->
+                <div id="logs-container" class="p-4 space-y-1 font-mono text-xs max-h-[600px] overflow-y-auto custom-scrollbar">
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        Carregando logs do servidor...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script de Inicialização -->
+    <script type="module">
+        import { auth } from "/script/firebase-config.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initAuthModal, toggleLoginModal } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        initAuthModal();
+        initFooter();
+
+        let currentLevel = 'ALL';
+        let refreshTimer = null;
+        let cachedLogs = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            const accessDenied = document.getElementById('access-denied');
+            const contentWrapper = document.getElementById('content-wrapper');
+
+            if (!user) {
+                accessDenied.classList.remove('hidden');
+                contentWrapper.style.display = 'none';
+                return;
+            }
+
+            try {
+                const token = await user.getIdToken();
+                const authRes = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const authData = await authRes.json();
+
+                if (!authData.isAdmin) {
+                    accessDenied.classList.remove('hidden');
+                    contentWrapper.style.display = 'none';
+                    return;
+                }
+
+                // Autenticado com sucesso como Admin
+                accessDenied.classList.add('hidden');
+                contentWrapper.style.display = 'block';
+
+                setupLogsUI(user);
+
+            } catch (err) {
+                console.error("Erro ao validar sessão de admin:", err);
+                accessDenied.classList.remove('hidden');
+            }
+        });
+
+        // Logout
+        document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = '/login';
+        });
+
+        document.getElementById('login-trigger')?.addEventListener('click', () => {
+            toggleLoginModal(true);
+        });
+
+        function setupLogsUI(user) {
+            const container = document.getElementById('logs-container');
+            const searchInput = document.getElementById('log-search-input');
+            const refreshBtn = document.getElementById('refresh-logs-btn');
+            const clearBtn = document.getElementById('clear-logs-btn');
+            const downloadBtn = document.getElementById('download-logs-btn');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            let eventSource = null;
+
+            const renderStats = (stats) => {
+                if (!stats) return;
+                document.getElementById('stat-total').textContent = stats.total || 0;
+                document.getElementById('stat-info').textContent = stats.info || 0;
+                document.getElementById('stat-warn').textContent = stats.warn || 0;
+                document.getElementById('stat-error').textContent = stats.error || 0;
+                document.getElementById('stat-stream').textContent = stats.stream || 0;
+                document.getElementById('logs-count-badge').textContent = `${cachedLogs.length} entradas`;
+            };
+
+            const renderFilteredLogs = () => {
+                let filtered = [...cachedLogs];
+                if (currentLevel !== 'ALL') {
+                    filtered = filtered.filter(l => l.level === currentLevel);
+                }
+
+                const q = searchInput.value.trim().toLowerCase();
+                if (q) {
+                    filtered = filtered.filter(l => 
+                        l.message.toLowerCase().includes(q) ||
+                        l.category.toLowerCase().includes(q) ||
+                        (l.meta && JSON.stringify(l.meta).toLowerCase().includes(q))
+                    );
+                }
+
+                renderLogs(filtered);
+            };
+
+            const renderLogs = (logs) => {
+                if (!logs || logs.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12 text-gray-500">
+                            <i data-lucide="terminal" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                            Nenhum log registrado ou correspondente aos filtros.
+                        </div>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
+                    return;
+                }
+
+                container.innerHTML = logs.map(l => {
+                    let levelBadge = '';
+                    let textColor = 'text-gray-300';
+
+                    switch (l.level) {
+                        case 'ERROR':
+                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/60 font-bold">ERROR</span>';
+                            textColor = 'text-red-300';
+                            break;
+                        case 'WARN':
+                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/60 font-bold">WARN</span>';
+                            textColor = 'text-amber-200';
+                            break;
+                        case 'STREAM':
+                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold">STREAM</span>';
+                            textColor = 'text-emerald-200';
+                            break;
+                        default:
+                            levelBadge = '<span class="px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60 font-bold">INFO</span>';
+                            textColor = 'text-gray-300';
+                    }
+
+                    const metaStr = l.meta ? `<span class="text-gray-500 ml-2">${escapeHtml(JSON.stringify(l.meta))}</span>` : '';
+
+                    return `
+                        <div class="log-row flex items-start gap-2 py-1 px-2 rounded transition-colors border-l-2 ${l.level === 'ERROR' ? 'border-red-500' : l.level === 'WARN' ? 'border-amber-500' : l.level === 'STREAM' ? 'border-emerald-500' : 'border-transparent'}">
+                            <span class="text-gray-500 shrink-0 select-none">[${l.timeFormatted}]</span>
+                            <span class="shrink-0">${levelBadge}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-gray-800 text-indigo-300 text-[10px] font-semibold shrink-0 select-none">${escapeHtml(l.category)}</span>
+                            <span class="${textColor} break-all flex-grow">${escapeHtml(l.message)}${metaStr}</span>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            const escapeHtml = (str) => String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
+            const connectLogsStream = async () => {
+                try {
+                    const token = await user.getIdToken();
+                    if (eventSource) eventSource.close();
+
+                    eventSource = new EventSource(`/api/admin/logs/stream?token=${encodeURIComponent(token)}`);
+
+                    eventSource.addEventListener('init', (e) => {
+                        try {
+                            const data = JSON.parse(e.data);
+                            cachedLogs = data.logs || [];
+                            renderFilteredLogs();
+                            renderStats(data.stats);
+                        } catch (err) {
+                            console.error("Erro no init do stream de logs:", err);
+                        }
+                    });
+
+                    eventSource.addEventListener('log', (e) => {
+                        try {
+                            const data = JSON.parse(e.data);
+                            if (data.entry) {
+                                cachedLogs.unshift(data.entry);
+                                if (cachedLogs.length > 1000) cachedLogs.pop();
+                                renderFilteredLogs();
+                            }
+                            if (data.stats) renderStats(data.stats);
+                        } catch (err) {
+                            console.error("Erro no evento de log:", err);
+                        }
+                    });
+
+                    eventSource.onerror = () => {
+                        setTimeout(connectLogsStream, 3000);
+                    };
+
+                } catch (err) {
+                    console.error("Erro ao iniciar stream de logs:", err);
+                }
+            };
+
+            // Filter button clicks
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white');
+                        b.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    });
+                    btn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    btn.classList.add('bg-indigo-600', 'text-white');
+
+                    currentLevel = btn.dataset.level;
+                    renderFilteredLogs();
+                });
+            });
+
+            // Search input filter
+            searchInput.addEventListener('input', renderFilteredLogs);
+
+            // Manual Reconnect / Refresh
+            refreshBtn.addEventListener('click', connectLogsStream);
+
+            // Clear logs
+            clearBtn.addEventListener('click', async () => {
+                if (!confirm('Deseja limpar todo o histórico de logs em memória do servidor?')) return;
+                try {
+                    const token = await user.getIdToken();
+                    await fetch('/api/admin/logs', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    cachedLogs = [];
+                    renderFilteredLogs();
+                } catch (e) { console.error(e); }
+            });
+
+            // Download logs
+            downloadBtn.addEventListener('click', () => {
+                if (cachedLogs.length === 0) return;
+                const blob = new Blob([JSON.stringify(cachedLogs, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `logs-camrb-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            connectLogsStream();
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

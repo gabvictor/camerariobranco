@@ -27,6 +27,8 @@ class CameraController {
         this.updateCameraInfo  = this.updateCameraInfo.bind(this);
         this.getRioAcre               = this.getRioAcre.bind(this);
         this.getTimelapse             = this.getTimelapse.bind(this);
+        this.getAvailableTimelapses   = this.getAvailableTimelapses.bind(this);
+        this.submitContactSuggestion  = this.submitContactSuggestion.bind(this);
         this.getTimelapseAdminStats   = this.getTimelapseAdminStats.bind(this);
         this.updateTimelapseConfig    = this.updateTimelapseConfig.bind(this);
         this.captureTimelapseNow      = this.captureTimelapseNow.bind(this);
@@ -64,6 +66,50 @@ class CameraController {
         const frames = this._timelapseScheduler.getFrames(code);
         res.setHeader('Cache-Control', 'public, max-age=60');
         res.json(frames);
+    }
+
+    /** GET /api/timelapses-available */
+    getAvailableTimelapses(req, res) {
+        if (!this._timelapseScheduler) {
+            return res.json([]);
+        }
+        const cameras = this._timelapseScheduler.getAvailableCamerasWithTimelapses();
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.json(cameras);
+    }
+
+    /** POST /api/contact */
+    async submitContactSuggestion(req, res) {
+        try {
+            const { tipo, nome, email, mensagem, cameraOuLocal } = req.body || {};
+
+            if (!mensagem || typeof mensagem !== 'string' || mensagem.trim().length < 5) {
+                return res.status(400).json({ error: 'Por favor, forneça uma mensagem válida com pelo menos 5 caracteres.' });
+            }
+
+            if (mensagem.length > 3000) {
+                return res.status(400).json({ error: 'A mensagem é muito longa (máximo 3000 caracteres).' });
+            }
+
+            const cleanData = {
+                tipo: (tipo || 'sugestao').slice(0, 50),
+                nome: (nome || 'Anônimo').slice(0, 100),
+                email: (email || '').slice(0, 150),
+                cameraOuLocal: (cameraOuLocal || '').slice(0, 200),
+                mensagem: mensagem.trim(),
+                createdAt: new Date(),
+                status: 'pendente'
+            };
+
+            if (this._db) {
+                await this._db.collection('suggestions').add(cleanData);
+            }
+
+            return res.status(201).json({ success: true, message: 'Mensagem enviada com sucesso! Obrigado pela sua contribuição.' });
+        } catch (error) {
+            console.error('[CONTACT_SUBMIT_ERROR]', error);
+            return res.status(500).json({ error: 'Falha ao salvar sua mensagem. Tente novamente mais tarde.' });
+        }
     }
 
     /** GET /api/timelapse-admin/stats */
@@ -134,8 +180,13 @@ class CameraController {
     /** POST /api/track-visit */
     async trackVisitRoute(req, res) {
         try {
+            const rawCookie = req.headers.cookie || '';
+            if (rawCookie.includes('camrb_visited_today=1')) {
+                return res.status(200).json({ status: 'already_tracked' });
+            }
             await this.trackVisit.execute();
-            res.status(200).send();
+            res.setHeader('Set-Cookie', 'camrb_visited_today=1; Path=/; Max-Age=86400; SameSite=Lax');
+            res.status(200).json({ status: 'tracked' });
         } catch { res.status(500).send(); }
     }
 
@@ -155,25 +206,56 @@ class CameraController {
 
     /** GET /api/site-config */
     getSiteConfig(req, res) {
-        res.json(this._siteConfig || { showAppBanner: true });
+        res.setHeader('Cache-Control', 'no-store');
+        res.json({
+            showAppBanner: true,
+            cameraStreamIntervalMs: this.getStreamIntervalMs(),
+            ...(this._siteConfig || {})
+        });
     }
 
     /** POST /api/site-config */
     async updateSiteConfig(req, res) {
         try {
-            const newConfig = req.body;
-            if (typeof newConfig.showAppBanner !== 'boolean') {
-                return res.status(400).json({ message: 'Parâmetros inválidos.' });
+            const newConfig = req.body || {};
+            const updates = {};
+
+            if (typeof newConfig.showAppBanner === 'boolean') {
+                updates.showAppBanner = newConfig.showAppBanner;
             }
-            this._siteConfig = { ...(this._siteConfig || {}), ...newConfig };
-            await this._db.collection('site_config').doc('global').set(this._siteConfig, { merge: true });
-            res.json({ success: true, config: this._siteConfig });
-        } catch { res.status(500).json({ message: 'Erro ao salvar configuração.' }); }
+
+            if (newConfig.cameraStreamIntervalMs !== undefined) {
+                const interval = parseInt(newConfig.cameraStreamIntervalMs, 10);
+                if (isNaN(interval) || interval < 0 || interval > 60000) {
+                    return res.status(400).json({ message: 'Intervalo de câmera inválido (0 a 60.000 ms).' });
+                }
+                updates.cameraStreamIntervalMs = interval;
+            }
+
+            if (Object.keys(updates).length === 0) {
+                return res.status(400).json({ message: 'Nenhum parâmetro válido fornecido.' });
+            }
+
+            this._siteConfig = { ...(this._siteConfig || {}), ...updates };
+            if (this._db) {
+                await this._db.collection('site_config').doc('global').set(this._siteConfig, { merge: true });
+            }
+            res.json({ success: true, config: this._siteConfig, message: 'Configurações atualizadas com sucesso!' });
+        } catch (err) {
+            console.error('[SITE_CONFIG_UPDATE_ERROR]', err);
+            res.status(500).json({ message: 'Erro ao salvar configuração.' });
+        }
     }
 
     /** Injeta db para operações de config (chamado no bootstrap) */
     setDb(db) { this._db = db; return this; }
-    setSiteConfig(cfg) { this._siteConfig = cfg; return this; }
+    setSiteConfig(cfg) { this._siteConfig = cfg || {}; return this; }
+    getStreamIntervalMs() {
+        if (this._siteConfig && typeof this._siteConfig.cameraStreamIntervalMs === 'number') {
+            return this._siteConfig.cameraStreamIntervalMs;
+        }
+        return 0; // Padrão 0ms (velocidade máxima)
+    }
 
     /** POST /api/update-camera-info */
     async updateCameraInfo(req, res) {

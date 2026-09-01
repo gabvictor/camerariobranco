@@ -12,32 +12,63 @@ import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs
 
 export let ADMIN_EMAIL = "";
 
-// Fetch config immediately
-fetch('/api/config')
-    .then(res => res.json())
-    .then(data => {
-        ADMIN_EMAIL = data.adminEmail;
-        if (auth.currentUser) {
-             checkAdminStatus(auth.currentUser);
-        }
-    })
-    .catch(err => console.error("Error fetching config:", err));
-
-const checkAdminStatus = (user) => {
-    const adminElements = document.querySelectorAll('.admin-only');
-    const userEmail = user && user.email ? user.email.toLowerCase().trim() : '';
-    const targetAdminEmail = ADMIN_EMAIL ? ADMIN_EMAIL.toLowerCase().trim() : '';
-    
-    const isAdmin = user && targetAdminEmail && userEmail === targetAdminEmail;
-
-    // Proteção AdSense: Adiciona/Remove classe no body
-    if (isAdmin) {
-        document.body.classList.add('is-admin');
-        // console.log("🔒 Modo Admin Ativo: Anúncios ocultos para prevenir cliques inválidos.");
-    } else {
-        document.body.classList.remove('is-admin');
+export const syncAdminSession = async (user) => {
+    if (!user) {
+        try {
+            await fetch('/api/auth/session-logout', { method: 'POST' });
+        } catch (_) {}
+        return false;
     }
 
+    try {
+        const idToken = await user.getIdToken();
+        const meRes = await fetch('/api/auth/me', {
+            headers: { Authorization: `Bearer ${idToken}` }
+        });
+        const meData = await meRes.json();
+        
+        if (meData.isAdmin) {
+            // Cria cookie de sessão para permitir navegação pelas páginas /admin, /dashboard
+            await fetch('/api/auth/session-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken })
+            });
+        }
+        return meData.isAdmin;
+    } catch (e) {
+        console.warn('Erro ao sincronizar sessão de admin:', e);
+        return false;
+    }
+};
+
+const checkAdminStatus = async (user) => {
+    let isAdmin = false;
+    if (user) {
+        isAdmin = await syncAdminSession(user);
+    }
+
+    if (isAdmin) {
+        document.body.classList.add('is-admin');
+        
+        // Se houver botão de perfil na navbar e nenhum botão admin estático, cria um dinâmico
+        const navProfileBtn = document.getElementById('nav-profile-btn');
+        if (navProfileBtn && !document.getElementById('dynamic-admin-nav-btn') && !document.getElementById('nav-admin-btn')) {
+            const adminBtn = document.createElement('a');
+            adminBtn.id = 'dynamic-admin-nav-btn';
+            adminBtn.href = '/dashboard';
+            adminBtn.title = 'Painel Administrativo';
+            adminBtn.className = 'admin-only px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm';
+            adminBtn.innerHTML = `<i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-500"></i><span class="hidden sm:inline">Painel</span>`;
+            navProfileBtn.parentNode.insertBefore(adminBtn, navProfileBtn);
+            if (window.lucide) window.lucide.createIcons();
+        }
+    } else {
+        document.body.classList.remove('is-admin');
+        document.getElementById('dynamic-admin-nav-btn')?.remove();
+    }
+
+    const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
         if (isAdmin) {
             el.classList.remove('hidden');
@@ -47,24 +78,43 @@ const checkAdminStatus = (user) => {
             el.style.display = 'none';
         }
     });
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 };
 
 export const initGlobalAuthUI = () => {
+    // 0. Pre-apply cached auth state immediately to eliminate delay and layout shift
+    const cachedState = localStorage.getItem('camrb_auth_cached');
+    const loggedInElements = document.querySelectorAll('.logged-in-only');
+    const loggedOutElements = document.querySelectorAll('.logged-out-only');
+
+    if (cachedState === 'logged_in') {
+        loggedInElements.forEach(el => el.classList.remove('hidden'));
+        loggedOutElements.forEach(el => el.classList.add('hidden'));
+    } else {
+        loggedInElements.forEach(el => el.classList.add('hidden'));
+        loggedOutElements.forEach(el => el.classList.remove('hidden'));
+    }
+
     // 1. Setup Auth State UI Changes
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
+        localStorage.setItem('camrb_auth_cached', user ? 'logged_in' : 'logged_out');
+
         // Toggle Admin Elements
-        checkAdminStatus(user);
+        await checkAdminStatus(user);
 
         // Toggle Login/Logout Elements
-        const loggedInElements = document.querySelectorAll('.logged-in-only');
-        const loggedOutElements = document.querySelectorAll('.logged-out-only');
+        const curLoggedIn = document.querySelectorAll('.logged-in-only');
+        const curLoggedOut = document.querySelectorAll('.logged-out-only');
 
-        loggedInElements.forEach(el => {
+        curLoggedIn.forEach(el => {
             if (user) el.classList.remove('hidden');
             else el.classList.add('hidden');
         });
 
-        loggedOutElements.forEach(el => {
+        curLoggedOut.forEach(el => {
             if (!user) el.classList.remove('hidden');
             else el.classList.add('hidden');
         });
@@ -78,11 +128,8 @@ export const initGlobalAuthUI = () => {
     // 2. Setup Interaction Listeners (Auto-bind buttons)
     const setupListeners = () => {
         // Login Buttons
-        const loginSelectors = ['#nav-login-btn', '#map-login-btn', '#login-btn', '#banner-login-btn'];
-        document.querySelectorAll(loginSelectors.join(',')).forEach(btn => {
-            if(btn.dataset.authListenerAttached) return;
-            btn.dataset.authListenerAttached = 'true';
-            
+        const loginBtns = document.querySelectorAll('#login-btn, #nav-login-btn, #banner-login-btn, #mobile-login-btn, .trigger-login-modal, #profile-login-btn');
+        loginBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleLoginModal(true);
@@ -90,31 +137,11 @@ export const initGlobalAuthUI = () => {
         });
 
         // Logout Buttons
-        const logoutSelectors = ['#nav-logout-btn', '#map-logout-btn', '#logout-btn'];
-        document.querySelectorAll(logoutSelectors.join(',')).forEach(btn => {
-            if(btn.dataset.authListenerAttached) return;
-            btn.dataset.authListenerAttached = 'true';
-
-            btn.addEventListener('click', (e) => {
+        const logoutBtns = document.querySelectorAll('#logout-btn, #nav-logout-btn, #logout-btn-card');
+        logoutBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                signOut(auth).then(() => {
-                    // console.log('User signed out');
-                }).catch((error) => {
-                    console.error('Sign out error', error);
-                });
-            });
-        });
-
-        // Profile Links (Intercept)
-        document.querySelectorAll('a[href="/perfil"]').forEach(link => {
-            if(link.dataset.authListenerAttached) return;
-            link.dataset.authListenerAttached = 'true';
-
-            link.addEventListener('click', (e) => {
-                if (!auth.currentUser) {
-                    e.preventDefault();
-                    toggleLoginModal(true);
-                }
+                await logoutUser();
             });
         });
     };
@@ -126,171 +153,154 @@ export const initGlobalAuthUI = () => {
     }
 };
 
-// The HTML content of the modal
 const MODAL_HTML = `
-<div id="login-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-  <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity backdrop-blur-sm" id="modal-backdrop"></div>
-  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-      <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100 dark:border-gray-700">
-        <button id="close-modal-btn" class="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors z-20 text-gray-400">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-        
-        <div class="px-6 py-8 sm:px-8">
-          <div class="text-center">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 mb-6">
-              <i data-lucide="user-circle-2" class="h-8 w-8 text-indigo-600 dark:text-indigo-400"></i>
-            </div>
-            
-            <h3 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white mb-2" id="modal-title">Bem-vindo!</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-8 max-w-xs mx-auto" id="modal-desc">
-              Faça login para salvar câmeras favoritas e personalizar sua experiência.
-            </p>
+<div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
+  <!-- Backdrop click to close -->
+  <div class="absolute inset-0" id="modal-backdrop"></div>
+  
+  <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 overflow-hidden transform scale-95 transition-all duration-300 border border-gray-100 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+    <!-- Close Button -->
+    <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
 
-            <!-- Google Login -->
-            <button id="google-login-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm mb-6 group">
-              <svg class="w-5 h-5" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              <span class="group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Continuar com Google</span>
-            </button>
-            
-            <div class="relative flex items-center py-2 mb-6">
-                <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                <span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase tracking-wider">Ou continue com email</span>
-                <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-            </div>
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+        <i data-lucide="video" class="w-6 h-6"></i>
+      </div>
+      <h3 id="modal-title" class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Bem-vindo de volta!</h3>
+      <p id="modal-desc" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Faça login para salvar câmeras favoritas e personalizar sua experiência.</p>
+    </div>
 
-            <form id="login-form" class="space-y-4 text-left">
-              
-              <!-- Nickname (Only for Register) -->
-              <div id="nickname-field" class="hidden">
-                <label for="nickname" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apelido (Nickname)</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="user" class="h-5 w-5 text-gray-400"></i>
-                  </div>
-                  <input type="text" name="nickname" id="nickname" 
-                    class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
-                    placeholder="Como quer ser chamado?">
-                </div>
-              </div>
+    <!-- Google Login -->
+    <button id="google-login-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm mb-6 group">
+      <svg class="w-5 h-5" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+      </svg>
+      <span class="group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Continuar com Google</span>
+    </button>
+    
+    <div class="relative flex items-center py-2 mb-6">
+        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+        <span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase tracking-wider">Ou continue com email</span>
+        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+    </div>
 
-              <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="mail" class="h-5 w-5 text-gray-400"></i>
-                  </div>
-                  <input type="email" name="email" id="email" required
-                    class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
-                    placeholder="seu@email.com">
-                </div>
-              </div>
-
-              <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="lock" class="h-5 w-5 text-gray-400"></i>
-                  </div>
-                  <input type="password" name="password" id="password" required
-                    class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
-                    placeholder="Sua senha">
-                  <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none" tabindex="-1">
-                    <i data-lucide="eye" class="h-5 w-5 block"></i>
-                    <i data-lucide="eye-off" class="h-5 w-5 hidden"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Confirm Password (Only for Register) -->
-              <div id="confirm-password-field" class="hidden">
-                <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Senha</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="lock-keyhole" class="h-5 w-5 text-gray-400"></i>
-                  </div>
-                  <input type="password" name="confirm-password" id="confirm-password" 
-                    class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
-                    placeholder="Digite a senha novamente">
-                  <button type="button" id="toggle-confirm-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none" tabindex="-1">
-                    <i data-lucide="eye" class="h-5 w-5 block"></i>
-                    <i data-lucide="eye-off" class="h-5 w-5 hidden"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Terms Checkbox (Only for Register) -->
-              <div id="terms-field" class="hidden flex items-start">
-                <div class="flex items-center h-5">
-                  <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
-                </div>
-                <div class="ml-3 text-sm">
-                  <label for="terms" class="font-medium text-gray-700 dark:text-gray-300">Eu concordo com os <a href="/termos.html" target="_blank" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Termos de Uso</a> e Política de Privacidade.</label>
-                </div>
-              </div>
-
-              <div id="login-error" class="hidden text-red-500 text-xs text-left bg-red-50 dark:bg-red-900/20 p-3 rounded-lg flex items-center gap-2">
-                <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
-                <span id="login-error-msg"></span>
-              </div>
-
-              <button type="submit" id="submit-btn"
-                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                Entrar
-              </button>
-            </form>
-            
-            <div class="mt-6 text-sm">
-                <button id="toggle-auth-mode" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold focus:outline-none hover:underline transition-all">
-                    Não tem conta? Cadastre-se
-                </button>
-            </div>
+    <form id="login-form" class="space-y-4 text-left">
+      
+      <!-- Nickname (Only for Register) -->
+      <div id="nickname-field" class="hidden">
+        <label for="nickname" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apelido (Nickname)</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="user" class="h-5 w-5 text-gray-400"></i>
           </div>
+          <input type="text" name="nickname" id="nickname" 
+            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+            placeholder="Como quer ser chamado?">
         </div>
       </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="mail" class="h-5 w-5 text-gray-400"></i>
+          </div>
+          <input type="email" name="email" id="email" required
+            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+            placeholder="seu@email.com">
+        </div>
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="lock" class="h-5 w-5 text-gray-400"></i>
+          </div>
+          <input type="password" name="password" id="password" required
+            class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+            placeholder="Sua senha">
+          <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none" tabindex="-1">
+            <i data-lucide="eye" class="h-5 w-5 block"></i>
+            <i data-lucide="eye-off" class="h-5 w-5 hidden"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirm Password (Only for Register) -->
+      <div id="confirm-password-field" class="hidden">
+        <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Senha</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="lock-keyhole" class="h-5 w-5 text-gray-400"></i>
+          </div>
+          <input type="password" name="confirm-password" id="confirm-password" 
+            class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+            placeholder="Digite a senha novamente">
+          <button type="button" id="toggle-confirm-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer focus:outline-none" tabindex="-1">
+            <i data-lucide="eye" class="h-5 w-5 block"></i>
+            <i data-lucide="eye-off" class="h-5 w-5 hidden"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Terms Checkbox (Only for Register) -->
+      <div id="terms-field" class="hidden flex items-start">
+        <div class="flex items-center h-5">
+          <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="terms" class="font-medium text-gray-700 dark:text-gray-300">Eu concordo com os <a href="/termos.html" target="_blank" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Termos de Uso</a> e Política de Privacidade.</label>
+        </div>
+      </div>
+
+      <div id="login-error" class="hidden text-red-500 text-xs text-left bg-red-50 dark:bg-red-900/20 p-3 rounded-lg flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+        <span id="login-error-msg"></span>
+      </div>
+
+      <button type="submit" id="submit-btn"
+        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+        Entrar
+      </button>
+    </form>
+    
+    <div class="mt-6 text-sm">
+        <button id="toggle-auth-mode" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold focus:outline-none hover:underline transition-all">
+            Não tem conta? Cadastre-se
+        </button>
     </div>
+
   </div>
 </div>
 `;
 
 let isLoginMode = true;
 
-export function toggleLoginModal(show) {
-    const loginModal = document.getElementById('login-modal');
-    if (!loginModal) return;
-    
+export function toggleLoginModal(show = true) {
+    let modal = document.getElementById('login-modal');
+    if (!modal) {
+        initAuthModal();
+        modal = document.getElementById('login-modal');
+    }
+
     if (show) {
-        // Reset to login mode when opening
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.querySelector('.relative').classList.remove('scale-95');
+        modal.querySelector('.relative').classList.add('scale-100');
+        // Reset to Login Mode by default when opened
         setAuthMode(true);
-        loginModal.classList.remove('hidden');
-        setTimeout(() => {
-            const container = loginModal.querySelector('.transform');
-            if(container) {
-                container.classList.add('transition-all', 'duration-300');
-                container.classList.remove('opacity-0', 'scale-95');
-                container.classList.add('opacity-100', 'scale-100');
-            }
-        }, 10);
     } else {
-        const container = loginModal.querySelector('.transform');
-        if(container) {
-            container.classList.remove('opacity-100', 'scale-100');
-            container.classList.add('opacity-0', 'scale-95');
-        }
-        setTimeout(() => {
-            loginModal.classList.add('hidden');
-            // Clear errors and inputs when closing
-            const form = document.getElementById('login-form');
-            if (form) form.reset();
-            const errorDiv = document.getElementById('login-error');
-            if (errorDiv) errorDiv.classList.add('hidden');
-        }, 300);
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.querySelector('.relative').classList.add('scale-95');
+        modal.querySelector('.relative').classList.remove('scale-100');
     }
 }
 
@@ -349,7 +359,6 @@ function setAuthMode(isLogin) {
 }
 
 export function initAuthModal() {
-    // Inject Modal HTML if not present
     if (!document.getElementById('login-modal')) {
         document.body.insertAdjacentHTML('beforeend', MODAL_HTML);
         if (window.lucide) window.lucide.createIcons();
@@ -364,22 +373,15 @@ export function initAuthModal() {
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => toggleLoginModal(false));
     if (modalBackdrop) modalBackdrop.addEventListener('click', () => toggleLoginModal(false));
 
-    // Password Toggle Logic
     const setupPasswordToggle = (btnId, inputId) => {
         const btn = document.getElementById(btnId);
         const input = document.getElementById(inputId);
         if(btn && input) {
              btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent focus loss if possible, though type=button handles it mostly
+                e.preventDefault();
                 const isPassword = input.type === 'password';
                 input.type = isPassword ? 'text' : 'password';
                 
-                // Toggle icons
-                // Note: Lucide replaces <i> with <svg>, so we target the svg children if present, or the original structure if not replaced yet.
-                // But since createIcons runs on init, they should be SVGs.
-                // However, since we might re-inject HTML, we need to be robust.
-                
-                // Simple class toggle on children
                 Array.from(btn.children).forEach(child => {
                     if (child.classList.contains('block')) {
                         child.classList.remove('block');
@@ -391,7 +393,7 @@ export function initAuthModal() {
                 });
             });
         }
-    }
+    };
 
     setupPasswordToggle('toggle-password', 'password');
     setupPasswordToggle('toggle-confirm-password', 'confirm-password');
@@ -405,19 +407,20 @@ export function initAuthModal() {
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
-            
-            // If new user via Google, create Firestore doc
-            // We check if it's a new user by checking creation time or just setDoc with merge
             const user = result.user;
             const userRef = doc(db, 'userData', user.uid);
             await setDoc(userRef, {
                 email: user.email,
                 lastLoginAt: serverTimestamp(),
-                // Only set these if they don't exist
             }, { merge: true });
 
+            const isAdmin = await syncAdminSession(user);
             toggleLoginModal(false);
-            // Optional: reload or update UI
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+            if (redirect && redirect.startsWith('/') && (isAdmin || !redirect.startsWith('/admin'))) {
+                window.location.href = redirect;
+            }
         } catch (error) {
             console.error("Google Login Error:", error);
             showLoginError("Erro ao entrar com Google. Tente novamente.");
@@ -428,9 +431,6 @@ export function initAuthModal() {
         e.preventDefault();
         
         const submitBtn = document.getElementById('submit-btn');
-        const originalBtnText = submitBtn ? submitBtn.textContent : 'Entrar';
-        
-        // Set Loading State
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = `
@@ -446,11 +446,11 @@ export function initAuthModal() {
         const password = loginForm.password.value;
         
         try {
+            let user;
             if (isLoginMode) {
-                // LOGIN
-                await signInWithEmailAndPassword(auth, email, password);
+                const res = await signInWithEmailAndPassword(auth, email, password);
+                user = res.user;
             } else {
-                // REGISTRATION
                 const nickname = document.getElementById('nickname').value.trim();
                 const confirmPassword = document.getElementById('confirm-password').value;
                 const terms = document.getElementById('terms').checked;
@@ -470,26 +470,27 @@ export function initAuthModal() {
                     return;
                 }
 
-                // Create Auth User
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
+                user = userCredential.user;
 
-                // Update Profile
-                await updateProfile(user, {
-                    displayName: nickname
-                });
-
-                // Create Firestore Document
+                await updateProfile(user, { displayName: nickname });
                 await setDoc(doc(db, 'userData', user.uid), {
                     email: email,
-                    nickname: nickname, // Save nickname in Firestore too for easy access
+                    nickname: nickname,
                     createdAt: serverTimestamp(),
                     favoriteCameras: []
                 });
             }
             
+            const isAdmin = await syncAdminSession(user);
             toggleLoginModal(false);
             loginForm.reset();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+            if (redirect && redirect.startsWith('/') && (isAdmin || !redirect.startsWith('/admin'))) {
+                window.location.href = redirect;
+            }
         } catch (error) {
             console.error("Auth Error:", error);
             let msg = isLoginMode ? "Erro ao fazer login." : "Erro ao criar conta.";
@@ -509,12 +510,6 @@ export function initAuthModal() {
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                // We don't restore text immediately if successful because modal closes, 
-                // but if we want to be safe for re-opening or error cases:
-                
-                // If it was successful, modal closes and resets anyway via toggleLoginModal logic (which might need to reset text too)
-                // But setAuthMode is called on open, which sets the correct text.
-                // So here we can just set it back to what it should be based on mode.
                 submitBtn.textContent = isLoginMode ? "Entrar" : "Cadastrar";
             }
         }
@@ -532,6 +527,7 @@ function showLoginError(msg) {
 
 export async function logoutUser() {
     try {
+        await syncAdminSession(null);
         await signOut(auth);
         window.location.reload();
     } catch (error) {
