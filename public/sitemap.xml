@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Página Inicial -->
+  <url>
+    <loc>https://camerasriobranco.com.br/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://camerasriobranco.com.br/assets/camrb.png</image:loc>
+      <image:title>Câmeras ao Vivo de Rio Branco - CamRB</image:title>
+      <image:caption>Monitoramento de trânsito e segurança em tempo real em Rio Branco, Acre</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Nível do Rio Acre -->
+  <url>
+    <loc>https://camerasriobranco.com.br/rio</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://camerasriobranco.com.br/proxy/camera/001426</image:loc>
+      <image:title>Câmera ao Vivo da Ponte Metálica e Nível do Rio Acre</image:title>
+      <image:caption>Telemetria oficial e monitoramento em tempo real do nível do Rio Acre em Rio Branco</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Mapa Interativo de Câmeras -->
+  <url>
+    <loc>https://camerasriobranco.com.br/mapa</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://camerasriobranco.com.br/assets/camrb.png</image:loc>
+      <image:title>Mapa Interativo de Câmeras de Trânsito em Rio Branco</image:title>
+    </image:image>
+  </url>
+
+  <!-- Galeria de Timelapses 24h -->
+  <url>
+    <loc>https://camerasriobranco.com.br/timelapses</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://camerasriobranco.com.br/proxy/camera/001426</image:loc>
+      <image:title>Timelapses de 24h das Câmeras de Rio Branco</image:title>
+    </image:image>
+  </url>
+
+  <!-- Sobre o Projeto -->
+  <url>
+    <loc>https://camerasriobranco.com.br/sobre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Novidades e Versões -->
+  <url>
+    <loc>https://camerasriobranco.com.br/novidades</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Contato e Sugestões -->
+  <url>
+    <loc>https://camerasriobranco.com.br/contato</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Termos de Uso e Privacidade -->
+  <url>
+    <loc>https://camerasriobranco.com.br/termos</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

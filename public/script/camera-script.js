@@ -1284,6 +1284,9 @@ let timelapseInterval = null;
 let timelapseFrames = [];
 let currentFrameIndex = 0;
 let isPlayingTimelapse = false;
+let timelapseTimeout = null;
+let timelapseLoadToken = 0;
+const timelapseImageCache = new Map();
 
 function initTimelapsePlayer(cameraCode, camera) {
     const modalBtn = document.getElementById('timelapse-modal-btn');
@@ -1310,6 +1313,136 @@ function initTimelapsePlayer(cameraCode, camera) {
         cameraTitleEl.textContent = `${camera.nome} (${cameraCode})`;
     }
 
+    const getPreloadedImg = (url) => {
+        if (!url) return null;
+        let img = timelapseImageCache.get(url);
+        if (!img) {
+            img = new Image();
+            img.src = url;
+            timelapseImageCache.set(url, img);
+        }
+        return img;
+    };
+
+    const preloadUpcoming = (fromIndex, count = 15) => {
+        if (!timelapseFrames || !timelapseFrames.length) return;
+        const total = timelapseFrames.length;
+        for (let i = 1; i <= count; i++) {
+            const targetIdx = (fromIndex + i) % total;
+            const frame = timelapseFrames[targetIdx];
+            if (frame && frame.url) {
+                getPreloadedImg(frame.url);
+            }
+        }
+    };
+
+    const updateUI = (frame, index) => {
+        if (timeBadge) timeBadge.textContent = frame.timeFormatted;
+        if (frameCounter) frameCounter.textContent = `${index + 1}/${timelapseFrames.length}`;
+        if (fullLabel) fullLabel.textContent = frame.fullLabel || `${frame.dateFormatted} às ${frame.timeFormatted}`;
+        if (slider) slider.value = String(index);
+    };
+
+    const scheduleNext = () => {
+        if (timelapseTimeout) clearTimeout(timelapseTimeout);
+        if (!isPlayingTimelapse) return;
+
+        const speed = parseInt(speedSelect?.value || '350', 10);
+        timelapseTimeout = setTimeout(() => {
+            if (!isPlayingTimelapse) return;
+            renderFrame(currentFrameIndex + 1, true);
+        }, speed);
+    };
+
+    /**
+     * Espera a imagem carregar antes de trocar no player e antes de avançar,
+     * exatamente como no fluxo normal da câmera.
+     */
+    const renderFrame = (index, isAutoPlay = false) => {
+        if (!timelapseFrames || !timelapseFrames.length) return;
+
+        let targetIdx = index;
+        if (isAutoPlay) {
+            if (targetIdx >= timelapseFrames.length) {
+                targetIdx = 0; // Loop contínuo
+            } else if (targetIdx < 0) {
+                targetIdx = timelapseFrames.length - 1;
+            }
+        } else {
+            targetIdx = Math.max(0, Math.min(targetIdx, timelapseFrames.length - 1));
+        }
+
+        const frame = timelapseFrames[targetIdx];
+        if (!frame) return;
+
+        const token = ++timelapseLoadToken;
+        const preloader = getPreloadedImg(frame.url);
+
+        // Se já está na memória:
+        if (preloader.complete && preloader.naturalWidth > 0) {
+            currentFrameIndex = targetIdx;
+            if (imageEl) imageEl.src = frame.url;
+            updateUI(frame, currentFrameIndex);
+            preloadUpcoming(currentFrameIndex);
+
+            if (isAutoPlay && isPlayingTimelapse) {
+                scheduleNext();
+            }
+            return;
+        }
+
+        // Se ainda está baixando: aguarda o onload para renderizar e avançar
+        preloader.onload = () => {
+            if (token !== timelapseLoadToken) return;
+            currentFrameIndex = targetIdx;
+            if (imageEl) imageEl.src = frame.url;
+            updateUI(frame, currentFrameIndex);
+            preloadUpcoming(currentFrameIndex);
+
+            if (isAutoPlay && isPlayingTimelapse) {
+                scheduleNext();
+            }
+        };
+
+        preloader.onerror = () => {
+            if (token !== timelapseLoadToken) return;
+            console.warn(`[Timelapse Modal] Falha ao carregar frame ${targetIdx}: ${frame.url}`);
+            if (isAutoPlay && isPlayingTimelapse) {
+                setTimeout(() => {
+                    if (token === timelapseLoadToken && isPlayingTimelapse) {
+                        renderFrame(targetIdx + 1, true);
+                    }
+                }, 150);
+            }
+        };
+    };
+
+    const togglePlay = (start) => {
+        if (start && timelapseFrames.length > 1) {
+            isPlayingTimelapse = true;
+            if (playBtn) {
+                playBtn.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i><span>Pausar</span>';
+                playBtn.classList.replace('bg-purple-600', 'bg-amber-600');
+                playBtn.classList.replace('hover:bg-purple-700', 'hover:bg-amber-700');
+            }
+            if (window.lucide) window.lucide.createIcons();
+            renderFrame(currentFrameIndex + 1, true);
+        } else {
+            isPlayingTimelapse = false;
+            timelapseLoadToken++; // Invalida qualquer imagem pendente
+            if (timelapseTimeout) {
+                clearTimeout(timelapseTimeout);
+                timelapseTimeout = null;
+            }
+            if (playBtn) {
+                playBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i><span>Reproduzir</span>';
+                playBtn.classList.replace('bg-amber-600', 'bg-purple-600');
+                playBtn.classList.replace('hover:bg-amber-700', 'hover:bg-purple-700');
+            }
+            if (window.lucide) window.lucide.createIcons();
+        }
+    };
+
     const openModal = async () => {
         modal.classList.remove('hidden');
         setTimeout(() => {
@@ -1319,6 +1452,7 @@ function initTimelapsePlayer(cameraCode, camera) {
         }, 10);
 
         if (loader) loader.classList.remove('hidden');
+        timelapseImageCache.clear();
 
         try {
             const res = await fetch(`/api/timelapse/${cameraCode}`);
@@ -1348,7 +1482,8 @@ function initTimelapsePlayer(cameraCode, camera) {
                 endTimeEl.textContent = timelapseFrames[timelapseFrames.length - 1].timeFormatted;
             }
 
-            renderFrame(currentFrameIndex);
+            renderFrame(currentFrameIndex, false);
+            preloadUpcoming(currentFrameIndex, 20);
         } catch (e) {
             console.error('Erro ao carregar timelapse:', e);
             if (fullLabel) fullLabel.textContent = 'Erro ao carregar frames do timelapse.';
@@ -1368,49 +1503,6 @@ function initTimelapsePlayer(cameraCode, camera) {
         }, 300);
     };
 
-    const renderFrame = (index) => {
-        if (!timelapseFrames[index]) return;
-        const frame = timelapseFrames[index];
-        imageEl.src = frame.url;
-        if (timeBadge) timeBadge.textContent = frame.timeFormatted;
-        if (frameCounter) frameCounter.textContent = `${index + 1}/${timelapseFrames.length}`;
-        if (fullLabel) fullLabel.textContent = frame.fullLabel || `${frame.dateFormatted} às ${frame.timeFormatted}`;
-        slider.value = String(index);
-    };
-
-    const togglePlay = (start) => {
-        if (start && timelapseFrames.length > 1) {
-            isPlayingTimelapse = true;
-            if (playBtn) {
-                playBtn.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i><span>Pausar</span>';
-                playBtn.classList.replace('bg-purple-600', 'bg-amber-600');
-                playBtn.classList.replace('hover:bg-purple-700', 'hover:bg-amber-700');
-            }
-            if (window.lucide) window.lucide.createIcons();
-
-            const speed = parseInt(speedSelect?.value || '350', 10);
-            timelapseInterval = setInterval(() => {
-                currentFrameIndex++;
-                if (currentFrameIndex >= timelapseFrames.length) {
-                    currentFrameIndex = 0;
-                }
-                renderFrame(currentFrameIndex);
-            }, speed);
-        } else {
-            isPlayingTimelapse = false;
-            if (timelapseInterval) {
-                clearInterval(timelapseInterval);
-                timelapseInterval = null;
-            }
-            if (playBtn) {
-                playBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i><span>Reproduzir</span>';
-                playBtn.classList.replace('bg-amber-600', 'bg-purple-600');
-                playBtn.classList.replace('hover:bg-amber-700', 'hover:bg-purple-700');
-            }
-            if (window.lucide) window.lucide.createIcons();
-        }
-    };
-
     // Event Listeners
     modalBtn.onclick = openModal;
     closeBtn.onclick = closeModal;
@@ -1426,8 +1518,14 @@ function initTimelapsePlayer(cameraCode, camera) {
 
     slider.oninput = (e) => {
         if (isPlayingTimelapse) togglePlay(false);
-        currentFrameIndex = parseInt(e.target.value, 10);
-        renderFrame(currentFrameIndex);
+        const targetIdx = parseInt(e.target.value, 10);
+        const preview = timelapseFrames[targetIdx];
+        if (preview) {
+            if (timeBadge) timeBadge.textContent = preview.timeFormatted;
+            if (frameCounter) frameCounter.textContent = `${targetIdx + 1}/${timelapseFrames.length}`;
+            if (fullLabel) fullLabel.textContent = preview.fullLabel || `${preview.dateFormatted} às ${preview.timeFormatted}`;
+        }
+        renderFrame(targetIdx, false);
     };
 
     if (playBtn) {
@@ -1439,8 +1537,7 @@ function initTimelapsePlayer(cameraCode, camera) {
     if (speedSelect) {
         speedSelect.onchange = () => {
             if (isPlayingTimelapse) {
-                togglePlay(false);
-                togglePlay(true);
+                scheduleNext();
             }
         };
     }

@@ -24,6 +24,20 @@ const CONFIG = require('./src/config/appConfig');
 const { tarpit, verifyAdminPageSession, isUserAdmin, parseCookies } = require('./src/middlewares/security');
 const { getRioBrancoDateStr } = require('./src/utils/dateUtils');
 
+const escapeXml = (unsafe) => {
+    if (!unsafe) return '';
+    return String(unsafe).replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+            default: return c;
+        }
+    });
+};
+
 // Repositories (Infrastructure)
 const FirebaseCameraRepository = require('./src/infrastructure/database/FirebaseCameraRepository');
 const FirebaseReportRepository = require('./src/infrastructure/database/FirebaseReportRepository');
@@ -267,51 +281,101 @@ const serveCameraPage = (req, res) => {
     html = html.replace('<head>', `<head>\n    <base href="${baseUrl}/">`);
 
     const camera = cameraCache.findByCode(code) || cameraRepo.getCached().find(c => c.codigo === code);
-    if (camera?.level === 3) return res.redirect('/');
+    if (camera?.level === 3) return res.redirect(301, '/');
 
-    if (camera) {
-        const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
-        const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`;
-        const canonical = `${baseUrl}/camera/${camera.codigo}`;
-        const isOnline = camera.status === 'online';
-        const imageUrl = isOnline ? `${baseUrl}/proxy/camera/${camera.codigo}?t=${Date.now()}` : `${baseUrl}/assets/offline.png`;
-
-        const metaMap = [
-            [/<title>.*?<\/title>/is, `<title>${title}</title>`],
-            [/<meta\s+name=["']description["']\s+content=["'][^"']*["']>/is, `<meta name="description" content="${description}">`],
-            [/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']>/is, `<link rel="canonical" href="${canonical}">`],
-            [/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']>/is, `<meta property="og:title" content="${title}">`],
-            [/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']>/is, `<meta property="og:description" content="${description}">`],
-            [/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']>/is, `<meta property="og:url" content="${canonical}">`],
-            [/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']>/is, `<meta property="og:image" content="${imageUrl}">`],
-            [/<meta\s+property=["']og:image:secure_url["']\s+content=["'][^"']*["']>/is, `<meta property="og:image:secure_url" content="${imageUrl}">`],
-            [/<meta\s+property=["']twitter:title["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:title" content="${title}">`],
-            [/<meta\s+property=["']twitter:description["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:description" content="${description}">`],
-            [/<meta\s+property=["']twitter:url["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:url" content="${canonical}">`],
-            [/<meta\s+property=["']twitter:image["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:image" content="${imageUrl}">`]
-        ];
-        metaMap.forEach(([pattern, replacement]) => {
-            html = html.replace(pattern, replacement);
-        });
-
-        if (isOnline) {
-            html = html
-                .replace('Verificando status...', 'Online')
-                .replace('text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide', 'text-sm font-medium text-emerald-600 dark:text-emerald-400 font-bold tracking-wide')
-                .replace('bg-gray-300 dark:bg-gray-600', 'bg-emerald-500')
-                .replace('animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden', 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75');
+    if (!camera) {
+        const errorPath = path.join(PUBLIC_FOLDER, '404.html');
+        try {
+            let errorHtml = fs.readFileSync(errorPath, 'utf8');
+            errorHtml = applySsrTheme(errorHtml, req);
+            return res.status(404).setHeader('Content-Type', 'text/html; charset=utf-8').send(errorHtml);
+        } catch {
+            return res.status(404).sendFile(errorPath);
         }
-
-        html = html
-            .replace('</head>', `<script>window.SERVER_CAM_CODE = "${code}";</script>\n</head>`)
-            .replace('</head>', `<script type="application/ld+json">${JSON.stringify({
-                '@context': 'https://schema.org', '@type': 'VideoObject',
-                name: title, description, thumbnailUrl: [imageUrl],
-                uploadDate: new Date().toISOString(),
-                contentUrl: `${baseUrl}/proxy/camera/${camera.codigo}`, embedUrl: canonical
-            })}</script>\n</head>`)
-            .replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${isOnline ? `${baseUrl}/proxy/camera/${camera.codigo}` : `${baseUrl}/assets/offline.png`}"`);
     }
+
+    const title = `🔴 Ao Vivo: ${camera.nome} | Câmeras Rio Branco`;
+    const description = `Assista agora às imagens em tempo real da câmera ${camera.nome}. Monitoramento de trânsito e segurança 24h em Rio Branco, Acre.`;
+    const canonical = `${baseUrl}/camera/${camera.codigo}`;
+    const isOnline = camera.status === 'online';
+    const imageUrl = isOnline ? `${baseUrl}/proxy/camera/${camera.codigo}?t=${Date.now()}` : `${baseUrl}/assets/offline.png`;
+    const staticSnapshotUrl = `${baseUrl}/proxy/camera/${camera.codigo}`;
+
+    const metaMap = [
+        [/<title>.*?<\/title>/is, `<title>${title}</title>`],
+        [/<meta\s+name=["']description["']\s+content=["'][^"']*["']>/is, `<meta name="description" content="${description}">`],
+        [/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']>/is, `<link rel="canonical" href="${canonical}">`],
+        [/<meta\s+name=["']robots["']\s+content=["'][^"']*["']>/is, `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">`],
+        [/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']>/is, `<meta property="og:title" content="${title}">`],
+        [/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']>/is, `<meta property="og:description" content="${description}">`],
+        [/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']>/is, `<meta property="og:url" content="${canonical}">`],
+        [/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']>/is, `<meta property="og:image" content="${imageUrl}">`],
+        [/<meta\s+property=["']og:image:secure_url["']\s+content=["'][^"']*["']>/is, `<meta property="og:image:secure_url" content="${imageUrl}">`],
+        [/<meta\s+property=["']twitter:title["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:title" content="${title}">`],
+        [/<meta\s+property=["']twitter:description["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:description" content="${description}">`],
+        [/<meta\s+property=["']twitter:url["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:url" content="${canonical}">`],
+        [/<meta\s+property=["']twitter:image["']\s+content=["'][^"']*["']>/is, `<meta property="twitter:image" content="${imageUrl}">`]
+    ];
+    metaMap.forEach(([pattern, replacement]) => {
+        html = html.replace(pattern, replacement);
+    });
+
+    if (isOnline) {
+        html = html
+            .replace('Verificando status...', 'Online')
+            .replace('text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide', 'text-sm font-medium text-emerald-600 dark:text-emerald-400 font-bold tracking-wide')
+            .replace('bg-gray-300 dark:bg-gray-600', 'bg-emerald-500')
+            .replace('animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden', 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75');
+    }
+
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@graph': [
+            {
+                '@type': 'VideoObject',
+                name: title,
+                description,
+                thumbnailUrl: [staticSnapshotUrl, `${baseUrl}/assets/camrb.png`],
+                uploadDate: new Date().toISOString(),
+                contentUrl: `${baseUrl}/proxy/camera/${camera.codigo}`,
+                embedUrl: `${baseUrl}/embed/${camera.codigo}`,
+                isLiveBroadcast: true,
+                publication: {
+                    '@type': 'BroadcastEvent',
+                    isLiveBroadcast: true,
+                    startDate: new Date().toISOString()
+                }
+            },
+            {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    {
+                        '@type': 'ListItem',
+                        position: 1,
+                        name: 'Início',
+                        item: `${baseUrl}/`
+                    },
+                    {
+                        '@type': 'ListItem',
+                        position: 2,
+                        name: 'Câmeras',
+                        item: `${baseUrl}/`
+                    },
+                    {
+                        '@type': 'ListItem',
+                        position: 3,
+                        name: camera.nome,
+                        item: canonical
+                    }
+                ]
+            }
+        ]
+    };
+
+    html = html
+        .replace('</head>', `<script>window.SERVER_CAM_CODE = "${code}";</script>\n</head>`)
+        .replace('</head>', `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>\n</head>`)
+        .replace(/<img id="camera-feed" src="[^"]*"/, `<img id="camera-feed" src="${isOnline ? `${baseUrl}/proxy/camera/${camera.codigo}` : `${baseUrl}/assets/offline.png`}"`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
@@ -485,13 +549,18 @@ const streamCameraHandler = async (req, res) => {
 };
 
 // ─── Rotas Especiais (SSR + Proxy + Stream) ──────────────────────────────────
-app.get('/camera.html', serveCameraPage);
+app.get('/camera.html', (req, res) => {
+    const code = req.query.code || req.query.id;
+    if (code && /^\d{6}$/.test(code)) return res.redirect(301, `/camera/${code}`);
+    return res.redirect(301, '/');
+});
 app.get('/camera', (req, res) => {
-    if (req.query.code && /^\d{6}$/.test(req.query.code)) return res.redirect(301, `/camera/${req.query.code}`);
+    const code = req.query.code || req.query.id;
+    if (code && /^\d{6}$/.test(code)) return res.redirect(301, `/camera/${code}`);
     return res.redirect(301, '/');
 });
 app.get('/camera/:code', (req, res) => {
-    if (!/^\d{6}$/.test(req.params.code)) return res.redirect('/');
+    if (!/^\d{6}$/.test(req.params.code)) return res.redirect(301, '/');
     serveCameraPage(req, res);
 });
 app.get('/proxy/camera', proxyCameraHandler);
@@ -561,26 +630,98 @@ app.get('/api/sync-info', (req, res) => {
     });
 });
 
-// ─── Sitemap ─────────────────────────────────────────────────────────────────
+// ─── Robots.txt Dinâmico ──────────────────────────────────────────────────────
+app.get('/robots.txt', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    const robotsPath = path.join(PUBLIC_FOLDER, 'robots.txt');
+    try {
+        let content = fs.readFileSync(robotsPath, 'utf8');
+        content = content.replace(/Sitemap: .*/, `Sitemap: ${CONFIG.SITE_BASE_URL}/sitemap.xml`);
+        res.send(content);
+    } catch {
+        res.sendFile(robotsPath);
+    }
+});
+
+// ─── Sitemap Dinâmico Otimizado (Google Search & Imagens) ────────────────────
 app.get('/sitemap.xml', (req, res) => {
-    res.header('Content-Type', 'application/xml');
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+    res.setHeader('X-Robots-Tag', 'noindex');
+
     const baseUrl = CONFIG.SITE_BASE_URL;
     const lastMod = getRioBrancoDateStr();
-    let xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    xml += `<url><loc>${baseUrl}/</loc><lastmod>${lastMod}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>`;
-    xml += `<url><loc>${baseUrl}/rio</loc><lastmod>${lastMod}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>`;
-    xml += `<url><loc>${baseUrl}/timelapses</loc><lastmod>${lastMod}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`;
-    xml += `<url><loc>${baseUrl}/mapa</loc><lastmod>${lastMod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`;
-    xml += `<url><loc>${baseUrl}/sobre</loc><lastmod>${lastMod}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`;
-    xml += `<url><loc>${baseUrl}/novidades</loc><lastmod>${lastMod}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
-    xml += `<url><loc>${baseUrl}/contato</loc><lastmod>${lastMod}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`;
-    xml += `<url><loc>${baseUrl}/termos</loc><lastmod>${lastMod}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>`;
-    cameraCache.getAll().forEach(camera => {
-        if (camera.level === 3 || !camera.codigo) return;
-        xml += `<url><loc>${baseUrl}/camera/${camera.codigo}</loc><lastmod>${lastMod}</lastmod><changefreq>${camera.status === 'online' ? 'always' : 'hourly'}</changefreq><priority>${camera.status === 'online' ? '0.9' : '0.6'}</priority></url>`;
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n';
+    xml += '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
+
+    // Páginas principais
+    const staticPages = [
+        { path: '', changefreq: 'daily', priority: '1.0', img: `${baseUrl}/assets/camrb.png`, title: 'Câmeras Rio Branco Ao Vivo 24h', caption: 'Monitoramento de trânsito e segurança em tempo real em Rio Branco, Acre' },
+        { path: 'rio', changefreq: 'hourly', priority: '0.9', img: `${baseUrl}/proxy/camera/001426`, title: 'Nível do Rio Acre em Tempo Real', caption: 'Telemetria oficial da ANA/CPRM e câmera ao vivo da Ponte Metálica' },
+        { path: 'timelapses', changefreq: 'daily', priority: '0.8', img: `${baseUrl}/assets/camrb.png`, title: 'Galeria de Timelapses 24h de Rio Branco' },
+        { path: 'mapa', changefreq: 'weekly', priority: '0.8', img: `${baseUrl}/assets/camrb.png`, title: 'Mapa Interativo de Câmeras de Rio Branco' },
+        { path: 'sobre', changefreq: 'monthly', priority: '0.7' },
+        { path: 'novidades', changefreq: 'weekly', priority: '0.7' },
+        { path: 'contato', changefreq: 'monthly', priority: '0.6' },
+        { path: 'termos', changefreq: 'monthly', priority: '0.5' }
+    ];
+
+    staticPages.forEach(p => {
+        const loc = p.path ? `${baseUrl}/${p.path}` : `${baseUrl}/`;
+        xml += '  <url>\n';
+        xml += `    <loc>${loc}</loc>\n`;
+        xml += `    <lastmod>${lastMod}</lastmod>\n`;
+        xml += `    <changefreq>${p.changefreq}</changefreq>\n`;
+        xml += `    <priority>${p.priority}</priority>\n`;
+        if (p.img) {
+            xml += '    <image:image>\n';
+            xml += `      <image:loc>${p.img}</image:loc>\n`;
+            xml += `      <image:title>${escapeXml(p.title)}</image:title>\n`;
+            if (p.caption) {
+                xml += `      <image:caption>${escapeXml(p.caption)}</image:caption>\n`;
+            }
+            xml += '    </image:image>\n';
+        }
+        xml += '  </url>\n';
     });
+
+    // Câmeras públicas
+    const cachedFromService = cameraCache.getPublic ? cameraCache.getPublic() : [];
+    const cameras = cachedFromService.length > 0
+        ? cachedFromService
+        : cameraRepo.getCached().filter(c => c.level === 1 || !c.level);
+
+    cameras.forEach(camera => {
+        if (!camera.codigo || camera.level === 3) return;
+        const isOnline = camera.status === 'online';
+        const camName = escapeXml(camera.nome || `Câmera ${camera.codigo}`);
+        const camUrl = `${baseUrl}/camera/${camera.codigo}`;
+        const imgUrl = `${baseUrl}/proxy/camera/${camera.codigo}`;
+
+        xml += '  <url>\n';
+        xml += `    <loc>${camUrl}</loc>\n`;
+        xml += `    <lastmod>${lastMod}</lastmod>\n`;
+        xml += `    <changefreq>${isOnline ? 'always' : 'daily'}</changefreq>\n`;
+        xml += `    <priority>${isOnline ? '0.9' : '0.6'}</priority>\n`;
+        xml += '    <image:image>\n';
+        xml += `      <image:loc>${imgUrl}</image:loc>\n`;
+        xml += `      <image:title>Câmera Ao Vivo: ${camName}</image:title>\n`;
+        xml += `      <image:caption>Transmissão ao vivo de trânsito e segurança em Rio Branco - AC: ${camName}</image:caption>\n`;
+        xml += '    </image:image>\n';
+        xml += '  </url>\n';
+    });
+
     xml += '</urlset>';
     res.send(xml);
+});
+
+// ─── Redirecionamentos Canônicos 301 (Elimina URLs duplicadas no Google) ─────
+app.get('/index.html', (req, res) => res.redirect(301, '/'));
+['rio', 'timelapses', 'contato', 'novidades', 'sobre', 'mapa', 'login', 'metrics', 'termos', 'perfil'].forEach(p => {
+    app.get(`/${p}.html`, (req, res) => res.redirect(301, `/${p}`));
 });
 
 // ─── Static Files (Públicos apenas) ──────────────────────────────────────────

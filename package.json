@@ -4,7 +4,8 @@
     "dev": "nodemon server.js",
     "build:css": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css --watch",
-    "test:firebase": "node scripts/test-firebase.js"
+    "test:firebase": "node scripts/test-firebase.js",
+    "test:seo": "node scripts/test-seo.js && node scripts/test-sitemap-dynamic.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",

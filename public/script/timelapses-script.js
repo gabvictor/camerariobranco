@@ -5,10 +5,12 @@ import { initTour } from "./tour.js";
 let currentFrames = [];
 let currentIndex = 0;
 let isPlaying = false;
-let playInterval = null;
+let playbackTimeout = null;
+let currentLoadToken = 0;
 let playbackSpeed = 1; // 1x, 2x, 4x, 8x
 let currentCameraCode = null;
 let allAvailableCameras = [];
+const frameImageCache = new Map();
 
 document.addEventListener('DOMContentLoaded', () => {
     initAuthModal();
@@ -43,21 +45,23 @@ function setupControls() {
     if (btnPrev) {
         btnPrev.addEventListener('click', () => {
             pause();
-            setFrameIndex(currentIndex - 1);
+            setFrameIndex(currentIndex - 1, false);
         });
     }
 
     if (btnNext) {
         btnNext.addEventListener('click', () => {
             pause();
-            setFrameIndex(currentIndex + 1);
+            setFrameIndex(currentIndex + 1, false);
         });
     }
 
     if (slider) {
         slider.addEventListener('input', (e) => {
             pause();
-            setFrameIndex(parseInt(e.target.value, 10));
+            const targetIdx = parseInt(e.target.value, 10);
+            updatePreviewTextOnly(targetIdx);
+            setFrameIndex(targetIdx, false);
         });
     }
 
@@ -69,7 +73,7 @@ function setupControls() {
             btn.className = 'speed-btn px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30';
             playbackSpeed = parseInt(btn.getAttribute('data-speed'), 10) || 1;
             if (isPlaying) {
-                restartPlayTimer();
+                scheduleNextFrame();
             }
         });
     });
@@ -204,6 +208,7 @@ function renderCamerasGrid(cameras) {
 async function loadTimelapseCamera(code, name) {
     currentCameraCode = code;
     pause();
+    frameImageCache.clear();
 
     const titleEl = document.getElementById('player-camera-title');
     const codeEl = document.getElementById('player-camera-code');
@@ -228,8 +233,8 @@ async function loadTimelapseCamera(code, name) {
         }
 
         if (currentFrames.length > 0) {
-            setFrameIndex(0);
-            preloadUpcomingFrames();
+            setFrameIndex(0, false);
+            preloadUpcomingFrames(0, 20);
         } else {
             const timeEl = document.getElementById('player-frame-time');
             if (timeEl) timeEl.textContent = 'Prévia ao vivo (capturando frames...)';
@@ -243,22 +248,127 @@ async function loadTimelapseCamera(code, name) {
     }
 }
 
-function setFrameIndex(idx) {
-    if (!currentFrames.length) return;
-    currentIndex = Math.max(0, Math.min(idx, currentFrames.length - 1));
+function getPreloadedImage(url) {
+    if (!url) return null;
+    let img = frameImageCache.get(url);
+    if (!img) {
+        img = new Image();
+        img.src = url;
+        frameImageCache.set(url, img);
+    }
+    return img;
+}
 
-    const frame = currentFrames[currentIndex];
-    const frameImg = document.getElementById('timelapse-frame-img');
+function preloadUpcomingFrames(fromIndex = currentIndex, count = 15) {
+    if (!currentFrames || !currentFrames.length) return;
+    const total = currentFrames.length;
+    for (let i = 1; i <= count; i++) {
+        const targetIdx = (fromIndex + i) % total;
+        const frame = currentFrames[targetIdx];
+        if (frame && frame.url) {
+            getPreloadedImage(frame.url);
+        }
+    }
+}
+
+function updateFrameUI(frame, index) {
     const timeEl = document.getElementById('player-frame-time');
     const countEl = document.getElementById('player-frame-count');
     const watermarkTime = document.getElementById('player-watermark-time');
     const slider = document.getElementById('timelapse-slider');
 
-    if (frameImg && frame) frameImg.src = frame.url;
     if (timeEl && frame) timeEl.textContent = frame.fullLabel || frame.timeFormatted;
-    if (countEl) countEl.textContent = `Frame ${currentIndex + 1} de ${currentFrames.length}`;
+    if (countEl) countEl.textContent = `Frame ${index + 1} de ${currentFrames.length}`;
     if (watermarkTime && frame) watermarkTime.textContent = frame.fullLabel;
-    if (slider) slider.value = currentIndex;
+    if (slider) slider.value = index;
+}
+
+function updatePreviewTextOnly(idx) {
+    if (!currentFrames.length) return;
+    const targetIdx = Math.max(0, Math.min(idx, currentFrames.length - 1));
+    const frame = currentFrames[targetIdx];
+    const timeEl = document.getElementById('player-frame-time');
+    const countEl = document.getElementById('player-frame-count');
+    const watermarkTime = document.getElementById('player-watermark-time');
+    if (timeEl && frame) timeEl.textContent = frame.fullLabel || frame.timeFormatted;
+    if (countEl) countEl.textContent = `Frame ${targetIdx + 1} de ${currentFrames.length}`;
+    if (watermarkTime && frame) watermarkTime.textContent = frame.fullLabel;
+}
+
+/**
+ * Carrega a imagem do frame antes de renderizar e avançar, evitando
+ * que o contador ou o player avancem antes do download terminar.
+ */
+function setFrameIndex(idx, isAutoPlay = false) {
+    if (!currentFrames.length) return;
+
+    let targetIdx = idx;
+    if (isAutoPlay) {
+        if (targetIdx >= currentFrames.length) {
+            targetIdx = 0; // Loop infinito
+        } else if (targetIdx < 0) {
+            targetIdx = currentFrames.length - 1;
+        }
+    } else {
+        targetIdx = Math.max(0, Math.min(targetIdx, currentFrames.length - 1));
+    }
+
+    const frame = currentFrames[targetIdx];
+    if (!frame) return;
+
+    const frameImg = document.getElementById('timelapse-frame-img');
+    const token = ++currentLoadToken;
+    const preloader = getPreloadedImage(frame.url);
+
+    // Se já estiver na memória e totalmente carregada:
+    if (preloader.complete && preloader.naturalWidth > 0) {
+        currentIndex = targetIdx;
+        if (frameImg) frameImg.src = frame.url;
+        updateFrameUI(frame, currentIndex);
+        preloadUpcomingFrames(currentIndex);
+
+        if (isAutoPlay && isPlaying) {
+            scheduleNextFrame();
+        }
+        return;
+    }
+
+    // Caso contrário, aguarda o evento onload da imagem antes de atualizar a tela e avançar
+    preloader.onload = () => {
+        if (token !== currentLoadToken) return; // Descarte se o usuário navegou manualmente
+        currentIndex = targetIdx;
+        if (frameImg) frameImg.src = frame.url;
+        updateFrameUI(frame, currentIndex);
+        preloadUpcomingFrames(currentIndex);
+
+        if (isAutoPlay && isPlaying) {
+            scheduleNextFrame();
+        }
+    };
+
+    preloader.onerror = () => {
+        if (token !== currentLoadToken) return;
+        console.warn(`[Timelapse] Falha ao carregar frame ${targetIdx} (${frame.url}).`);
+        // Em caso de falha no download de uma imagem específica, avança com pequeno delay de segurança
+        if (isAutoPlay && isPlaying) {
+            setTimeout(() => {
+                if (token === currentLoadToken && isPlaying) {
+                    setFrameIndex(targetIdx + 1, true);
+                }
+            }, 150);
+        }
+    };
+}
+
+function scheduleNextFrame() {
+    if (playbackTimeout) clearTimeout(playbackTimeout);
+    if (!isPlaying) return;
+
+    const delay = Math.max(60, Math.floor(400 / playbackSpeed));
+    playbackTimeout = setTimeout(() => {
+        if (!isPlaying) return;
+        setFrameIndex(currentIndex + 1, true);
+    }, delay);
 }
 
 function togglePlay() {
@@ -270,29 +380,17 @@ function play() {
     if (!currentFrames.length) return;
     isPlaying = true;
     updatePlayBtnUI();
-    restartPlayTimer();
+    setFrameIndex(currentIndex + 1, true);
 }
 
 function pause() {
     isPlaying = false;
-    if (playInterval) {
-        clearInterval(playInterval);
-        playInterval = null;
+    currentLoadToken++; // Invalida qualquer imagem pendente que ainda estava baixando
+    if (playbackTimeout) {
+        clearTimeout(playbackTimeout);
+        playbackTimeout = null;
     }
     updatePlayBtnUI();
-}
-
-function restartPlayTimer() {
-    if (playInterval) clearInterval(playInterval);
-    const delay = Math.max(80, Math.floor(400 / playbackSpeed));
-    playInterval = setInterval(() => {
-        if (currentIndex >= currentFrames.length - 1) {
-            currentIndex = 0; // Loop infinito
-        } else {
-            currentIndex++;
-        }
-        setFrameIndex(currentIndex);
-    }, delay);
 }
 
 function updatePlayBtnUI() {
@@ -303,11 +401,4 @@ function updatePlayBtnUI() {
         playIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
         if (window.lucide) window.lucide.createIcons();
     }
-}
-
-function preloadUpcomingFrames() {
-    currentFrames.slice(0, 15).forEach(f => {
-        const img = new Image();
-        img.src = f.url;
-    });
 }

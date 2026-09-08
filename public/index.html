@@ -12,6 +12,7 @@
 
     <!-- Meta Tags SEO -->
     <link rel="canonical" href="https://camerasriobranco.com.br/">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
     <meta name="description"
         content="Acompanhe ao vivo o trânsito e o movimento em Rio Branco, Acre. Câmeras de monitoramento 24h em tempo real.">
@@ -55,16 +56,37 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Câmeras Rio Branco",
-
-      "url": "https://camerasriobranco.com.br/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://camerasriobranco.com.br/?search={search_term_string}",
-
-        "query-input": "required name=search_term_string"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://camerasriobranco.com.br/#website",
+          "url": "https://camerasriobranco.com.br/",
+          "name": "Câmeras Rio Branco",
+          "alternateName": "CamRB",
+          "description": "Acompanhe ao vivo o trânsito e o movimento em Rio Branco, Acre. Câmeras de monitoramento 24h em tempo real.",
+          "inLanguage": "pt-BR",
+          "publisher": {
+            "@id": "https://camerasriobranco.com.br/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://camerasriobranco.com.br/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://camerasriobranco.com.br/#organization",
+          "name": "Câmeras Rio Branco",
+          "alternateName": "CamRB",
+          "url": "https://camerasriobranco.com.br/",
+          "logo": "https://camerasriobranco.com.br/assets/camrb.png",
+          "sameAs": [
+            "https://github.com/gabvictor/camerariobranco",
+            "https://www.instagram.com/gabv_ctor/"
+          ]
+        }
+      ]
     }
     </script>
 

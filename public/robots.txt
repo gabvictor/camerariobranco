@@ -1,8 +1,47 @@
+# ==============================================================================
+# Robots.txt - Câmeras Rio Branco (CamRB)
+# https://camerasriobranco.com.br
+# ==============================================================================
+
+# 1. Regras para Googlebot-Image (indexação de snapshots no Google Imagens)
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /proxy/camera/
+Disallow: /*?t=*
+Disallow: /*?token=*
+
+# 2. Regras para todos os buscadores (Google, Bing, etc.)
 User-agent: *
 Allow: /
+Allow: /assets/
+Allow: /css/
+Allow: /script/
+
+# Painéis administrativos e rotas internas
 Disallow: /admin
 Disallow: /admin/
 Disallow: /dashboard
+Disallow: /dashboard/
 Disallow: /api/
 
+# Páginas que requerem autenticação ou área do usuário
+Disallow: /login
+Disallow: /perfil
+
+# Bloquear iframes embed (evita diluição de autoridade e conteúdo duplicado)
+Disallow: /embed/
+Disallow: /embed
+
+# Bloquear streaming contínuo e parâmetros variáveis de cache
+Disallow: /stream/
+Disallow: /*?t=*
+Disallow: /*?token=*
+
+# Bloquear rotas diretas com extensão .html (URLs limpas são usadas)
+Disallow: /*.html$
+Disallow: /camera.html
+Disallow: /ads-test.html
+
+# Sitemap oficial do site
 Sitemap: https://camerasriobranco.com.br/sitemap.xml
+Host: camerasriobranco.com.br
