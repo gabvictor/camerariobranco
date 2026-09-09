@@ -1229,17 +1229,34 @@ function updateMetaTags(camera, title) {
  */
 async function initRioAcreWidget(cameraCode, camera) {
     const rioWidget = document.getElementById('rio-acre-widget');
-    if (!rioWidget) return;
+    const playerRioBadge = document.getElementById('player-rio-badge');
 
     // Exibe exclusivamente nas câmeras oficiais do Rio Acre (001426 e 001334)
     const isRioCamera = ['001426', '001334'].includes(cameraCode);
 
     if (!isRioCamera) {
-        rioWidget.classList.add('hidden');
+        if (rioWidget) rioWidget.classList.add('hidden');
+        if (playerRioBadge) playerRioBadge.classList.add('hidden');
         return;
     }
 
-    rioWidget.classList.remove('hidden');
+    if (rioWidget) rioWidget.classList.remove('hidden');
+    if (playerRioBadge) {
+        playerRioBadge.classList.remove('hidden');
+        playerRioBadge.classList.add('flex');
+        playerRioBadge.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = '/rio';
+        };
+    }
+
+    const btnVerGraficos = document.getElementById('rio-btn-ver-graficos');
+    if (btnVerGraficos) {
+        btnVerGraficos.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = '/rio';
+        };
+    }
 
     try {
         const res = await fetch('/api/rio-acre');
@@ -1250,25 +1267,51 @@ async function initRioAcreWidget(cameraCode, camera) {
         const statusBadge = document.getElementById('rio-acre-status-badge');
         const lastUpdateEl = document.getElementById('rio-acre-last-update');
         const progressEl = document.getElementById('rio-acre-progress');
+        const margemEl = document.getElementById('rio-acre-margem');
+        const percentualEl = document.getElementById('rio-acre-percentual');
 
-        if (nivelEl) nivelEl.textContent = data.nivel?.formatado || '2,28 m';
-        if (lastUpdateEl) lastUpdateEl.textContent = `Medição: ${data.nivel?.dataLeitura || 'Hoje'}`;
+        const playerNivel = document.getElementById('player-rio-nivel');
+        const playerStatus = document.getElementById('player-rio-status');
+
+        const nivelFormatado = data.nivel?.formatado || '1,83 m';
+        const nivelMetros = data.nivel?.metros || 1.83;
+        const dataStr = data.nivel?.dataLeitura || 'Hoje';
+        const statusTipo = data.status?.tipo || 'Normal';
+
+        if (nivelEl) nivelEl.textContent = nivelFormatado;
+        if (playerNivel) playerNivel.textContent = `Rio: ${nivelFormatado}`;
+
+        if (lastUpdateEl) lastUpdateEl.textContent = `Medição oficial: ${dataStr}`;
+
+        if (playerStatus) {
+            playerStatus.textContent = statusTipo;
+            if (statusTipo === 'Transbordamento') {
+                playerStatus.className = 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-600 text-white shadow-xs';
+            } else if (statusTipo === 'Alerta') {
+                playerStatus.className = 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white shadow-xs';
+            } else {
+                playerStatus.className = 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-xs';
+            }
+        }
 
         if (statusBadge) {
-            statusBadge.className = `px-3 py-1 text-xs font-bold uppercase rounded-full text-white shadow-sm flex items-center gap-1.5 ${data.status?.statusBg || 'bg-emerald-500'}`;
-            statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> ${data.status?.tipo || 'Normal'}`;
+            statusBadge.className = `px-3 py-1 text-xs font-extrabold uppercase rounded-full text-white shadow-xs flex items-center gap-1.5 ${data.status?.statusBg || 'bg-emerald-500'}`;
+            statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> ${statusTipo}`;
+        }
+
+        if (margemEl) {
+            if (statusTipo === 'Transbordamento') {
+                margemEl.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-500 flex-shrink-0"></i><span>Atenção: nível elevado das águas. Siga as orientações da Defesa Civil.</span>`;
+            } else if (statusTipo === 'Alerta') {
+                margemEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500 flex-shrink-0"></i><span>Atenção: o nível do rio requer atenção e acompanhamento.</span>`;
+            } else {
+                margemEl.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0"></i><span>Situação tranquila e estável na capital acreana.</span>`;
+            }
         }
 
         if (progressEl) {
-            const percent = data.cotas?.percentualAlerta || 15;
-            progressEl.style.width = `${Math.max(percent, 5)}%`;
-            if (data.status?.tipo === 'Transbordamento') {
-                progressEl.className = 'bg-gradient-to-r from-amber-500 to-red-500 h-full rounded-full transition-all duration-500';
-            } else if (data.status?.tipo === 'Alerta') {
-                progressEl.className = 'bg-gradient-to-r from-emerald-400 to-amber-400 h-full rounded-full transition-all duration-500';
-            } else {
-                progressEl.className = 'bg-gradient-to-r from-emerald-400 to-cyan-300 h-full rounded-full transition-all duration-500';
-            }
+            const pct = Math.min(100, Math.max(5, (nivelMetros / 13.50) * 100));
+            progressEl.style.width = `${pct}%`;
         }
 
         if (window.lucide) window.lucide.createIcons();

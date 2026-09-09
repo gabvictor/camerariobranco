@@ -11,7 +11,7 @@
 
     <title>Nível do Rio Acre em Tempo Real | Câmera Ao Vivo e Telemetria - CamRB</title>
     <meta name="description"
-        content="🌊 Acompanhe o nível do Rio Acre em tempo real em Rio Branco: medição oficial ANA/CPRM da Ponte Metálica, cota de alerta e transbordamento, câmera ao vivo e contatos da Defesa Civil.">
+        content="🌊 Acompanhe o nível do Rio Acre em tempo real em Rio Branco: medição oficial ANA/CPRM da Ponte Metálica, cota de alerta e transbordamento, câmeras ao vivo e contatos da Defesa Civil.">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <link rel="canonical" href="https://camerasriobranco.com.br/rio">
     <meta name="google-adsense-account" content="ca-pub-3587198600314787">
@@ -65,8 +65,93 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/output.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/css/global.css?v=2">
     <script src="/script/theme.js?v=2"></script>
+
+    <style>
+        /* Hero Banner Focado no Cidadão */
+        .rio-hero-banner {
+            background: linear-gradient(135deg, #0b1329 0%, #0f172a 40%, #082f49 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(56, 189, 248, 0.25) !important;
+            box-shadow: 0 16px 30px -10px rgba(8, 47, 73, 0.45) !important;
+        }
+        .rio-hero-title {
+            color: #ffffff !important;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .rio-hero-desc {
+            color: #bae6fd !important;
+        }
+        .rio-glass-card {
+            background: rgba(15, 23, 42, 0.70) !important;
+            border: 1px solid rgba(56, 189, 248, 0.30) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.35) !important;
+        }
+
+        /* Marcador de Agulha na Régua */
+        .gauge-needle {
+            position: absolute;
+            top: -14px;
+            transform: translateX(-50%);
+            transition: left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gauge-needle-badge {
+            background: #0284c7;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+        .gauge-needle-pin {
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border: 2.5px solid #0284c7;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        }
+        .gauge-needle-line {
+            width: 2px;
+            height: 30px;
+            background: #0284c7;
+            box-shadow: 0 0 4px rgba(2, 132, 199, 0.6);
+        }
+
+        /* Botões de Período */
+        .periodo-btn-active {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35) !important;
+        }
+        .periodo-btn-inactive {
+            color: #4b5563 !important;
+            background-color: transparent !important;
+        }
+        .dark .periodo-btn-inactive {
+            color: #9ca3af !important;
+        }
+        .periodo-btn-inactive:hover {
+            color: #2563eb !important;
+            background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+        .dark .periodo-btn-inactive:hover {
+            color: #60a5fa !important;
+            background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 antialiased">
@@ -88,7 +173,7 @@
                             </div>
                         </a>
 
-                        <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
+                        <!-- Navigation Links (Desktop Only) -->
                         <nav class="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
                             <a href="/rio" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
                                 <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
@@ -158,128 +243,281 @@
 
         <main class="flex-grow container mx-auto px-4 py-6 max-w-5xl">
             
-            <!-- Hero Header -->
-            <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 rounded-xl p-6 mb-6 text-white shadow-sm border border-blue-600/30">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 text-cyan-200 text-xs font-semibold mb-2">
-                            <i data-lucide="waves" class="w-3.5 h-3.5"></i>
-                            Telemetria Hidrológica • Rio Branco
+            <!-- ─── 1. Hero Card: Direto, Claro e Focado no Cidadão ─── -->
+            <div class="relative overflow-hidden rio-hero-banner rounded-3xl p-6 sm:p-8 text-white mb-6">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="text-center md:text-left">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-semibold mb-2 backdrop-blur-md">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <span>Monitoramento Oficial • Ponte Metálica</span>
                         </div>
-                        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
+                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight rio-hero-title">
                             Nível do Rio Acre
                         </h1>
-                        <p class="text-blue-100 text-xs sm:text-sm mt-1 max-w-xl">
-                            Estação Telemétrica 13600002 — Ponte Metálica. Dados integrados com a CPRM / SGB e transmissão ao vivo das réguas.
+                        <p id="rio-mensagem-cidadao" class="rio-hero-desc text-sm sm:text-base mt-2 leading-relaxed max-w-lg font-medium">
+                            Acompanhe o nível da água em Rio Branco com dados oficiais da Defesa Civil e ANA/CPRM.
                         </p>
-                    </div>
-
-                    <!-- Card do Nível Grande -->
-                    <div class="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-5 text-center w-full md:w-auto min-w-[200px] shadow-sm">
-                        <div class="text-[11px] uppercase tracking-wider text-cyan-200 font-semibold mb-0.5">Nível Atual</div>
-                        <div id="rio-nivel-grande" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">--</div>
-                        <div id="rio-status-badge" class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-500 text-white">
-                            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Atualizando...
+                        <div class="flex items-center justify-center md:justify-start gap-3 mt-3 text-xs text-cyan-200/90 font-medium">
+                            <span id="rio-ultima-leitura" class="inline-flex items-center gap-1.5">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                Atualizando leitura oficial...
+                            </span>
                         </div>
-                        <div id="rio-ultima-leitura" class="text-[10px] text-cyan-100/80 font-medium mt-1.5">Medição recente</div>
+                    </div>
+
+                    <!-- Widget Central do Nível Atual -->
+                    <div class="rio-glass-card rounded-2xl p-5 sm:p-6 text-center w-full md:w-auto min-w-[240px] flex flex-col items-center justify-center">
+                        <div class="text-[11px] uppercase tracking-widest text-cyan-200 font-bold mb-1">
+                            Nível Atual
+                        </div>
+                        <div class="flex items-baseline justify-center">
+                            <span id="rio-nivel-grande" class="text-5xl sm:text-6xl font-black text-white tracking-tight">--</span>
+                        </div>
+
+                        <div id="rio-status-badge" class="mt-2.5 inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm bg-emerald-500">
+                            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> Normal
+                        </div>
+
+                        <div id="rio-tendencia-badge" class="text-xs text-cyan-200 font-semibold mt-2 flex items-center justify-center gap-1">
+                            <i data-lucide="minus" class="w-3.5 h-3.5"></i> Estável
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Régua e Indicadores de Cota -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="gauge" class="w-4 h-4 text-indigo-500"></i>
-                        Escala Hidrológica e Alertas
-                    </h2>
-                    <span id="rio-percentual-cota" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
-                        Calculando...
-                    </span>
-                </div>
-
-                <!-- Barra de Progresso do Nível -->
-                <div class="relative w-full h-5 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden p-0.5 border border-gray-200 dark:border-gray-600 mb-5">
-                    <div id="rio-barra-progresso" class="h-full rounded bg-gradient-to-r from-emerald-500 via-amber-500 to-red-600 transition-all duration-700 flex items-center justify-end pr-2" style="width: 15%;">
-                        <span id="rio-barra-rotulo" class="text-[10px] font-bold text-white whitespace-nowrap">...</span>
-                    </div>
-                </div>
-
-                <!-- 4 Marcos Importantes -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                        <div class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Seca Histórica</div>
-                        <div class="text-lg font-bold text-rose-600 dark:text-rose-400 mt-0.5">1,23 m</div>
-                        <div class="text-[10px] text-gray-400">Estiagem de 2024</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40">
-                        <div class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Cota Normal</div>
-                        <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">&lt; 13,50 m</div>
-                        <div class="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">Fluxo padrão do rio</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
-                        <div class="text-[10px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Cota de Alerta</div>
-                        <div class="text-lg font-bold text-amber-600 dark:text-amber-400 mt-0.5">13,50 m</div>
-                        <div class="text-[10px] text-amber-600/70 dark:text-amber-400/70">Atenção Defesa Civil</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
-                        <div class="text-[10px] font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">Transbordamento</div>
-                        <div class="text-lg font-bold text-red-600 dark:text-red-400 mt-0.5">14,00 m</div>
-                        <div class="text-[10px] text-red-600/70 dark:text-red-400/70">Inundação em bairros</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Câmeras Ao Vivo do Rio Acre (2 Câmeras) -->
+            <!-- ─── 2. Câmeras Ao Vivo (O que o público mais gosta de ver) ─── -->
             <div class="mb-6">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="video" class="w-4 h-4 text-red-500"></i>
-                        Câmeras de Monitoramento do Rio
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="video" class="w-5 h-5 text-red-500"></i>
+                        Câmeras Ao Vivo do Rio
                     </h2>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Atualização a cada 15s</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- Câmera 1: 001426 (Régua / Ponte Metálica) -->
-                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700/80 flex flex-col justify-between">
-                        <div class="flex items-start justify-between gap-2 mb-2">
-                            <div>
-                                <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">001426</span>
-                                <h3 class="font-bold text-sm text-gray-900 dark:text-white mt-1">Ponte Metálica (Régua CPRM)</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Visão direta da régua hidrológica do Rio Acre</p>
-                            </div>
-                            <a href="/camera/001426" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-indigo-600 hover:text-white transition-colors flex-shrink-0" title="Assistir em tela cheia">
-                                <i data-lucide="maximize-2" class="w-4 h-4"></i>
-                            </a>
-                        </div>
-                        <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-gray-700">
-                            <img id="rio-cam-1426" src="/proxy/camera/001426" alt="Câmera 001426 Ponte Metálica" onerror="this.src='/assets/offline.png'" class="w-full h-full object-cover">
-                            <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-semibold flex items-center gap-1.5 border border-white/10">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span>Ao Vivo • Régua</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Câmera 2: 001334 (De Olho no Rio / Passarela) -->
-                    <div class="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-sm border border-gray-200 dark:border-gray-700/80 flex flex-col justify-between">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Câmera 1: Ponte Metálica (Régua) -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700/80 hover:border-blue-500/40 hover:shadow-md transition-all flex flex-col justify-between">
                         <div class="flex items-start justify-between gap-2 mb-3">
                             <div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">001334</span>
-                                <h3 class="font-bold text-base text-gray-900 dark:text-white mt-1">De Olho no Rio (Passarela)</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Passarela Joaquim Macedo e leito central do rio</p>
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">001426</span>
+                                <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white mt-1">Ponte Metálica</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Visão direta da régua oficial da CPRM</p>
                             </div>
-                            <a href="/camera/001334" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-indigo-600 hover:text-white transition-colors flex-shrink-0" title="Assistir em tela cheia">
-                                <i data-lucide="maximize-2" class="w-4 h-4"></i>
-                            </a>
+                            <div class="flex items-center gap-1.5">
+                                <button id="btn-refresh-cam-1426" class="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Atualizar imagem agora">
+                                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                                </button>
+                                <a href="/camera/001426" class="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-600 hover:text-white transition-all text-gray-600 dark:text-gray-300" title="Abrir player completo">
+                                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                </a>
+                            </div>
                         </div>
-                        <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-gray-700">
-                            <img id="rio-cam-1334" src="/proxy/camera/001334" alt="Câmera 001334 De Olho no Rio" onerror="this.src='/assets/offline.png'" class="w-full h-full object-cover">
-                            <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-semibold flex items-center gap-1.5 border border-white/10">
+                        <a href="/camera/001426" class="block relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-inner border border-gray-100 dark:border-gray-700 group cursor-pointer" title="Clique para assistir ao vivo">
+                            <img id="rio-cam-1426" src="/proxy/camera/001426" alt="Câmera Ponte Metálica" onerror="this.src='/assets/offline.png'" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300">
+                            <div class="absolute top-2 left-2 bg-blue-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-xs font-black flex items-center gap-1.5 border border-blue-400/40 shadow-sm">
+                                <i data-lucide="waves" class="w-3.5 h-3.5 text-cyan-300"></i>
+                                <span id="rio-cam-1426-nivel">1,83 m</span>
+                            </div>
+                            <div class="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-semibold flex items-center gap-1.5 border border-white/10 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Ao Vivo • Régua Oficial</span>
+                            </div>
+                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs shadow-sm flex items-center gap-1">
+                                <i data-lucide="play" class="w-3 h-3 fill-current"></i> Assistir
+                            </div>
+                        </a>
+                        <a href="/camera/001426" class="mt-3 w-full py-2 px-3 rounded-xl bg-gray-50 hover:bg-blue-50 dark:bg-gray-700/40 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-gray-200/80 dark:border-gray-700 hover:border-blue-400">
+                            <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                            <span>Assistir Transmissão Ao Vivo</span>
+                        </a>
+                    </div>
+
+                    <!-- Câmera 2: Passarela Joaquim Macedo -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700/80 hover:border-blue-500/40 hover:shadow-md transition-all flex flex-col justify-between">
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <div>
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">001334</span>
+                                <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white mt-1">Passarela Joaquim Macedo</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Visão panorâmica do leito central</p>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button id="btn-refresh-cam-1334" class="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer" title="Atualizar imagem agora">
+                                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                                </button>
+                                <a href="/camera/001334" class="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-600 hover:text-white transition-all text-gray-600 dark:text-gray-300" title="Abrir player completo">
+                                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <a href="/camera/001334" class="block relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-inner border border-gray-100 dark:border-gray-700 group cursor-pointer" title="Clique para assistir ao vivo">
+                            <img id="rio-cam-1334" src="/proxy/camera/001334" alt="Câmera Passarela Joaquim Macedo" onerror="this.src='/assets/offline.png'" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300">
+                            <div class="absolute top-2 left-2 bg-cyan-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-xs font-black flex items-center gap-1.5 border border-cyan-400/40 shadow-sm">
+                                <i data-lucide="waves" class="w-3.5 h-3.5 text-cyan-200"></i>
+                                <span id="rio-cam-1334-nivel">1,83 m</span>
+                            </div>
+                            <div class="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-semibold flex items-center gap-1.5 border border-white/10 shadow-sm">
                                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                                 <span>Ao Vivo • Leito Central</span>
                             </div>
+                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs shadow-sm flex items-center gap-1">
+                                <i data-lucide="play" class="w-3 h-3 fill-current"></i> Assistir
+                            </div>
+                        </a>
+                        <a href="/camera/001334" class="mt-3 w-full py-2 px-3 rounded-xl bg-gray-50 hover:bg-blue-50 dark:bg-gray-700/40 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-gray-200/80 dark:border-gray-700 hover:border-blue-400">
+                            <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                            <span>Assistir Transmissão Ao Vivo</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── 3. Régua do Rio e Alertas (Visual e Intuitiva) ─── -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="gauge" class="w-5 h-5 text-indigo-500"></i>
+                            Régua do Rio e Cotas de Risco
+                        </h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Posição do rio em relação às marcas de alerta da Defesa Civil
+                        </p>
+                    </div>
+                    <span id="rio-percentual-cota" class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/40 self-start sm:self-auto">
+                        Calculando margem...
+                    </span>
+                </div>
+
+                <!-- Barra de Progresso com Ponteiro de Nível -->
+                <div class="mb-5 pt-3">
+                    <div class="relative w-full h-7 bg-gray-100 dark:bg-gray-700 rounded-xl p-0.5 border border-gray-200 dark:border-gray-600 shadow-inner">
+                        <!-- Barra de preenchimento até o nível -->
+                        <div id="rio-barra-progresso" class="h-full rounded-lg bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 transition-all duration-700 shadow-sm relative overflow-hidden" style="width: 15%;"></div>
+
+                        <!-- Needle Marker apontando no nível exato -->
+                        <div id="rio-gauge-needle" class="gauge-needle flex" style="left: 15%;">
+                            <span id="rio-gauge-needle-val" class="gauge-needle-badge">...</span>
+                            <div class="gauge-needle-pin"></div>
+                            <div class="gauge-needle-line"></div>
                         </div>
+                    </div>
+
+                    <!-- Marcadores simplificados e claros no eixo -->
+                    <div class="flex justify-between text-[11px] font-semibold text-gray-400 dark:text-gray-500 mt-1.5 px-1">
+                        <span>0 m</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">Normal (&lt; 13,50 m)</span>
+                        <span class="text-amber-500 font-bold">13,50 m (Alerta)</span>
+                        <span class="text-red-500 font-bold">14,00 m (Transborda)</span>
+                        <span>16 m</span>
+                    </div>
+                </div>
+
+                <!-- 3 Cotas Principais em Linguagem Clara -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            Nível Normal (&lt; 13,50 m)
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                            O rio corre dentro da sua calha habitual, sem qualquer risco de alagamentos.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800/40">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            Cota de Alerta (13,50 m)
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                            A Defesa Civil entra em plantão e monitora os bairros ribeirinhos mais baixos.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-red-50/60 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-red-700 dark:text-red-300">
+                            <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                            Transbordamento (14,00 m)
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                            A água atinge as primeiras ruas baixas (Habitasa, Cadeia Velha, Taquari, etc.).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── 4. Gráfico 1: Últimas 24 Horas (Oscilação de Hoje) ─── -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-6 hover:border-cyan-500/30 transition-all">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 border border-cyan-200/40 dark:border-cyan-800/40">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                                    Oscilação nas Últimas 24 Horas
+                                </h2>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Veja de hora em hora se a água está subindo ou descendo
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumo Rápido e Limpo -->
+                    <div id="stat-24h-badge-resumo" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs font-bold border border-cyan-200 dark:border-cyan-800/40 self-start sm:self-auto">
+                        <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                        <span id="stat-24h-texto">Carregando oscilação...</span>
+                    </div>
+                </div>
+
+                <!-- Canvas do Gráfico 24h -->
+                <div class="relative w-full h-64 sm:h-72">
+                    <canvas id="rio-chart-24h"></canvas>
+                    <div id="rio-loader-24h" class="absolute inset-0 flex flex-col items-center justify-center bg-white/70 dark:bg-gray-800/70 backdrop-blur-xs rounded-xl transition-opacity">
+                        <div class="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">Carregando gráfico de 24 horas...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── 5. Gráfico 2: Histórico do Mês (Últimos 30 Dias) ─── -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-6 hover:border-blue-500/30 transition-all">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/40">
+                                <i data-lucide="calendar" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                                    Histórico do Nível do Rio
+                                </h2>
+                                <p id="stat-30d-texto" class="text-xs text-gray-500 dark:text-gray-400">
+                                    Evolução diária consolidada nos últimos dias
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros de Período Simples -->
+                    <div class="flex items-center gap-2">
+                        <div class="inline-flex rounded-xl bg-gray-100 dark:bg-gray-700/60 p-1 text-xs font-semibold">
+                            <button id="btn-periodo-7" class="periodo-btn periodo-btn-inactive px-3 py-1.5 rounded-lg transition-all text-xs font-semibold cursor-pointer" data-dias="7">7 Dias</button>
+                            <button id="btn-periodo-15" class="periodo-btn periodo-btn-inactive px-3 py-1.5 rounded-lg transition-all text-xs font-semibold cursor-pointer" data-dias="15">15 Dias</button>
+                            <button id="btn-periodo-30" class="periodo-btn periodo-btn-active px-3 py-1.5 rounded-lg transition-all text-xs font-bold cursor-pointer" data-dias="30">30 Dias</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canvas do Gráfico 30 Dias -->
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="rio-history-chart"></canvas>
+                    <div id="rio-chart-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-white/70 dark:bg-gray-800/70 backdrop-blur-xs rounded-xl transition-opacity">
+                        <div class="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">Carregando histórico do rio...</span>
                     </div>
                 </div>
             </div>
@@ -291,54 +529,54 @@
                 <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
             </div>
 
-            <!-- Telefones e Contatos de Emergência -->
-            <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-8">
-                <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+            <!-- ─── 6. Contatos de Emergência (Discagem Rápida) ─── -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700/80 mb-8">
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1.5 flex items-center gap-2">
                     <i data-lucide="phone-call" class="w-5 h-5 text-red-500"></i>
-                    Contatos de Emergência e Defesa Civil
+                    Contatos de Emergência
                 </h2>
-                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Em situações de alagamento, deslizamento de terra ou urgências em Rio Branco, ligue imediatamente para os números oficiais com atendimento 24 horas:
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Em situações de alagamento ou urgência, ligue gratuitamente (atendimento 24h):
                 </p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <a href="tel:199" class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-400 transition-all group flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <a href="tel:199" class="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-400 hover:-translate-y-0.5 transition-all group flex items-center gap-3 shadow-xs">
+                        <div class="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center font-black text-base group-hover:scale-110 transition-transform">
                             199
                         </div>
                         <div>
                             <div class="text-xs font-bold text-gray-900 dark:text-white">Defesa Civil</div>
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400">Emergência Rio Acre</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400">Enchentes</div>
                         </div>
                     </a>
 
-                    <a href="tel:193" class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-400 transition-all group flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
+                    <a href="tel:193" class="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-orange-500 dark:hover:border-orange-400 hover:-translate-y-0.5 transition-all group flex items-center gap-3 shadow-xs">
+                        <div class="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-base group-hover:scale-110 transition-transform">
                             193
                         </div>
                         <div>
-                            <div class="text-xs font-bold text-gray-900 dark:text-white">Corpo de Bombeiros</div>
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400">Resgate e Apoio</div>
+                            <div class="text-xs font-bold text-gray-900 dark:text-white">Bombeiros</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400">Resgate</div>
                         </div>
                     </a>
 
-                    <a href="tel:192" class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-400 transition-all group flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
+                    <a href="tel:192" class="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:-translate-y-0.5 transition-all group flex items-center gap-3 shadow-xs">
+                        <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-base group-hover:scale-110 transition-transform">
                             192
                         </div>
                         <div>
                             <div class="text-xs font-bold text-gray-900 dark:text-white">SAMU</div>
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400">Urgência Médica</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400">Saúde</div>
                         </div>
                     </a>
 
-                    <a href="tel:190" class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-400 transition-all group flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
+                    <a href="tel:190" class="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-400 hover:-translate-y-0.5 transition-all group flex items-center gap-3 shadow-xs">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-base group-hover:scale-110 transition-transform">
                             190
                         </div>
                         <div>
                             <div class="text-xs font-bold text-gray-900 dark:text-white">Polícia Militar</div>
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400">Segurança Pública</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400">Segurança</div>
                         </div>
                     </a>
                 </div>
@@ -376,7 +614,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-    <script type="module" src="/script/rio-script.js?v=2"></script>
+    <script type="module" src="/script/rio-script.js?v=11"></script>
 </body>
 
 </html>

@@ -30,6 +30,7 @@ function cameraRoutes(cameraController) {
     router.post('/api/site-config',        verifyAdmin,         cameraController.updateSiteConfig);
     router.post('/api/update-camera-info', verifyAdmin,         cameraController.updateCameraInfo);
     router.get('/api/rio-acre',                                 cameraController.getRioAcre);
+    router.get('/api/rio-acre/historico',                       cameraController.getRioAcreHistorico);
     router.get('/api/timelapse/:code',                          cameraController.getTimelapse);
     router.get('/api/timelapses-available',                     cameraController.getAvailableTimelapses);
     router.post('/api/contact',            contactLimiter,      cameraController.submitContactSuggestion);

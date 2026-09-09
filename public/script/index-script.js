@@ -223,7 +223,7 @@ function initializeAppLogic() {
                 </div>
                 
                 <!-- Status & Distance Badges (Top Left) -->
-                <div class="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20">
+                <div class="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20 flex-wrap">
                     ${isOnline ? `
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded bg-black/75 text-emerald-400 border border-emerald-500/40 shadow-sm">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -235,6 +235,12 @@ function initializeAppLogic() {
                             Offline
                         </span>
                     `}
+                    ${['001426', '001334'].includes(camera.codigo) ? `
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-extrabold rounded bg-blue-900/80 text-cyan-300 border border-cyan-400/40 shadow-sm">
+                            <i data-lucide="waves" class="w-3 h-3 text-cyan-300"></i>
+                            Rio Acre
+                        </span>
+                    ` : ''}
                     ${distanceBadge}
                 </div>
 

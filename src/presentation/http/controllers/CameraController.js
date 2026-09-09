@@ -26,6 +26,7 @@ class CameraController {
         this.updateSiteConfig  = this.updateSiteConfig.bind(this);
         this.updateCameraInfo  = this.updateCameraInfo.bind(this);
         this.getRioAcre               = this.getRioAcre.bind(this);
+        this.getRioAcreHistorico      = this.getRioAcreHistorico.bind(this);
         this.getTimelapse             = this.getTimelapse.bind(this);
         this.getAvailableTimelapses   = this.getAvailableTimelapses.bind(this);
         this.submitContactSuggestion  = this.submitContactSuggestion.bind(this);
@@ -51,6 +52,23 @@ class CameraController {
         } catch (error) {
             console.error('[RIO_ACRE_ERROR]', error.message);
             res.status(500).json({ error: 'Erro ao consultar nível do Rio Acre' });
+        }
+    }
+
+    /** GET /api/rio-acre/historico */
+    async getRioAcreHistorico(req, res) {
+        try {
+            if (!this._rioAcreService) {
+                const RioAcreService = require('../../../infrastructure/services/RioAcreService');
+                this._rioAcreService = new RioAcreService();
+            }
+            const dias = Math.max(1, Math.min(60, parseInt(req.query.dias, 10) || 30));
+            const data = await this._rioAcreService.getHistoricoRioAcre(dias);
+            res.setHeader('Cache-Control', 'public, max-age=1800');
+            res.json(data);
+        } catch (error) {
+            console.error('[RIO_ACRE_HISTORICO_ERROR]', error.message);
+            res.status(500).json({ error: 'Erro ao consultar histórico do Rio Acre' });
         }
     }
 
