@@ -9,10 +9,10 @@
     <link rel="apple-touch-icon" href="/assets/icone.png">
     <link rel="manifest" href="/manifest.json">
 
-    <title>Sobre Nós | CamRB</title>
+    <title>Sobre o CamRB | Monitoramento Urbano e Nível do Rio em Tempo Real</title>
 
     <meta name="description"
-        content="Saiba mais sobre o CamRB, o projeto de monitoramento ao vivo de Rio Branco. Nossa missão, como funciona e por que existimos.">
+        content="Conheça o CamRB, plataforma independente de monitoramento comunitário de Rio Branco - AC. Câmeras de trânsito ao vivo, telemetria do Rio Acre, mapa interativo e utilidade pública.">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
     <link rel="canonical" href="https://camerasriobranco.com.br/sobre">
@@ -46,7 +46,7 @@
           "@id": "https://camerasriobranco.com.br/sobre#about",
           "url": "https://camerasriobranco.com.br/sobre",
           "name": "Sobre o CamRB - Câmeras Rio Branco",
-          "description": "Informações institucionais sobre o projeto independente de câmeras ao vivo e monitoramento comunitário de Rio Branco - AC.",
+          "description": "Informações institucionais sobre o projeto independente de câmeras ao vivo, telemetria do Rio Acre e mobilidade de Rio Branco - AC.",
           "inLanguage": "pt-BR"
         }
       ]
@@ -56,320 +56,425 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://camerasriobranco.com.br/sobre">
-    <meta property="og:title" content="Sobre Nós | CamRB">
+    <meta property="og:title" content="Sobre o CamRB | Câmeras de Rio Branco e Nível do Rio">
     <meta property="og:description"
-        content="Entenda como o CamRB ajuda a democratizar o acesso à informação de trânsito e segurança em Rio Branco.">
+        content="Descubra como o CamRB centraliza o trânsito, a segurança e o monitoramento do Rio Acre para toda a população acreana.">
     <meta property="og:image" content="https://camerasriobranco.com.br/assets/camrb.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://camerasriobranco.com.br/sobre">
-    <meta property="twitter:title" content="Sobre Nós | CamRB">
+    <meta property="twitter:title" content="Sobre o CamRB | Câmeras de Rio Branco e Nível do Rio">
     <meta property="twitter:description"
-        content="Entenda como o CamRB ajuda a democratizar o acesso à informação de trânsito e segurança em Rio Branco.">
+        content="Descubra como o CamRB centraliza o trânsito, a segurança e o monitoramento do Rio Acre para toda a população acreana.">
     <meta property="twitter:image" content="https://camerasriobranco.com.br/assets/camrb.png">
-
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/output.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/css/global.css?v=2">
+    <link rel="stylesheet" href="/css/global.css?v=3">
     <script src="/script/theme.js?v=2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
 
-<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col antialiased">
 
-    <div class="min-h-screen flex flex-col">
-        <!-- ─── Top Navigation Bar ─────────────────────────────── -->
-        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-sm">
-            <div class="container mx-auto px-4">
-                <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
-                    <!-- Brand + Navigation Links -->
-                    <div class="flex items-center gap-3 sm:gap-6 min-w-0">
-                        <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
-                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
-                                <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                            </div>
-                            <div class="leading-tight">
-                                <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</div>
-                                <div class="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-gray-500 -mt-0.5 hidden xs:block">Rio Branco • AC</div>
-                            </div>
+    <!-- ─── Top Navigation Bar ─────────────────────────────── -->
+    <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/80 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
+                <!-- Brand + Navigation Links -->
+                <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+                    <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
+                        <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors shadow-xs">
+                            <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        </div>
+                        <div class="leading-tight">
+                            <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</div>
+                            <div class="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-gray-500 -mt-0.5 hidden xs:block">Rio Branco • AC</div>
+                        </div>
+                    </a>
+
+                    <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
+                    <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
+                        <a href="/rio" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
+                            <span>Rio Acre</span>
                         </a>
-
-                        <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
-                        <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
-                            <a href="/rio" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
-                                <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
-                                <span>Rio Acre</span>
-                            </a>
-                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
-                                <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
-                                <span>Timelapses</span>
-                            </a>
-                            <a href="/mapa" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
-                                <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
-                                <span>Mapa</span>
-                            </a>
-                            <a href="/sobre" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
-                                <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
-                                <span>Sobre</span>
-                            </a>
-                        </nav>
-                    </div>
-
-                    <!-- Right Controls -->
-                    <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                        <button id="toggle-theme" title="Alternar tema"
-                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
-                            <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
-                            <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
-                        </button>
-
-                        <!-- Logged Out: Entrar Button -->
-                        <button id="login-btn" class="logged-out-only hidden px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer">
-                            Entrar
-                        </button>
-
-                        <!-- Admin Dashboard Button -->
-                        <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
-                            class="admin-only hidden px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                            <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
-                            <span class="hidden sm:inline">Painel</span>
+                        <a href="/timelapses" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
+                            <span>Timelapses</span>
                         </a>
-
-                        <!-- Logged In: Perfil Link & Logout Button -->
-                        <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
-                            class="logged-in-only hidden px-2.5 sm:px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
-                            <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
-                            <span class="hidden sm:inline">Perfil</span>
+                        <a href="/mapa" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
+                            <span>Mapa</span>
                         </a>
-
-                        <button id="logout-btn" title="Sair da conta"
-                            class="logged-in-only hidden p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
-                            <i data-lucide="log-out" class="w-4 h-4"></i>
-                        </button>
-                    </div>
+                        <a href="/sobre" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-2xs border border-indigo-100 dark:border-indigo-900/40">
+                            <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400"></i>
+                            <span>Sobre</span>
+                        </a>
+                    </nav>
                 </div>
+
+                <!-- Right Controls -->
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                        <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
+                    </button>
+
+                    <!-- Logged Out: Entrar Button -->
+                    <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
+                        Entrar
+                    </button>
+
+                    <!-- Admin Dashboard Button -->
+                    <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
+                        class="admin-only hidden px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-xs">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
+                        <span class="hidden sm:inline">Painel</span>
+                    </a>
+
+                    <!-- Logged In: Perfil Link & Logout Button -->
+                    <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
+                        class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                        <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                        <span class="hidden sm:inline">Perfil</span>
+                    </a>
+
+                    <button id="logout-btn" title="Sair da conta"
+                        class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-5xl">
+        <!-- ─── Hero Presentation ─────────────────────────────── -->
+        <header class="text-center mb-12 relative">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6 shadow-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Tecnologia Cívica Aberta para o Acre</span>
+            </div>
+
+            <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto p-4 rounded-3xl bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white shadow-xl shadow-indigo-600/25 flex items-center justify-center mb-6">
+                <img src="/assets/icone.png" alt="Logo CamRB" class="w-full h-full object-contain filter drop-shadow-sm">
+            </div>
+
+            <h1 class="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-tight max-w-3xl mx-auto mb-4">
+                A Cidade de Rio Branco <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600">Conectada em Tempo Real</span>
+            </h1>
+
+            <p class="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
+                O <strong>CamRB</strong> é uma iniciativa independente dedicada a democratizar o acesso às câmeras públicas e ao monitoramento do Rio Acre. Uma plataforma rápida, moderna e 100% gratuita na palma da sua mão.
+            </p>
+
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <a href="/" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/35 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4"></i>
+                    <span>Ver Câmeras Ao Vivo</span>
+                </a>
+                <a href="/rio" class="px-5 py-3 rounded-2xl bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-bold text-sm shadow-xs transition-all flex items-center gap-2">
+                    <i data-lucide="waves" class="w-4 h-4 text-blue-500"></i>
+                    <span>Nível do Rio Acre</span>
+                </a>
+                <a href="/mapa" class="px-5 py-3 rounded-2xl bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-bold text-sm shadow-xs transition-all flex items-center gap-2">
+                    <i data-lucide="map" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Mapa Interativo</span>
+                </a>
             </div>
         </header>
 
-        <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
-            
-            <header class="text-center mb-16 relative">
-                <div class="inline-block p-4 rounded-full bg-indigo-50 dark:bg-indigo-900/30 mb-6 shadow-lg shadow-indigo-500/10 animate-fade-in-up">
-                    <img src="/assets/icone.png" alt="Logo CamRB" class="w-24 h-24 object-contain">
+        <!-- ─── Real-Time Live Stats Grid ─────────────────────── -->
+        <section class="mb-14">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-700/80 text-center hover:border-indigo-500/40 transition-colors">
+                    <div class="text-indigo-600 dark:text-indigo-400 mb-2 flex justify-center">
+                        <i data-lucide="video" class="w-6 h-6"></i>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white" id="stat-total-cameras">-</div>
+                    <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Câmeras Cadastradas</div>
                 </div>
-                <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">
-                    Monitoramento Urbano <span class="text-indigo-600 dark:text-indigo-400">Inteligente</span>
-                </h1>
-                <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-                    O <strong>CamRB</strong> é uma plataforma independente dedicada a centralizar o acesso às câmeras públicas de Rio Branco. Simplificamos a visualização do trânsito e da segurança urbana, colocando a cidade na palma da sua mão, em tempo real e de forma gratuita.
-                </p>
 
-                <!-- Grid de Estatísticas em Tempo Real -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-10">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-indigo-600 dark:text-indigo-400 mb-2 flex justify-center">
-                            <i data-lucide="video" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total-cameras">-</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Câmeras Totais</div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-700/80 text-center hover:border-emerald-500/40 transition-colors">
+                    <div class="text-emerald-500 dark:text-emerald-400 mb-2 flex justify-center">
+                        <i data-lucide="wifi" class="w-6 h-6"></i>
                     </div>
-                    
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-emerald-500 dark:text-emerald-400 mb-2 flex justify-center">
-                            <i data-lucide="wifi" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-online-cameras">-</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Câmeras Online</div>
-                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white" id="stat-online-cameras">-</div>
+                    <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Transmissões Online</div>
+                </div>
 
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-blue-500 dark:text-blue-400 mb-2 flex justify-center">
-                            <i data-lucide="activity" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-uptime">-</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Tempo de Atividade</div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-700/80 text-center hover:border-blue-500/40 transition-colors">
+                    <div class="text-blue-500 dark:text-blue-400 mb-2 flex justify-center">
+                        <i data-lucide="activity" class="w-6 h-6"></i>
                     </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white" id="stat-uptime">-</div>
+                    <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Disponibilidade / Uptime</div>
+                </div>
 
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-purple-500 dark:text-purple-400 mb-2 flex justify-center">
-                            <i data-lucide="eye" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-requests">-</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Acessos Hoje</div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-700/80 text-center hover:border-purple-500/40 transition-colors">
+                    <div class="text-purple-500 dark:text-purple-400 mb-2 flex justify-center">
+                        <i data-lucide="eye" class="w-6 h-6"></i>
                     </div>
-                </div>
-                
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-bounce-slow">
-                    <a href="/" class="bg-indigo-600 text-white hover:bg-indigo-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl shadow-indigo-600/20 transform hover:-translate-y-1 transition-all flex items-center gap-2">
-                        <i data-lucide="play-circle" class="w-6 h-6"></i>
-                        Ver Câmeras Agora
-                    </a>
-                </div>
-            </header>
-
-            <!-- Câmeras Aleatórias (Novo) -->
-            <section class="mb-20">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <span class="relative flex h-3 w-3">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
-                        Ao Vivo Agora
-                    </h2>
-                    <a href="/" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
-                        Ver todas &rarr;
-                    </a>
-                </div>
-                
-                <div id="random-cameras-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Loading Skeletons -->
-                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden sm:block"></div>
-                    <div class="bg-gray-200 dark:bg-gray-800 rounded-xl aspect-video animate-pulse hidden lg:block"></div>
-                </div>
-            </section>
-
-            <!-- Grid de Recursos (Novo) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-                <div class="text-center p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="w-14 h-14 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-                        <i data-lucide="eye" class="w-7 h-7"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 text-gray-900 dark:text-white">Visualização Ao Vivo</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Acesse instantaneamente dezenas de câmeras espalhadas pelos principais pontos da capital.</p>
-                </div>
-                <div class="text-center p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="w-14 h-14 mx-auto bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4 text-purple-600 dark:text-purple-400">
-                        <i data-lucide="map" class="w-7 h-7"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 text-gray-900 dark:text-white">Mapa Interativo</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Navegue pelo mapa da cidade e encontre as câmeras próximas a você ou ao seu trajeto.</p>
-                </div>
-                <div class="text-center p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="w-14 h-14 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
-                        <i data-lucide="zap" class="w-7 h-7"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 text-gray-900 dark:text-white">Rápido e Leve</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Sem logins demorados. Abra, clique e assista. Otimizado para funcionar bem no 4G.</p>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white" id="stat-requests">-</div>
+                    <div class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Acessos Hoje</div>
                 </div>
             </div>
+        </section>
 
-            <div class="grid md:grid-cols-2 gap-12 mb-20">
-                    <div class="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800">
-                        <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center mb-6 text-indigo-600 dark:text-indigo-400">
-                            <i data-lucide="layers" class="w-6 h-6"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Agregador de Conteúdo</h2>
-                        <p class="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                            Nós não instalamos nem operamos as câmeras. O CamRB atua como um facilitador, centralizando feeds públicos disponibilizados oficialmente pela Prefeitura de Rio Branco através de portais como:
-                        </p>
-                        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                            <li class="flex items-center gap-2">
-                                <i data-lucide="external-link" class="w-4 h-4 text-indigo-500"></i>
-                                <a href="https://deolhonotransito.riobranco.ac.gov.br/login" target="_blank" class="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400">De Olho no Trânsito</a>
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i data-lucide="external-link" class="w-4 h-4 text-indigo-500"></i>
-                                <a href="https://deolhonorio.riobranco.ac.gov.br/" target="_blank" class="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400">De Olho no Rio</a>
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i data-lucide="external-link" class="w-4 h-4 text-indigo-500"></i>
-                                <a href="https://deolhonaobra.riobranco.ac.gov.br/" target="_blank" class="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400">De Olho na Obra</a>
-                            </li>
-                        </ul>
-                    </div>
+        <!-- ─── Live Camera Previews Showcase ─────────────────── -->
+        <section class="mb-16">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        <span>Transmissões em Tempo Real</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Prévia instantânea de pontos monitorados na capital.</p>
+                </div>
+                <a href="/" class="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                    <span>Grade completa</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+            
+            <div id="random-cameras-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Skeletons -->
+                <div class="bg-gray-200 dark:bg-gray-800 rounded-2xl aspect-video animate-pulse"></div>
+                <div class="bg-gray-200 dark:bg-gray-800 rounded-2xl aspect-video animate-pulse hidden sm:block"></div>
+                <div class="bg-gray-200 dark:bg-gray-800 rounded-2xl aspect-video animate-pulse hidden lg:block"></div>
+            </div>
+        </section>
 
-                    <div class="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800">
-                        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400">
-                            <i data-lucide="cpu" class="w-6 h-6"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Tecnologia Inteligente</h2>
-                        <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                            Desenvolvemos um sistema que monitora a saúde de cada conexão a cada minuto. Se uma câmera da prefeitura sai do ar, nosso sistema identifica e avisa instantaneamente. Isso poupa seu tempo e evita a frustração de tentar carregar vídeos quebrados.
-                        </p>
+        <!-- ─── 4 Core Pillars ───────────────────────────────── -->
+        <section class="mb-16">
+            <div class="text-center max-w-2xl mx-auto mb-10">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                    Por Que Criamos o CamRB?
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Desenvolvemos soluções pensadas especificamente para os desafios do cotidiano acreano.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <!-- Pillar 1 -->
+                <div class="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-xs hover:border-indigo-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 border border-indigo-100 dark:border-indigo-900/40">
+                        <i data-lucide="car" class="w-6 h-6"></i>
                     </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Mobilidade & Trânsito Fluido</h3>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Acompanhe o tráfego nas principais artérias (Av. Ceará, Chico Mendes, Getúlio Vargas, Via Verde) antes de sair de casa e fuja de congestionamentos e obras.
+                    </p>
                 </div>
 
-                <section class="mb-20">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">Perguntas Frequentes</h2>
-                    
-                    <div class="space-y-6">
-                        <div class="border-b border-gray-200 dark:border-gray-800 pb-6">
-                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <i data-lucide="building-2" class="w-5 h-5 text-gray-400"></i>
-                                As câmeras são de vocês?
-                            </h3>
-                            <p class="text-gray-600 dark:text-gray-400 ml-7">
-                                Não. Todas as imagens exibidas aqui são de propriedade pública, fornecidas pela Prefeitura de Rio Branco e órgãos competentes. O CamRB apenas organiza esses links públicos em um painel unificado.
-                            </p>
-                        </div>
-    
-                        <div class="border-b border-gray-200 dark:border-gray-800 pb-6">
-                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <i data-lucide="dollar-sign" class="w-5 h-5 text-gray-400"></i>
-                                É gratuito?
-                            </h3>
-                            <p class="text-gray-600 dark:text-gray-400 ml-7">
-                                Sim! O CamRB é 100% gratuito para toda a população. Mantemos o projeto com apoio da comunidade e eventuais parcerias.
-                            </p>
-                        </div>
-
-                        <div class="border-b border-gray-200 dark:border-gray-800 pb-6">
-                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
-                                Como entro em contato?
-                            </h3>
-                            <a href="mailto:suportecamrb@gmail.com"
-                                class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors group mt-4">
-                                <div class="bg-indigo-100 dark:bg-gray-600 p-2 rounded-lg group-hover:bg-indigo-200 dark:group-hover:bg-gray-500 transition-colors">
-                                    <i data-lucide="mail" class="w-5 h-5 text-indigo-600 dark:text-indigo-300"></i>
-                                </div>
-                                <span class="text-gray-600 dark:text-gray-300 font-medium">suportecamrb@gmail.com</span>
-                            </a>
-                        </div>
+                <!-- Pillar 2 -->
+                <div class="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-xs hover:border-blue-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 border border-blue-100 dark:border-blue-900/40">
+                        <i data-lucide="waves" class="w-6 h-6"></i>
                     </div>
-                </section>
-        </main>
-
-        <div id="global-footer" data-type="full"></div>
-
-        <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
-        <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
-            <a href="/" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
-                <i data-lucide="home" class="w-5 h-5 text-indigo-500"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Início</span>
-            </a>
-            <a href="/rio" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 text-center min-h-[48px]">
-                <i data-lucide="waves" class="w-5 h-5 text-blue-500"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Rio Acre</span>
-            </a>
-            <a href="/?busca=1" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
-                <div class="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
-                    <i data-lucide="search" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Sentinela do Rio Acre</h3>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Integração direta com o novo HidroWebService da Agência Nacional de Águas (ANA) e Defesa Civil na Ponte Metálica, oferecendo medições oficiais de hora em hora para prevenção de enchentes.
+                    </p>
                 </div>
-                <span class="text-[10px] font-semibold mt-0.5">Busca</span>
+
+                <!-- Pillar 3 -->
+                <div class="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-xs hover:border-emerald-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 border border-emerald-100 dark:border-emerald-900/40">
+                        <i data-lucide="map-pin" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Mapa Georreferenciado & GPS</h3>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Encontre instantaneamente câmeras próximas a você com busca por bairros, rotas no Google Maps e filtros inteligentes por categorias urbanas.
+                    </p>
+                </div>
+
+                <!-- Pillar 4 -->
+                <div class="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-xs hover:border-purple-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4 border border-purple-100 dark:border-purple-900/40">
+                        <i data-lucide="zap" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Ultra Leve & Otimizado PWA</h3>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Sem logins obrigatórios nem downloads pesados. Funciona como aplicativo nativo instalável no seu smartphone, consumindo o mínimo de dados no 3G/4G.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Architecture & How it Works ───────────────────── -->
+        <section class="mb-16 bg-white dark:bg-gray-800 p-8 sm:p-10 rounded-3xl border border-gray-200/80 dark:border-gray-700/80 shadow-xs">
+            <div class="text-center max-w-2xl mx-auto mb-10">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    Transparência Técnica
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                    Como a Plataforma Funciona?
+                </h2>
+                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Entenda o fluxo dos dados, desde os servidores públicos até a tela do seu dispositivo.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+                <!-- Step 1 -->
+                <div class="p-5 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/70 dark:border-gray-700/60">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-black text-sm flex items-center justify-center mb-3">1</div>
+                    <h4 class="font-bold text-sm text-gray-900 dark:text-white mb-1.5">Captação Oficial</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Conexão com os portais públicos municipais (<em>De Olho no Trânsito</em>, <em>De Olho no Rio</em>, <em>De Olho na Obra</em>) e serviços telemétricos da ANA.
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="p-5 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/70 dark:border-gray-700/60">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-black text-sm flex items-center justify-center mb-3">2</div>
+                    <h4 class="font-bold text-sm text-gray-900 dark:text-white mb-1.5">Proxy & Health Check</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Nossos servidores verificam o status de cada câmera a cada minuto, aplicando cache inteligente para economizar banda e alertar câmeras instáveis.
+                    </p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="p-5 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/70 dark:border-gray-700/60">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-black text-sm flex items-center justify-center mb-3">3</div>
+                    <h4 class="font-bold text-sm text-gray-900 dark:text-white mb-1.5">Acesso Instantâneo</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                        Entrega para a população em interface intuitiva, com modo escuro automático, timelapses 24h, mapa interativo e zero atrito de navegação.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- ─── Interactive FAQ ───────────────────────────────── -->
+        <section class="mb-16 bg-white dark:bg-gray-800 p-8 sm:p-10 rounded-3xl border border-gray-200/80 dark:border-gray-700/80 shadow-xs">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-8 text-center">
+                Perguntas Frequentes (FAQ)
+            </h2>
+
+            <div class="space-y-3.5 max-w-3xl mx-auto">
+                <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 sm:p-5 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                    <summary class="flex items-center justify-between font-bold text-sm sm:text-base text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-indigo-500"></i>
+                            As câmeras pertencem ao CamRB?
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3 pl-6">
+                        Não. O CamRB é um agregador independente de tecnologia cívica. As transmissões são originárias de fontes públicas municipais e órgãos oficiais conveniados da Prefeitura de Rio Branco e da ANA.
+                    </p>
+                </details>
+
+                <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 sm:p-5 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                    <summary class="flex items-center justify-between font-bold text-sm sm:text-base text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="dollar-sign" class="w-4 h-4 text-indigo-500"></i>
+                            O uso do CamRB é gratuito?
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3 pl-6">
+                        Sim, 100% gratuito e livre para toda a população. Mantemos a infraestrutura através de parcerias com empresas locais e anúncios éticos do Google AdSense.
+                    </p>
+                </details>
+
+                <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 sm:p-5 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                    <summary class="flex items-center justify-between font-bold text-sm sm:text-base text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-indigo-500"></i>
+                            Por que algumas câmeras ficam offline temporariamente?
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3 pl-6">
+                        As câmeras dependem de energia elétrica, link de internet e estabilidade nos servidores municipais. Nosso sistema verifica a cada minuto e sinaliza instantaneamente se um ponto estiver indisponível.
+                    </p>
+                </details>
+
+                <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 sm:p-5 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                    <summary class="flex items-center justify-between font-bold text-sm sm:text-base text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="waves" class="w-4 h-4 text-indigo-500"></i>
+                            Como é obtido o nível do Rio Acre?
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3 pl-6">
+                        O nível é obtido em tempo real através da integração oficial com a API HidroWebService da Agência Nacional de Águas (ANA) e Serviço Geológico do Brasil (SGB/CPRM), coletado diretamente dos sensores na régua da Ponte Metálica.
+                    </p>
+                </details>
+            </div>
+        </section>
+
+        <!-- ─── Contact Card ──────────────────────────────────── -->
+        <section class="p-6 sm:p-8 rounded-3xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-5">
+            <div class="flex items-center gap-4 text-center sm:text-left">
+                <div class="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-sm flex-shrink-0">
+                    <i data-lucide="mail" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-gray-900 dark:text-white">Fale com a Equipe CamRB</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sugestões de melhoria, parcerias, relatos de câmeras ou suporte técnico.</p>
+                </div>
+            </div>
+            <a href="mailto:suportecamrb@gmail.com" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20 whitespace-nowrap active:scale-95">
+                suportecamrb@gmail.com
             </a>
-            <a href="/timelapses" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex-1 text-center min-h-[48px]">
-                <i data-lucide="clock" class="w-5 h-5 text-purple-500"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Timelapses</span>
-            </a>
-            <a href="/mapa" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex-1 text-center min-h-[48px]">
-                <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Mapa</span>
-            </a>
-        </nav>
-    </div>
+        </section>
+    </main>
+
+    <!-- Global Footer -->
+    <div id="global-footer" data-type="full"></div>
+
+    <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
+        <a href="/" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="home" class="w-5 h-5 text-indigo-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Início</span>
+        </a>
+        <a href="/rio" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="waves" class="w-5 h-5 text-blue-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Rio Acre</span>
+        </a>
+        <a href="/?busca=1" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+            <div class="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="search" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+            </div>
+            <span class="text-[10px] font-semibold mt-0.5">Busca</span>
+        </a>
+        <a href="/timelapses" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="clock" class="w-5 h-5 text-purple-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Timelapses</span>
+        </a>
+        <a href="/mapa" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Mapa</span>
+        </a>
+    </nav>
 
     <script type="module">
         import { initFooter } from '/script/footer-component.js';
         document.addEventListener('DOMContentLoaded', initFooter);
     </script>
-    <script type="module" src="/script/sobre-script.js"></script>
+    <script type="module" src="/script/sobre-script.js?v=4"></script>
 </body>
 
 </html>

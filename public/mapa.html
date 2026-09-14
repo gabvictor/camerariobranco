@@ -94,7 +94,7 @@
     <link rel="stylesheet" href="/css/output.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/global.css?v=2">
+    <link rel="stylesheet" href="/css/global.css?v=3">
     <script src="/script/theme.js?v=2"></script>
     <style>
         body,
@@ -170,9 +170,43 @@
         /* Dark mode overrides for Leaflet */
         .dark .leaflet-popup-content-wrapper,
         .dark .leaflet-popup-tip {
-            background-color: #1f2937 !important;
-            border-color: rgba(75, 85, 99, 0.4);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
+            background-color: #0f172a !important;
+            border-color: rgba(51, 65, 85, 0.6) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+        }
+
+        .dark .leaflet-bar {
+            border: 1px solid rgba(51, 65, 85, 0.8) !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+            border-radius: 12px !important;
+            overflow: hidden;
+        }
+
+        .dark .leaflet-bar a {
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            color: #f1f5f9 !important;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.8) !important;
+            backdrop-filter: blur(12px);
+            transition: all 0.2s ease;
+        }
+
+        .dark .leaflet-bar a:hover {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        .dark .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.85) !important;
+            color: #94a3b8 !important;
+            backdrop-filter: blur(8px);
+            border-top-left-radius: 8px;
+            border: 1px solid rgba(51, 65, 85, 0.4);
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .dark .leaflet-control-attribution a {
+            color: #818cf8 !important;
         }
 
         /* Adjust Leaflet controls for mobile bottom nav */
@@ -187,13 +221,13 @@
 <body class="relative bg-gray-50 dark:bg-gray-900 overflow-hidden">
     <div id="map-wrapper" class="relative w-full h-full">
         <!-- ─── Top Navigation Bar ─────────────────────────────── -->
-        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-sm">
+        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/80 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
             <div class="container mx-auto px-4">
                 <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
                     <!-- Brand + Navigation Links -->
                     <div class="flex items-center gap-3 sm:gap-6 min-w-0">
                         <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
-                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
+                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors shadow-xs">
                                 <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                             </div>
                             <div class="leading-tight">
@@ -203,20 +237,20 @@
                         </a>
 
                         <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
-                        <nav class="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-                            <a href="/rio" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                        <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
+                            <a href="/rio" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
                                 <span>Rio Acre</span>
                             </a>
-                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
                                 <span>Timelapses</span>
                             </a>
-                            <a href="/mapa" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
+                            <a href="/mapa" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
                                 <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
                                 <span>Mapa</span>
                             </a>
-                            <a href="/sobre" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <a href="/sobre" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
                                 <span>Sobre</span>
                             </a>
@@ -224,45 +258,45 @@
                     </div>
 
                     <!-- Right Controls -->
-                    <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         <button id="nav-changelog-btn" title="Novidades"
-                            class="relative p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="relative p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="bell" class="w-4 h-4 text-amber-500"></i>
                             <span id="changelog-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden"></span>
                         </button>
 
                         <button id="start-tour-btn" title="Guia / Ajuda"
-                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="help-circle" class="w-4 h-4 text-blue-500"></i>
                         </button>
 
                         <button id="toggle-theme" title="Alternar tema"
-                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
                             <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
                         </button>
 
                         <!-- Logged Out: Entrar Button -->
-                        <button id="login-btn" class="logged-out-only hidden px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer">
+                        <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
                             Entrar
                         </button>
 
                         <!-- Admin Dashboard Button -->
                         <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
-                            class="admin-only hidden px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                            class="admin-only hidden px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-xs">
                             <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
                             <span class="hidden sm:inline">Painel</span>
                         </a>
 
                         <!-- Logged In: Perfil Link & Logout Button -->
                         <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
-                            class="logged-in-only hidden px-2.5 sm:px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                            class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
                             <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
                             <span class="hidden sm:inline">Perfil</span>
                         </a>
 
                         <button id="logout-btn" title="Sair da conta"
-                            class="logged-in-only hidden p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                            class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
                             <i data-lucide="log-out" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -273,12 +307,105 @@
         <!-- Map Container -->
         <div id="map" class="w-full h-full z-0"></div>
 
+        <!-- ─── Floating Top Search & Filter Bar ──────────────── -->
+        <div id="map-floating-panel" class="absolute top-16 sm:top-20 left-3 right-3 sm:left-6 sm:right-auto sm:w-96 z-[990] flex flex-col gap-2 pointer-events-none">
+            
+            <!-- Search & Quick Actions Bar -->
+            <div class="pointer-events-auto bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-gray-200/90 dark:border-slate-700/80 rounded-2xl shadow-2xl p-1.5 flex items-center gap-2 transition-all">
+                <div class="flex items-center gap-2 flex-1 pl-2.5 min-w-0">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 dark:text-slate-400 flex-shrink-0"></i>
+                    <input 
+                        type="text" 
+                        id="map-search-input" 
+                        placeholder="Buscar câmera, avenida ou bairro..." 
+                        class="w-full bg-transparent border-none text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0 py-1"
+                        autocomplete="off"
+                    >
+                    <button id="map-search-clear" class="hidden p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Live Counter Badge -->
+                <div id="map-counter-badge" class="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold flex-shrink-0 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="map-counter-text">41 Ao Vivo</span>
+                </div>
+
+                <!-- Drawer Button -->
+                <button id="btn-open-drawer" title="Ver Lista de Câmeras" class="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/30 flex-shrink-0 active:scale-95 cursor-pointer">
+                    <i data-lucide="list" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div id="map-search-results" class="hidden pointer-events-auto max-h-72 overflow-y-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 scrollbar-thin">
+            </div>
+
+            <!-- Dynamic Category Filter Chips -->
+            <div class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="map-category-pills">
+                <!-- Dynamically populated via JS from real online cameras -->
+            </div>
+
+        </div>
+
+        <!-- ─── Slide-over Camera Drawer ──────────────────────── -->
+        <div id="camera-drawer-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-[1002] hidden transition-opacity"></div>
+        <aside id="camera-drawer" class="fixed top-0 right-0 bottom-0 w-full sm:w-96 bg-white dark:bg-slate-950 shadow-2xl z-[1003] transform translate-x-full transition-transform duration-300 ease-out flex flex-col border-l border-gray-200 dark:border-slate-800">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50/80 dark:bg-slate-900/80">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                        <i data-lucide="video" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-900 dark:text-white">Câmeras da Cidade</h2>
+                        <p class="text-[11px] text-gray-500 dark:text-slate-400"><span id="drawer-count">41</span> pontos online</p>
+                    </div>
+                </div>
+                <button id="btn-close-drawer" class="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Drawer Search & Sort -->
+            <div class="p-3 border-b border-gray-100 dark:border-slate-800/80 flex items-center gap-2">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input 
+                        type="text" 
+                        id="drawer-search-input" 
+                        placeholder="Filtrar na lista..." 
+                        class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                </div>
+                <select id="drawer-sort-select" class="text-xs py-1.5 px-2.5 rounded-xl bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                    <option value="name">A - Z</option>
+                    <option value="category">Por Região</option>
+                </select>
+            </div>
+
+            <!-- Drawer Cameras List -->
+            <div id="drawer-cameras-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin">
+                <!-- Injected dynamically via JS -->
+            </div>
+
+            <!-- Drawer Footer -->
+            <div class="p-3 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/60 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
+                <span>CamRB • Rio Branco</span>
+                <a href="/" class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1">
+                    <span>Grade Completa</span>
+                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </aside>
+
         <!-- Changelog Modal -->
         <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1002] hidden flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-slate-800 animate-fade-in-up">
                 <!-- Modal Header -->
-                <div class="relative px-6 py-8 border-b dark:border-gray-700 bg-indigo-600 text-white overflow-hidden">
-                    <!-- Background Decor -->
+                <div class="relative px-6 py-8 border-b dark:border-slate-800 bg-indigo-600 text-white overflow-hidden">
                     <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                     <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl"></div>
                     
@@ -292,7 +419,7 @@
                             </div>
                             <p class="text-indigo-100 text-sm font-medium opacity-90">Acompanhe as atualizações do CamRB</p>
                         </div>
-                        <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group">
+                        <button id="close-changelog-modal" class="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 group cursor-pointer">
                             <i data-lucide="x" class="w-6 h-6 text-white/80 group-hover:text-white"></i>
                         </button>
                     </div>
@@ -304,18 +431,56 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-center">
-                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
+                <div class="p-4 bg-gray-50 dark:bg-slate-950 border-t dark:border-slate-800 flex justify-center">
+                    <p class="text-[10px] text-gray-400 dark:text-slate-500 font-medium uppercase tracking-widest">CamRB • Rio Branco - AC</p>
                 </div>
             </div>
         </div>
 
-        <!-- Floating Controls (Locate Me) -->
-        <div class="absolute bottom-24 sm:bottom-8 right-4 z-[999] flex flex-col gap-2">
-             <button id="locate-btn" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Minha Localização">
-                <i data-lucide="crosshair" class="w-6 h-6"></i>
-             </button>
+        <!-- ─── Floating Action Controls (Right Bottom) ───────── -->
+        <div class="absolute bottom-24 sm:bottom-8 right-3 sm:right-6 z-[990] flex flex-col gap-2.5">
+            
+            <!-- Layer Switcher Button & Popover -->
+            <div class="relative">
+                <button id="layer-switcher-btn" class="bg-white/95 dark:bg-slate-900/95 text-gray-700 dark:text-slate-200 p-3 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer active:scale-95" title="Camadas do Mapa">
+                    <i data-lucide="layers" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                </button>
+
+                <!-- Layer Menu Popover -->
+                <div id="layer-switcher-menu" class="hidden absolute bottom-0 right-14 w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200 dark:border-slate-700/80 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-[1000] animate-fade-in-up">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 px-2 py-1">Estilo do Mapa</div>
+                    <button data-layer="auto" class="layer-opt active flex items-center justify-between w-full px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left">
+                        <span class="flex items-center gap-2"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-500"></i> Auto (Tema)</span>
+                        <i data-lucide="check" class="layer-check w-3.5 h-3.5 text-indigo-600"></i>
+                    </button>
+                    <button data-layer="streets" class="layer-opt flex items-center justify-between w-full px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left">
+                        <span class="flex items-center gap-2"><i data-lucide="map" class="w-3.5 h-3.5 text-blue-500"></i> Ruas Claras</span>
+                        <i data-lucide="check" class="layer-check w-3.5 h-3.5 text-indigo-600 hidden"></i>
+                    </button>
+                    <button data-layer="dark" class="layer-opt flex items-center justify-between w-full px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left">
+                        <span class="flex items-center gap-2"><i data-lucide="moon" class="w-3.5 h-3.5 text-purple-500"></i> Modo Noturno</span>
+                        <i data-lucide="check" class="layer-check w-3.5 h-3.5 text-indigo-600 hidden"></i>
+                    </button>
+                    <button data-layer="satellite" class="layer-opt flex items-center justify-between w-full px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left">
+                        <span class="flex items-center gap-2"><i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-500"></i> Satélite</span>
+                        <i data-lucide="check" class="layer-check w-3.5 h-3.5 text-indigo-600 hidden"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recenter Rio Branco -->
+            <button id="recenter-btn" class="bg-white/95 dark:bg-slate-900/95 text-gray-700 dark:text-slate-200 p-3 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer active:scale-95" title="Centralizar em Rio Branco">
+                <i data-lucide="compass" class="w-5 h-5 text-gray-600 dark:text-slate-300"></i>
+            </button>
+
+            <!-- Locate Me -->
+            <button id="locate-btn" class="bg-white/95 dark:bg-slate-900/95 text-gray-700 dark:text-slate-200 p-3 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer active:scale-95" title="Minha Localização">
+                <i data-lucide="crosshair" class="w-5 h-5 text-emerald-500"></i>
+            </button>
         </div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container" class="fixed top-20 right-4 z-[1050] flex flex-col gap-2 pointer-events-none"></div>
 
         <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[1001] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
@@ -348,7 +513,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-    <script type="module" src="/script/mapa-script.js?v=2"></script>
+    <script type="module" src="/script/mapa-script.js?v=4"></script>
     <script type="module">
         import { initChangelog } from '/script/changelog.js';
         document.addEventListener('DOMContentLoaded', () => {

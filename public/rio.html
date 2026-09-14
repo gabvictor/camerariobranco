@@ -158,13 +158,13 @@
 
     <div class="min-h-screen flex flex-col">
         <!-- ─── Top Navigation Bar ─────────────────────────────── -->
-        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-sm">
+        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/80 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
             <div class="container mx-auto px-4">
                 <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
                     <!-- Brand + Navigation Links -->
                     <div class="flex items-center gap-3 sm:gap-6 min-w-0">
                         <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
-                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
+                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors shadow-xs">
                                 <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                             </div>
                             <div class="leading-tight">
@@ -174,20 +174,20 @@
                         </a>
 
                         <!-- Navigation Links (Desktop Only) -->
-                        <nav class="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-                            <a href="/rio" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
+                        <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
+                            <a href="/rio" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 flex-shrink-0 shadow-xs">
                                 <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
                                 <span>Rio Acre</span>
                             </a>
-                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
                                 <span>Timelapses</span>
                             </a>
-                            <a href="/mapa" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <a href="/mapa" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
                                 <span>Mapa</span>
                             </a>
-                            <a href="/sobre" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <a href="/sobre" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
                                 <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
                                 <span>Sobre</span>
                             </a>
@@ -195,45 +195,45 @@
                     </div>
 
                     <!-- Right Controls -->
-                    <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         <button id="nav-changelog-btn" title="Novidades"
-                            class="relative p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="relative p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="bell" class="w-4 h-4 text-amber-500"></i>
                             <span id="changelog-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden"></span>
                         </button>
 
                         <button id="start-tour-btn" title="Guia / Ajuda"
-                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="help-circle" class="w-4 h-4 text-blue-500"></i>
                         </button>
 
                         <button id="toggle-theme" title="Alternar tema"
-                            class="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                             <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
                             <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
                         </button>
 
                         <!-- Logged Out: Entrar Button -->
-                        <button id="login-btn" class="logged-out-only hidden px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer">
+                        <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
                             Entrar
                         </button>
 
                         <!-- Admin Dashboard Button -->
                         <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
-                            class="admin-only hidden px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                            class="admin-only hidden px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-xs">
                             <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
                             <span class="hidden sm:inline">Painel</span>
                         </a>
 
                         <!-- Logged In: Perfil Link & Logout Button -->
                         <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
-                            class="logged-in-only hidden px-2.5 sm:px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                            class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
                             <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
                             <span class="hidden sm:inline">Perfil</span>
                         </a>
 
                         <button id="logout-btn" title="Sair da conta"
-                            class="logged-in-only hidden p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                            class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
                             <i data-lucide="log-out" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -281,6 +281,43 @@
                         <div id="rio-tendencia-badge" class="text-xs text-cyan-200 font-semibold mt-2 flex items-center justify-center gap-1">
                             <i data-lucide="minus" class="w-3.5 h-3.5"></i> Estável
                         </div>
+                    </div>
+                </div>
+
+                <!-- 4-KPIs Ribbon no Hero -->
+                <div class="mt-6 pt-5 border-t border-cyan-500/20 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <div class="text-[11px] text-cyan-200/80 font-medium flex items-center gap-1">
+                            <i data-lucide="droplets" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <span>Vazão Estimada</span>
+                        </div>
+                        <div id="stat-hero-vazao" class="text-sm sm:text-base font-bold text-white mt-1">--</div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <div class="text-[11px] text-cyan-200/80 font-medium flex items-center gap-1">
+                            <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-blue-400"></i>
+                            <span>Chuva Acumulada</span>
+                        </div>
+                        <div id="stat-hero-chuva" class="text-sm sm:text-base font-bold text-white mt-1">--</div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <div class="text-[11px] text-cyan-200/80 font-medium flex items-center gap-1">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>Margem até Alerta</span>
+                        </div>
+                        <div id="stat-hero-distancia" class="text-sm sm:text-base font-bold text-emerald-400 mt-1">--</div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center justify-between">
+                        <div>
+                            <div class="text-[11px] text-cyan-200/80 font-medium flex items-center gap-1">
+                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span>Fonte Oficial</span>
+                            </div>
+                            <div id="stat-hero-fonte" class="text-xs font-bold text-cyan-100 mt-1 truncate">ANA / CPRM</div>
+                        </div>
+                        <button id="btn-refresh-telemetry" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-200 hover:text-white transition-all cursor-pointer" title="Atualizar dados agora">
+                            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -512,6 +549,26 @@
                     </div>
                 </div>
 
+                <!-- 4 KPI Cards do Período -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60">
+                        <div class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Média do Período</div>
+                        <div id="stat-media-nivel" class="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white mt-0.5">--</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60">
+                        <div class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Nível Máximo</div>
+                        <div id="stat-max-nivel" class="text-sm sm:text-base font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">--</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60">
+                        <div class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Nível Mínimo</div>
+                        <div id="stat-min-nivel" class="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">--</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60">
+                        <div class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Variação Total</div>
+                        <div id="stat-var-nivel" class="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white mt-0.5">--</div>
+                    </div>
+                </div>
+
                 <!-- Canvas do Gráfico 30 Dias -->
                 <div class="relative w-full h-64 sm:h-80">
                     <canvas id="rio-history-chart"></canvas>
@@ -614,7 +671,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-    <script type="module" src="/script/rio-script.js?v=11"></script>
+    <script type="module" src="/script/rio-script.js?v=14"></script>
 </body>
 
 </html>

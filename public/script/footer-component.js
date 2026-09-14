@@ -140,11 +140,11 @@ export function initFooter() {
                         </ul>
                     </div>
 
-                    <!-- Coluna 3: Informações -->
+                    <!-- Coluna 3: Informações & Parcerias -->
                     <div>
                         <h3 class="font-bold text-xs uppercase tracking-wider text-gray-900 dark:text-white mb-3.5 flex items-center gap-1.5">
                             <i data-lucide="info" class="w-4 h-4 text-purple-500"></i>
-                            Informações
+                            Institucional
                         </h3>
                         <ul class="space-y-2 text-xs sm:text-sm">
                             <li>

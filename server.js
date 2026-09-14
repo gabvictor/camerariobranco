@@ -41,6 +41,8 @@ const escapeXml = (unsafe) => {
 // Repositories (Infrastructure)
 const FirebaseCameraRepository = require('./src/infrastructure/database/FirebaseCameraRepository');
 const FirebaseReportRepository = require('./src/infrastructure/database/FirebaseReportRepository');
+const FirebaseSponsorRepository = require('./src/infrastructure/database/FirebaseSponsorRepository');
+const SponsorLogoUploadService = require('./src/infrastructure/services/SponsorLogoUploadService');
 
 // Scanner (Strategy + Factory)
 const ScannerFactory = require('./src/infrastructure/scanner/ScannerFactory');
@@ -56,13 +58,18 @@ const CameraCache = require('./src/application/services/CameraCache');
 const CreateReportUseCase = require('./src/application/use-cases/CreateReportUseCase');
 const TrackVisitUseCase = require('./src/application/use-cases/TrackVisitUseCase');
 const GetDashboardDataUseCase = require('./src/application/use-cases/GetDashboardDataUseCase');
+const SponsorService = require('./src/application/services/SponsorService');
+const ManageSponsorUseCase = require('./src/application/use-cases/ManageSponsorUseCase');
+const GetSponsorPublicDataUseCase = require('./src/application/use-cases/GetSponsorPublicDataUseCase');
 
 // ─── Apresentação ─────────────────────────────────────────────────────────────
 const CameraController = require('./src/presentation/http/controllers/CameraController');
 const ReportController = require('./src/presentation/http/controllers/ReportController');
 const DashboardController = require('./src/presentation/http/controllers/DashboardController');
+const SponsorController = require('./src/presentation/http/controllers/SponsorController');
 const cameraRoutes = require('./src/presentation/http/routes/cameraRoutes');
 const adminRoutes = require('./src/presentation/http/routes/adminRoutes');
+const sponsorRoutes = require('./src/presentation/http/routes/sponsorRoutes');
 
 // ─── Helper: SSR Theme Inlining (Zero Flash Visual de Tema) ───────────────────
 const applySsrTheme = (html, req) => {
@@ -86,6 +93,12 @@ const metrics = new MetricsService();
 const cameraCache = new CameraCache();
 const cameraRepo = new FirebaseCameraRepository(db);
 const reportRepo = new FirebaseReportRepository(db);
+const sponsorRepo = new FirebaseSponsorRepository(db);
+const sponsorLogoUpload = new SponsorLogoUploadService(path.join(PUBLIC_FOLDER, 'uploads', 'sponsors'));
+const sponsorService = new SponsorService(sponsorRepo, cameraRepo, metrics);
+const manageSponsorUC = new ManageSponsorUseCase(sponsorRepo);
+const getSponsorPublicDataUC = new GetSponsorPublicDataUseCase(sponsorRepo, cameraRepo);
+
 const scanner = ScannerFactory.create();
 const scheduler = new ScanScheduler(scanner);
 
@@ -103,6 +116,7 @@ const cameraCtrl = new CameraController(cameraCache, metrics, cameraRepo, trackV
 
 const reportCtrl = new ReportController(createReport, reportRepo).setDb(db);
 const dashboardCtrl = new DashboardController(dashboardUC);
+const sponsorCtrl = new SponsorController(sponsorService, manageSponsorUC, getSponsorPublicDataUC, sponsorLogoUpload);
 
 // ─── Observer: Conecta Scanner → Cache ───────────────────────────────────────
 scheduler.on('scan:complete', async ({ statuses }) => {
@@ -267,7 +281,7 @@ app.get('/', serveIndexPage);
 app.get('/index.html', serveIndexPage);
 
 // ─── SSR: Camera Page ─────────────────────────────────────────────────────────
-const serveCameraPage = (req, res) => {
+const serveCameraPage = async (req, res) => {
     const code = req.query.code || req.params.code;
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const baseUrl = `${protocol}://${req.get('host')}`;
@@ -371,6 +385,11 @@ const serveCameraPage = (req, res) => {
             }
         ]
     };
+
+    const sponsor = await sponsorRepo.findByCameraCode(code);
+    if (sponsor) {
+        html = html.replace('</head>', `<script>window.SERVER_CAM_SPONSOR = ${JSON.stringify(sponsor.toPublicJSON())};</script>\n</head>`);
+    }
 
     html = html
         .replace('</head>', `<script>window.SERVER_CAM_CODE = "${code}";</script>\n</head>`)
@@ -570,6 +589,7 @@ app.get('/stream/camera/:code', streamCameraHandler);
 
 // ─── Rotas Modulares ─────────────────────────────────────────────────────────
 app.use('/', cameraRoutes(cameraCtrl));
+app.use('/', sponsorRoutes(sponsorCtrl));
 app.use('/api', adminRoutes(reportCtrl, dashboardCtrl));
 
 // ─── System Resources API & SSE Stream (Protegida) ───────────────────────────
@@ -720,7 +740,7 @@ app.get('/sitemap.xml', (req, res) => {
 
 // ─── Redirecionamentos Canônicos 301 (Elimina URLs duplicadas no Google) ─────
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
-['rio', 'timelapses', 'contato', 'novidades', 'sobre', 'mapa', 'login', 'metrics', 'termos', 'perfil'].forEach(p => {
+['rio', 'timelapses', 'contato', 'novidades', 'sobre', 'mapa', 'login', 'metrics', 'termos', 'perfil', 'patrocine'].forEach(p => {
     app.get(`/${p}.html`, (req, res) => res.redirect(301, `/${p}`));
 });
 
@@ -749,6 +769,7 @@ app.get('/login', page('login.html'));
 app.get('/metrics', page('metrics.html'));
 app.get('/termos', page('termos.html'));
 app.get('/perfil', page('perfil.html'));
+app.get('/patrocine', page('patrocine.html'));
 app.get('/embed/:id', (req, res) => {
     res.removeHeader('X-Frame-Options');
     res.setHeader('Content-Security-Policy', "frame-ancestors *");
@@ -765,6 +786,7 @@ app.get('/admin/reports', verifyAdminPageSession, adminPage('reports.html'));
 app.get('/admin/comments', verifyAdminPageSession, adminPage('comments.html'));
 app.get('/admin/comments/:cameraId', verifyAdminPageSession, adminPage('comments.html'));
 app.get('/admin/comments/:cameraId/:commentId', verifyAdminPageSession, adminPage('comments.html'));
+app.get('/admin/analise-cameras', verifyAdminPageSession, adminPage('analise-cameras.html'));
 app.get('/dashboard', verifyAdminPageSession, adminPage('dashboard.html'));
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
@@ -783,6 +805,8 @@ app.use((req, res) => {
 async function bootstrap() {
     // 1. Carrega dados do Firestore
     await cameraRepo.refresh();
+    await sponsorRepo.refresh();
+    await sponsorRepo.getPlans();
 
     // 2. Carrega config do site
     try {

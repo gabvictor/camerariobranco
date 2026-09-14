@@ -74,63 +74,78 @@
         <!-- Toast Container -->
         <div id="toast-container" class="fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-        <!-- Header / Navbar -->
-        <nav class="border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md sticky top-0 z-50">
-            <div class="container mx-auto px-4 h-14 flex items-center justify-between gap-3">
-                <a href="/" class="flex items-center gap-2 group flex-shrink-0">
-                    <div class="bg-indigo-600 p-1.5 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
-                        <i data-lucide="video" class="w-4 h-4"></i>
+        <!-- ─── Top Navigation Bar ─────────────────────────────── -->
+        <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/80 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
+            <div class="container mx-auto px-4">
+                <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
+                    <!-- Brand + Navigation Links -->
+                    <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+                        <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
+                            <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors shadow-xs">
+                                <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                            </div>
+                            <div class="leading-tight">
+                                <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</div>
+                                <div class="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-gray-500 -mt-0.5 hidden xs:block">Rio Branco • AC</div>
+                            </div>
+                        </a>
+
+                        <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
+                        <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
+                            <a href="/rio" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
+                                <span>Rio Acre</span>
+                            </a>
+                            <a href="/timelapses" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
+                                <span>Timelapses</span>
+                            </a>
+                            <a href="/mapa" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
+                                <span>Mapa</span>
+                            </a>
+                            <a href="/sobre" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
+                                <span>Sobre</span>
+                            </a>
+                        </nav>
                     </div>
-                    <span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</span>
-                </a>
-                
-                <!-- Navigation Links -->
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-                    <a href="/" class="px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors flex items-center gap-1">
-                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-                        <span>Início</span>
-                    </a>
-                    <a href="/rio" class="hidden sm:inline-flex px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors items-center gap-1">
-                        <i data-lucide="waves" class="w-3.5 h-3.5"></i>
-                        <span>Rio Acre</span>
-                    </a>
-                    <a href="/timelapses" class="hidden sm:inline-flex px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors items-center gap-1">
-                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                        <span>Timelapses</span>
-                    </a>
-                    <a href="/mapa" class="hidden sm:inline-flex px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors items-center gap-1">
-                        <i data-lucide="map" class="w-3.5 h-3.5"></i>
-                        <span>Mapa</span>
-                    </a>
-                    <a href="/sobre" class="hidden md:inline-flex px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors items-center gap-1">
-                        <i data-lucide="info" class="w-3.5 h-3.5"></i>
-                        <span>Sobre</span>
-                    </a>
-                </div>
 
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <!-- Auth Controls -->
-                    <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
-                        class="logged-in-only hidden p-1.5 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-indigo-600 border border-gray-200 dark:border-gray-700">
-                        <i data-lucide="user" class="w-4 h-4"></i>
-                    </a>
-                    
-                    <button id="nav-logout-btn" title="Sair"
-                        class="logged-in-only hidden p-1.5 rounded-lg bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-gray-200 dark:border-gray-700">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                    </button>
+                    <!-- Right Controls -->
+                    <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                        <button id="toggle-theme" title="Alternar tema"
+                            class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                            <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
+                            <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
+                        </button>
 
-                    <button id="nav-login-btn" class="logged-out-only hidden px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
-                        Entrar
-                    </button>
+                        <!-- Logged Out: Entrar Button -->
+                        <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
+                            Entrar
+                        </button>
 
-                    <button id="toggle-theme" class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors" title="Alternar tema">
-                        <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
-                        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
-                    </button>
+                        <!-- Admin Dashboard Button -->
+                        <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
+                            class="admin-only hidden px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-xs">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
+                            <span class="hidden sm:inline">Painel</span>
+                        </a>
+
+                        <!-- Logged In: Perfil Link & Logout Button -->
+                        <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
+                            class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                            <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                            <span class="hidden sm:inline">Perfil</span>
+                        </a>
+
+                        <button id="logout-btn" title="Sair da conta"
+                            class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </nav>
+        </header>
 
         <main class="flex-grow container mx-auto px-4 py-6 max-w-5xl">
             
@@ -324,6 +339,32 @@
         </main>
 
         <div id="global-footer"></div>
+        
+        <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
+            <a href="/" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="home" class="w-5 h-5 text-indigo-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Início</span>
+            </a>
+            <a href="/rio" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="waves" class="w-5 h-5 text-blue-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Rio Acre</span>
+            </a>
+            <a href="/?busca=1" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+                <div class="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="search" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                </div>
+                <span class="text-[10px] font-semibold mt-0.5">Busca</span>
+            </a>
+            <a href="/timelapses" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="clock" class="w-5 h-5 text-purple-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Timelapses</span>
+            </a>
+            <a href="/mapa" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex-1 text-center min-h-[48px]">
+                <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Mapa</span>
+            </a>
+        </nav>
     </div>
 
     <script type="module" src="/script/contato-script.js"></script>

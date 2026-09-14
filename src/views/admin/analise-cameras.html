@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Análise Visual de Câmeras & Patrocínios - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
+        .camera-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .camera-card:hover {
+            transform: translateY(-2px);
+        }
+        .img-container {
+            position: relative;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        .img-overlay-action {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .camera-card:hover .img-overlay-action {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200 min-h-screen">
+
+    <!-- Access Denied Screen (caso falhe auth client-side) -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados do CamRB.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Top Admin Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-sky-600 p-2.5 rounded-2xl text-white shadow-lg shadow-sky-600/25">
+                        <i data-lucide="eye" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                CAMRB — Análise das Câmeras
+                            </h1>
+                            <span id="badge-total-online" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/80">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span id="text-total-online">-- online</span>
+                            </span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                            Identificação visual de enquadramento, referências comerciais e potenciais patrocinadores de Rio Branco.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site Público" class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-gray-200 dark:border-gray-800 scrollbar-none">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-sky-600 text-white shadow-md shadow-sky-600/25 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
+                </a>
+                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- Action Toolbar & Filters -->
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                
+                <!-- Search & Category Filters -->
+                <div class="flex flex-1 flex-col sm:flex-row items-center gap-3">
+                    <div class="relative w-full sm:w-72">
+                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="search-input" placeholder="Buscar por código ou nome..."
+                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-900 dark:text-white placeholder-gray-400 transition-colors">
+                    </div>
+
+                    <select id="category-filter"
+                        class="w-full sm:w-48 py-2.5 px-3 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-700 dark:text-gray-300 font-medium transition-colors">
+                        <option value="">Todas as Categorias</option>
+                    </select>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <label for="auto-refresh-select" class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Auto-atualizar:</label>
+                        <select id="auto-refresh-select"
+                            class="py-2 px-2.5 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-700 dark:text-gray-300 transition-colors">
+                            <option value="0" selected>Desligado</option>
+                            <option value="15">A cada 15s</option>
+                            <option value="30">A cada 30s</option>
+                            <option value="60">A cada 60s</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Primary Action Buttons -->
+                <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-end">
+                    <button id="btn-refresh-all"
+                        class="flex-1 sm:flex-initial px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Atualizar todas</span>
+                    </button>
+
+                    <button id="btn-generate-contact-sheet"
+                        class="flex-1 sm:flex-initial px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-sky-600/25 active:scale-95">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                        <span>Gerar painel de análise</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Info Bar -->
+            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4 px-1">
+                <div>
+                    Exibindo <span id="count-visible" class="font-bold text-gray-900 dark:text-white">0</span> de 
+                    <span id="count-total" class="font-bold text-gray-900 dark:text-white">0</span> câmeras online
+                </div>
+                <div id="last-refresh-time" class="font-mono">
+                    Última atualização: --:--:--
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-state" class="py-24 flex flex-col items-center justify-center gap-3">
+                <div class="w-10 h-10 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm font-semibold text-gray-600 dark:text-gray-400">Carregando câmeras online...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden py-16 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-8">
+                <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
+                    <i data-lucide="camera-off" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">Nenhuma câmera encontrada</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Tente ajustar seus termos de busca ou filtros.</p>
+            </div>
+
+            <!-- Cards Grid (3 a 4 por linha no desktop, 1 no celular) -->
+            <div id="cameras-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+
+        </div>
+    </div>
+
+    <!-- Modal de Análise Individual Ampliada -->
+    <div id="camera-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden max-w-4xl w-full border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+            
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/50">
+                <div class="flex items-center gap-2.5">
+                    <span id="modal-code" class="px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-400 font-mono font-bold text-xs border border-sky-300 dark:border-sky-800">
+                        000000
+                    </span>
+                    <h3 id="modal-name" class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate max-w-md">
+                        Nome da Câmera
+                    </h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="modal-btn-open-tab" title="Abrir imagem pura em nova aba" class="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </button>
+                    <button id="modal-btn-close" title="Fechar (Esc)" class="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Image Container -->
+            <div class="relative bg-black flex items-center justify-center overflow-hidden min-h-[260px] sm:min-h-[380px] max-h-[58vh]">
+                <img id="modal-img" src="" alt="Imagem ampliada da câmera" class="w-full h-full object-contain max-h-[58vh]">
+                <div id="modal-img-loading" class="absolute inset-0 bg-black/60 flex items-center justify-center hidden">
+                    <div class="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <!-- Modal Metadata & Actions -->
+            <div class="p-5 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs border-t border-gray-100 dark:border-gray-700/60">
+                <div class="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-6">
+                    <div>
+                        <span class="text-gray-400 block text-[11px]">Status:</span>
+                        <span class="inline-flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 block text-[11px]">Visualizações:</span>
+                        <span id="modal-views" class="font-mono font-bold text-gray-900 dark:text-white">0</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 block text-[11px]">Categoria:</span>
+                        <span id="modal-category" class="font-medium text-gray-700 dark:text-gray-300">Geral</span>
+                    </div>
+                    <div class="col-span-2 sm:col-span-1">
+                        <span class="text-gray-400 block text-[11px]">Coordenadas:</span>
+                        <span id="modal-coords-container" class="font-mono font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                            <span id="modal-coords-text">--</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700/60">
+                    <button id="modal-btn-refresh" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-sm active:scale-95">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Atualizar Imagem</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script de Inicialização e Lógica da Ferramenta -->
+    <script type="module">
+        import { auth } from "/script/firebase-config.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initAuthModal, toggleLoginModal } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        initAuthModal();
+        initFooter();
+
+        // Estado Global da Página
+        let allCameras = [];
+        let autoRefreshTimer = null;
+        let activeModalCamera = null;
+        let currentAuthUser = null;
+
+        // ─── Autenticação ──────────────────────────────────────────────────────────
+        onAuthStateChanged(auth, async (user) => {
+            const accessDenied = document.getElementById('access-denied');
+            const contentWrapper = document.getElementById('content-wrapper');
+
+            if (!user) {
+                accessDenied.classList.remove('hidden');
+                contentWrapper.style.display = 'none';
+                return;
+            }
+
+            try {
+                const token = await user.getIdToken();
+                const authRes = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const authData = await authRes.json();
+
+                if (!authData.isAdmin) {
+                    accessDenied.classList.remove('hidden');
+                    contentWrapper.style.display = 'none';
+                    return;
+                }
+
+                // Administrador confirmado
+                currentAuthUser = user;
+                accessDenied.classList.add('hidden');
+                contentWrapper.style.display = 'block';
+
+                // Inicializa painel
+                setupAdminPanel();
+
+            } catch (err) {
+                console.error("Erro ao autenticar administrador:", err);
+                accessDenied.classList.remove('hidden');
+            }
+        });
+
+        // Logout
+        document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = '/login';
+        });
+
+        document.getElementById('login-trigger')?.addEventListener('click', () => {
+            toggleLoginModal(true);
+        });
+
+        // ─── Lógica Principal do Painel ───────────────────────────────────────────
+        function setupAdminPanel() {
+            loadOnlineCameras();
+
+            // Event Listeners
+            document.getElementById('btn-refresh-all')?.addEventListener('click', () => {
+                refreshAllCameraImages();
+            });
+
+            document.getElementById('btn-generate-contact-sheet')?.addEventListener('click', () => {
+                openContactSheet();
+            });
+
+            document.getElementById('search-input')?.addEventListener('input', () => {
+                renderFilteredCameras();
+            });
+
+            document.getElementById('category-filter')?.addEventListener('change', () => {
+                renderFilteredCameras();
+            });
+
+            document.getElementById('auto-refresh-select')?.addEventListener('change', (e) => {
+                setupAutoRefresh(parseInt(e.target.value, 10));
+            });
+
+            // Modal Controls
+            document.getElementById('modal-btn-close')?.addEventListener('click', closeModal);
+            document.getElementById('camera-modal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'camera-modal') closeModal();
+            });
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            document.getElementById('modal-btn-refresh')?.addEventListener('click', () => {
+                if (activeModalCamera) {
+                    refreshModalImage(activeModalCamera.codigo);
+                }
+            });
+
+            document.getElementById('modal-btn-open-tab')?.addEventListener('click', () => {
+                if (activeModalCamera) {
+                    window.open(`/proxy/camera/${activeModalCamera.codigo}?t=${Date.now()}`, '_blank');
+                }
+            });
+        }
+
+        // ─── Carregar Câmeras Online do Servidor ─────────────────────────────────
+        async function loadOnlineCameras() {
+            const loading = document.getElementById('loading-state');
+            const grid = document.getElementById('cameras-grid');
+            const empty = document.getElementById('empty-state');
+
+            loading?.classList.remove('hidden');
+            empty?.classList.add('hidden');
+
+            try {
+                const token = await currentAuthUser.getIdToken();
+                const res = await fetch('/api/admin/cameras/online-analysis', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Erro na resposta do servidor (${res.status})`);
+                }
+
+                const data = await res.json();
+                allCameras = data.cameras || [];
+
+                // Atualiza contadores
+                const totalOnline = allCameras.length;
+                document.getElementById('text-total-online').textContent = `${totalOnline} online`;
+                document.getElementById('badge-total-online')?.classList.remove('hidden');
+                document.getElementById('count-total').textContent = totalOnline;
+
+                // Popula categorias no select
+                populateCategoryFilter();
+
+                // Renderiza
+                renderFilteredCameras();
+                updateLastRefreshTimestamp();
+
+            } catch (err) {
+                console.error("Erro ao carregar câmeras online:", err);
+                grid.innerHTML = `
+                    <div class="col-span-full p-8 text-center bg-red-50 dark:bg-red-950/30 rounded-3xl border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400">
+                        <p class="font-bold">Falha ao obter lista de câmeras online.</p>
+                        <p class="text-xs mt-1">${escapeHtml(err.message)}</p>
+                    </div>
+                `;
+            } finally {
+                loading?.classList.add('hidden');
+            }
+        }
+
+        // ─── Categorias ──────────────────────────────────────────────────────────
+        function populateCategoryFilter() {
+            const select = document.getElementById('category-filter');
+            if (!select) return;
+
+            const categories = new Set();
+            allCameras.forEach(c => {
+                if (c.categoria && c.categoria.trim().length > 0) {
+                    categories.add(c.categoria.trim());
+                }
+            });
+
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Todas as Categorias</option>';
+            Array.from(categories).sort().forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                if (cat === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // ─── Filtro e Renderização ───────────────────────────────────────────────
+        function renderFilteredCameras() {
+            const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+            const category = document.getElementById('category-filter')?.value || '';
+            const grid = document.getElementById('cameras-grid');
+            const empty = document.getElementById('empty-state');
+
+            const filtered = allCameras.filter(cam => {
+                const matchesQuery = !query || 
+                    cam.codigo.toLowerCase().includes(query) || 
+                    (cam.nome && cam.nome.toLowerCase().includes(query));
+                
+                const matchesCat = !category || cam.categoria === category;
+                return matchesQuery && matchesCat;
+            });
+
+            document.getElementById('count-visible').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty?.classList.remove('hidden');
+                return;
+            }
+
+            empty?.classList.add('hidden');
+            const now = Date.now();
+
+            grid.innerHTML = filtered.map(cam => {
+                const hasCoords = Array.isArray(cam.coords) && cam.coords.length === 2 && cam.coords[0] !== null;
+                const coordsFormatted = hasCoords 
+                    ? `${Number(cam.coords[0]).toFixed(4)}, ${Number(cam.coords[1]).toFixed(4)}`
+                    : 'Sem coordenadas';
+
+                const mapsUrl = hasCoords 
+                    ? `https://www.google.com/maps?q=${cam.coords[0]},${cam.coords[1]}`
+                    : null;
+
+                const imgSrc = `/proxy/camera/${cam.codigo}?t=${now}`;
+
+                return `
+                    <div class="camera-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/70 overflow-hidden shadow-sm flex flex-col"
+                         id="card-${cam.codigo}" data-code="${cam.codigo}">
+                        
+                        <!-- Header do Card -->
+                        <div class="p-3.5 border-b border-gray-100 dark:border-gray-700/50 flex items-start justify-between gap-2 bg-gray-50/60 dark:bg-gray-800/60">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="font-mono font-bold text-xs text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2 py-0.5 rounded-md border border-sky-200 dark:border-sky-800">
+                                        ${cam.codigo}
+                                    </span>
+                                    <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
+                                        ${escapeHtml(cam.categoria || 'Geral')}
+                                    </span>
+                                </div>
+                                <h3 class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate" title="${escapeHtml(cam.nome)}">
+                                    ${escapeHtml(cam.nome)}
+                                </h3>
+                            </div>
+
+                            <button onclick="window.refreshSingleCamera('${cam.codigo}')" 
+                                    title="Atualizar somente esta imagem" 
+                                    class="p-1.5 text-gray-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- Container da Imagem Real (com overlay clicável) -->
+                        <div class="img-container aspect-video cursor-pointer" onclick="window.openCameraModal('${cam.codigo}')">
+                            <img src="${imgSrc}" 
+                                 id="img-${cam.codigo}" 
+                                 alt="${escapeHtml(cam.nome)}" 
+                                 loading="lazy"
+                                 onerror="window.onImageError(this, '${cam.codigo}')"
+                                 class="w-full h-full object-cover transition-opacity duration-300">
+                            
+                            <!-- Overlay ao passar o mouse -->
+                            <div class="img-overlay-action absolute inset-0 bg-black/40 flex items-center justify-center gap-2 backdrop-blur-[1px]">
+                                <span class="px-3 py-1.5 rounded-xl bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white font-bold text-xs flex items-center gap-1.5 shadow-lg">
+                                    <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i> Ampliar
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Rodapé do Card com Status, Views e Coords -->
+                        <div class="p-3.5 flex flex-col gap-2 text-xs flex-1 justify-between bg-white dark:bg-gray-800">
+                            <div class="flex items-center justify-between">
+                                <span class="inline-flex items-center gap-1.5 font-bold text-[11px] text-emerald-600 dark:text-emerald-400">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
+                                </span>
+                                <span class="font-mono text-gray-500 dark:text-gray-400 text-[11px]" title="Visualizações registradas">
+                                    <strong class="text-gray-800 dark:text-gray-200">${cam.views || 0}</strong> views
+                                </span>
+                            </div>
+
+                            <div class="pt-2 border-t border-gray-100 dark:border-gray-700/40 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                                <div class="truncate flex items-center gap-1">
+                                    <i data-lucide="map-pin" class="w-3 h-3 text-gray-400 flex-shrink-0"></i>
+                                    ${mapsUrl ? `
+                                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" 
+                                           class="hover:text-sky-600 dark:hover:text-sky-400 hover:underline truncate font-mono text-[10.5px]">
+                                            ${coordsFormatted}
+                                        </a>
+                                    ` : `
+                                        <span class="font-mono text-[10.5px]">${coordsFormatted}</span>
+                                    `}
+                                </div>
+
+                                <button onclick="window.openCameraModal('${cam.codigo}')" 
+                                        class="text-sky-600 dark:text-sky-400 hover:underline font-semibold text-[11px] flex items-center gap-0.5 ml-2 flex-shrink-0">
+                                    Ver <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // ─── Atualização de Imagens (Cache-busting via ?t=timestamp) ─────────────
+        function refreshAllCameraImages() {
+            const btn = document.getElementById('btn-refresh-all');
+            const icon = btn?.querySelector('i');
+            if (icon) icon.classList.add('animate-spin');
+
+            const now = Date.now();
+            const images = document.querySelectorAll('#cameras-grid img');
+            
+            images.forEach(img => {
+                const code = img.id.replace('img-', '');
+                img.src = `/proxy/camera/${code}?t=${now}`;
+            });
+
+            updateLastRefreshTimestamp();
+
+            setTimeout(() => {
+                if (icon) icon.classList.remove('animate-spin');
+            }, 600);
+        }
+
+        window.refreshSingleCamera = function(code) {
+            const img = document.getElementById(`img-${code}`);
+            if (img) {
+                const card = document.getElementById(`card-${code}`);
+                const spinIcon = card?.querySelector('[data-lucide="rotate-cw"]');
+                if (spinIcon) spinIcon.classList.add('animate-spin');
+
+                img.src = `/proxy/camera/${code}?t=${Date.now()}`;
+
+                setTimeout(() => {
+                    if (spinIcon) spinIcon.classList.remove('animate-spin');
+                }, 600);
+            }
+        };
+
+        window.onImageError = function(imgElement, code) {
+            imgElement.onerror = null;
+            // Se falhar o carregamento do proxy, exibe aviso suave no card
+            imgElement.src = '/img/offline.png';
+            imgElement.title = `Sinal temporariamente indisponível para câmera ${code}`;
+        };
+
+        // ─── Modal de Visualização Ampliada ──────────────────────────────────────
+        window.openCameraModal = function(code) {
+            const camera = allCameras.find(c => c.codigo === code);
+            if (!camera) return;
+
+            activeModalCamera = camera;
+            const modal = document.getElementById('camera-modal');
+            const modalImg = document.getElementById('modal-img');
+            const modalCode = document.getElementById('modal-code');
+            const modalName = document.getElementById('modal-name');
+            const modalViews = document.getElementById('modal-views');
+            const modalCat = document.getElementById('modal-category');
+            const modalCoordsText = document.getElementById('modal-coords-text');
+
+            modalCode.textContent = camera.codigo;
+            modalName.textContent = camera.nome;
+            modalViews.textContent = (camera.views || 0).toLocaleString('pt-BR');
+            modalCat.textContent = camera.categoria || 'Geral';
+
+            const hasCoords = Array.isArray(camera.coords) && camera.coords.length === 2 && camera.coords[0] !== null;
+            if (hasCoords) {
+                const coordsFormatted = `${Number(camera.coords[0]).toFixed(5)}, ${Number(camera.coords[1]).toFixed(5)}`;
+                modalCoordsText.innerHTML = `
+                    <a href="https://www.google.com/maps?q=${camera.coords[0]},${camera.coords[1]}" 
+                       target="_blank" rel="noopener noreferrer" 
+                       class="text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1">
+                       ${coordsFormatted} <i data-lucide="external-link" class="w-3 h-3"></i>
+                    </a>
+                `;
+            } else {
+                modalCoordsText.textContent = 'Sem coordenadas';
+            }
+
+            modalImg.src = `/proxy/camera/${camera.codigo}?t=${Date.now()}`;
+            modal.classList.remove('hidden');
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        function refreshModalImage(code) {
+            const modalImg = document.getElementById('modal-img');
+            const loading = document.getElementById('modal-img-loading');
+            loading?.classList.remove('hidden');
+
+            const nextImg = new Image();
+            nextImg.onload = () => {
+                modalImg.src = nextImg.src;
+                loading?.classList.add('hidden');
+            };
+            nextImg.onerror = () => {
+                loading?.classList.add('hidden');
+            };
+            nextImg.src = `/proxy/camera/${code}?t=${Date.now()}`;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('camera-modal');
+            modal?.classList.add('hidden');
+            activeModalCamera = null;
+        }
+
+        // ─── Contact Sheet (Painel Consolidado de Imagem Única) ───────────────────
+        async function openContactSheet() {
+            const btn = document.getElementById('btn-generate-contact-sheet');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Gerando mosaico...</span>
+            `;
+
+            try {
+                const token = await currentAuthUser.getIdToken();
+                const url = `/api/admin/cameras/contact-sheet?token=${encodeURIComponent(token)}&refresh=1&t=${Date.now()}`;
+                
+                // Abre em nova aba diretamente para visualização ou download
+                const win = window.open(url, '_blank');
+                if (!win) {
+                    // Se o popup foi bloqueado pelo navegador, redireciona
+                    window.location.href = url;
+                }
+            } catch (err) {
+                console.error("Erro ao solicitar contact sheet:", err);
+                alert("Falha ao gerar o painel de análise. Tente novamente.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        // ─── Auto-Refresh ────────────────────────────────────────────────────────
+        function setupAutoRefresh(seconds) {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+
+            if (seconds > 0) {
+                autoRefreshTimer = setInterval(() => {
+                    refreshAllCameraImages();
+                }, seconds * 1000);
+            }
+        }
+
+        function updateLastRefreshTimestamp() {
+            const el = document.getElementById('last-refresh-time');
+            if (el) {
+                const d = new Date();
+                el.textContent = `Última atualização: ${d.toLocaleTimeString('pt-BR')}`;
+            }
+        }
+
+        const escapeHtml = (str) => String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    </script>
+</body>
+
+</html>

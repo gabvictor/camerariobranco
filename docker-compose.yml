@@ -6,14 +6,23 @@ services:
     container_name: camrb-server
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${PORT:-3001}:3001"
+    env_file:
+      - path: .env
+        required: false
     environment:
       - TZ=America/Rio_Branco
       - NODE_ENV=production
       - PORT=3001
+      - SITE_DOMAIN=${SITE_DOMAIN:-camerasriobranco.com.br}
+      - SITE_BASE_URL=${SITE_BASE_URL:-https://camerasriobranco.com.br}
+      - SCANNER_SOURCE=${SCANNER_SOURCE:-prefeitura}
+      - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET:-camerasriobranco.firebasestorage.app}
     volumes:
       # Persiste as fotos do timelapse gravadas no disco do host
       - ./public/timelapse:/app/public/timelapse
+      # Persiste logos e uploads de patrocinadores no disco do host
+      - ./public/uploads:/app/public/uploads
       # Monta a credencial do Firebase de forma segura (somente leitura)
       - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
     healthcheck:
@@ -22,3 +31,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+

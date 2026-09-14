@@ -41,6 +41,10 @@ function cameraRoutes(cameraController) {
     router.post('/api/timelapse-admin/capture-now', verifyAdmin, cameraController.captureTimelapseNow);
     router.delete('/api/timelapse-admin/delete-all',verifyAdmin, cameraController.deleteTimelapseAll);
 
+    // Análise Visual de Câmeras & Contact Sheet (Protegido para Admin)
+    router.get('/api/admin/cameras/online-analysis', verifyAdmin, cameraController.getOnlineCamerasForAnalysis);
+    router.get('/api/admin/cameras/contact-sheet',   verifyAdmin, cameraController.generateContactSheet);
+
     return router;
 }
 

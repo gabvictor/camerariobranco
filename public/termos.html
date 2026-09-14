@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Termos de Uso, Privacidade e Cookies | CamRB</title>
-    <meta name="description" content="Conheça os Termos de Uso, Política de Privacidade, Cookies e conformidade com a LGPD do CamRB - Câmeras de Rio Branco.">
+    <meta name="description" content="Conheça os Termos de Uso, Política de Privacidade, Cookies e conformidade com a LGPD do CamRB - Câmeras de Rio Branco. Transparência e respeito ao cidadão.">
     <link rel="canonical" href="https://camerasriobranco.com.br/termos">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="google-adsense-account" content="ca-pub-3587198600314787">
@@ -14,14 +14,14 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://camerasriobranco.com.br/termos">
     <meta property="og:title" content="Termos de Uso, Privacidade e Cookies | CamRB">
-    <meta property="og:description" content="Conheça os Termos de Uso, Política de Privacidade, Cookies e conformidade com a LGPD do CamRB.">
+    <meta property="og:description" content="Transparência, política de cookies, conformidade com a LGPD e termos de uso do CamRB.">
     <meta property="og:image" content="https://camerasriobranco.com.br/assets/camrb.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://camerasriobranco.com.br/termos">
     <meta property="twitter:title" content="Termos de Uso, Privacidade e Cookies | CamRB">
-    <meta property="twitter:description" content="Conheça os Termos de Uso, Política de Privacidade, Cookies e conformidade com a LGPD do CamRB.">
+    <meta property="twitter:description" content="Transparência, política de cookies, conformidade com a LGPD e termos de uso do CamRB.">
     <meta property="twitter:image" content="https://camerasriobranco.com.br/assets/camrb.png">
 
     <!-- JSON-LD Structured Data -->
@@ -41,7 +41,7 @@
             {
               "@type": "ListItem",
               "position": 2,
-              "name": "Termos de Uso",
+              "name": "Termos de Uso e Privacidade",
               "item": "https://camerasriobranco.com.br/termos"
             }
           ]
@@ -54,144 +54,295 @@
     <link rel="apple-touch-icon" href="/assets/icone.png">
     <link rel="manifest" href="/manifest.json">
 
-    <link rel="stylesheet" href="/css/output.css">
+    <link rel="stylesheet" href="/css/output.css?v=2">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3587198600314787" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="/script/theme.js"></script>
+    <link rel="stylesheet" href="/css/global.css?v=3">
+    <script src="/script/theme.js?v=2"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+        html {
+            scroll-behavior: smooth;
+        }
+        .termos-section-card {
+            scroll-margin-top: 5.5rem;
+        }
     </style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col antialiased">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="/" class="flex items-center gap-2 group">
-                <div class="bg-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-700 transition-colors">
-                    <i data-lucide="video" class="w-5 h-5 text-white"></i>
+    <!-- ─── Top Navigation Bar ─────────────────────────────── -->
+    <header class="bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/80 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
+                <!-- Brand + Navigation Links -->
+                <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+                    <a href="/" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 group">
+                        <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors shadow-xs">
+                            <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        </div>
+                        <div class="leading-tight">
+                            <div class="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">CamRB</div>
+                            <div class="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-gray-500 -mt-0.5 hidden xs:block">Rio Branco • AC</div>
+                        </div>
+                    </a>
+
+                    <!-- Navigation Links with Standardized Colored Icons (Desktop Only) -->
+                    <nav class="hidden md:flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
+                        <a href="/rio" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="waves" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"></i>
+                            <span>Rio Acre</span>
+                        </a>
+                        <a href="/timelapses" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500"></i>
+                            <span>Timelapses</span>
+                        </a>
+                        <a href="/mapa" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="map" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500"></i>
+                            <span>Mapa</span>
+                        </a>
+                        <a href="/sobre" class="px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 flex-shrink-0">
+                            <i data-lucide="info" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500"></i>
+                            <span>Sobre</span>
+                        </a>
+                    </nav>
                 </div>
-                <span class="font-bold text-gray-900 dark:text-white tracking-tight">CamRB</span>
-            </a>
-            
-            <div class="flex items-center gap-3">
-                <a href="/" class="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                    Voltar ao Início
-                </a>
 
-                <!-- Auth Controls -->
-                <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
-                    class="logged-in-only hidden p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200 hover:text-indigo-600 border border-gray-100 dark:border-gray-700">
-                    <i data-lucide="user" class="w-4 h-4"></i>
-                </a>
+                <!-- Right Controls -->
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                        <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
+                    </button>
 
-                <button id="nav-logout-btn" title="Sair"
-                    class="logged-in-only hidden p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                </button>
+                    <!-- Logged Out: Entrar Button -->
+                    <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
+                        Entrar
+                    </button>
 
-                <button id="nav-login-btn" class="logged-out-only hidden px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
-                    Entrar
-                </button>
+                    <!-- Admin Dashboard Button -->
+                    <a id="nav-admin-btn" href="/dashboard" title="Painel Administrativo"
+                        class="admin-only hidden px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 shadow-xs">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-500"></i>
+                        <span class="hidden sm:inline">Painel</span>
+                    </a>
 
-                <button id="toggle-theme"
-                    class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Alternar tema">
-                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
-                </button>
+                    <!-- Logged In: Perfil Link & Logout Button -->
+                    <a id="nav-profile-btn" href="/perfil" title="Meu Perfil"
+                        class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                        <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                        <span class="hidden sm:inline">Perfil</span>
+                    </a>
+
+                    <button id="logout-btn" title="Sair da conta"
+                        class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-5xl">
         <!-- Hero Header -->
-        <div class="mb-8 text-center sm:text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-br from-indigo-900/10 via-purple-900/5 to-transparent dark:from-indigo-950/30 dark:via-purple-950/20 p-6 sm:p-8 rounded-3xl border border-indigo-100 dark:border-indigo-900/30">
-            <div>
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-                    Transparência e LGPD
+        <div class="mb-8 relative overflow-hidden bg-gradient-to-br from-indigo-900/10 via-purple-900/5 to-transparent dark:from-indigo-950/40 dark:via-purple-950/20 p-6 sm:p-10 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 shadow-xs">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+                <div class="max-w-2xl">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3 border border-indigo-200 dark:border-indigo-800/60">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                        Transparência e LGPD (Lei nº 13.709/2018)
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight">
+                        Termos de Uso, Privacidade e Cookies
+                    </h1>
+                    <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                        Conheça com total clareza as diretrizes do CamRB, a origem pública das transmissões e como protegemos seus dados.
+                    </p>
+                    <p id="last-updated" class="text-xs text-gray-500 dark:text-gray-400 mt-3 font-medium flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        <span>Carregando informações da versão...</span>
+                    </p>
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Termos de Uso e Privacidade</h1>
-                <p id="last-updated" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Carregando informações...</p>
-            </div>
-            
-            <div class="flex-shrink-0">
-                <button type="button" data-action="open-cookie-preferences" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-95 cursor-pointer">
-                    <span>🍪</span>
-                    Gerenciar Meus Cookies
-                </button>
+                
+                <div class="flex flex-wrap sm:flex-col gap-2.5 flex-shrink-0">
+                    <button type="button" data-action="open-cookie-preferences" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all transform active:scale-95 cursor-pointer">
+                        <span>🍪</span>
+                        <span>Gerenciar Cookies</span>
+                    </button>
+                    <button type="button" onclick="window.print()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm font-semibold rounded-xl shadow-2xs transition-all cursor-pointer">
+                        <i data-lucide="printer" class="w-4 h-4 text-gray-500 dark:text-gray-400"></i>
+                        <span>Imprimir / Salvar PDF</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Quick Summary Box -->
+        <!-- Quick Summary 3 Pillars -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-start gap-3">
-                <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex-shrink-0">
-                    <i data-lucide="video" class="w-5 h-5"></i>
+            <div class="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/90 dark:border-gray-700/80 shadow-xs hover:border-blue-500/50 transition-colors">
+                <div class="flex items-center gap-3 mb-2.5">
+                    <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex-shrink-0">
+                        <i data-lucide="video" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-sm font-bold text-gray-900 dark:text-white">100% Câmeras Públicas</h2>
                 </div>
-                <div>
-                    <h2 class="text-xs font-bold text-gray-900 dark:text-white">100% Câmeras Públicas</h2>
-                    <p class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">Agregador de transmissões abertas oficiais da Prefeitura de Rio Branco.</p>
-                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Atuamos exclusivamente como agregador de transmissões abertas oficiais da Prefeitura de Rio Branco e parceiros conveniados.
+                </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-start gap-3">
-                <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                    <i data-lucide="lock" class="w-5 h-5"></i>
+            <div class="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/90 dark:border-gray-700/80 shadow-xs hover:border-emerald-500/50 transition-colors">
+                <div class="flex items-center gap-3 mb-2.5">
+                    <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-sm font-bold text-gray-900 dark:text-white">Privacidade e Minimização</h2>
                 </div>
-                <div>
-                    <h2 class="text-xs font-bold text-gray-900 dark:text-white">Privacidade e LGPD</h2>
-                    <p class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">Não gravamos transmissões e respeitamos o princípio de minimização de dados.</p>
-                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Não gravamos vídeos contínuos nem armazenamos rostos ou placas. Respeitamos com rigor o princípio de minimização da LGPD.
+                </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-start gap-3">
-                <div class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex-shrink-0">
-                    <i data-lucide="cookie" class="w-5 h-5"></i>
+            <div class="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/90 dark:border-gray-700/80 shadow-xs hover:border-purple-500/50 transition-colors">
+                <div class="flex items-center gap-3 mb-2.5">
+                    <div class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex-shrink-0">
+                        <i data-lucide="cookie" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-sm font-bold text-gray-900 dark:text-white">Controle de Cookies</h2>
                 </div>
-                <div>
-                    <h2 class="text-xs font-bold text-gray-900 dark:text-white">Controle de Cookies</h2>
-                    <p class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">Total liberdade para personalizar suas preferências de anúncios e tema a qualquer momento.</p>
-                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Você tem total autonomia para aceitar, recusar ou personalizar cookies essenciais, de desempenho e anúncios do Google AdSense.
+                </p>
             </div>
         </div>
 
-        <!-- Main Content Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-10">
-            <div id="termos-content" class="space-y-6 text-gray-600 dark:text-gray-300 leading-relaxed text-sm sm:text-base">
-                <!-- Content injected via JS -->
-                <div class="flex justify-center py-12">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <!-- Layout with Sticky Table of Contents + Content Body -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Sidebar Table of Contents (Desktop Sticky) -->
+            <aside class="hidden lg:block lg:col-span-1">
+                <div class="sticky top-24 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-xs space-y-3">
+                    <div class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                        <i data-lucide="list" class="w-4 h-4"></i>
+                        <span>Índice do Documento</span>
+                    </div>
+                    <nav id="table-of-contents" class="space-y-1 text-xs font-medium">
+                        <!-- Populated by JS -->
+                        <div class="py-2 text-gray-400">Carregando índice...</div>
+                    </nav>
                 </div>
-            </div>
-        </div>
+            </aside>
 
-        <!-- Contact Box -->
-        <div class="mt-8 p-6 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5 text-center sm:text-left">
-                <div class="p-3 bg-indigo-600 text-white rounded-2xl">
-                    <i data-lucide="mail" class="w-6 h-6"></i>
+            <!-- Main Legal Content -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xs border border-gray-200/90 dark:border-gray-700/80 p-6 sm:p-10">
+                    <div id="termos-content" class="space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed text-sm sm:text-base">
+                        <!-- Content injected via JS -->
+                        <div class="flex flex-col items-center justify-center py-16 gap-3">
+                            <div class="animate-spin rounded-full h-9 w-9 border-3 border-indigo-600 border-t-transparent"></div>
+                            <p class="text-xs text-gray-400">Carregando termos oficiais...</p>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="font-bold text-sm text-gray-900 dark:text-white">Dúvidas sobre seus dados ou os termos?</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Entre em contato direto com o suporte pelo e-mail oficial.</p>
+
+                <!-- FAQ Privacy Accordion -->
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xs border border-gray-200/90 dark:border-gray-700/80 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                            <i data-lucide="help-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Dúvidas Frequentes sobre Privacidade</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Respostas diretas para as dúvidas mais comuns dos usuários.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                            <summary class="flex items-center justify-between font-bold text-sm text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                                <span>O CamRB grava ou armazena vídeos das câmeras?</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3">
+                                <strong>Não.</strong> O CamRB opera estritamente como um transmissor ao vivo (streaming em tempo real). Não mantemos bancos de dados de gravações contínuas, nem realizamos reconhecimento facial ou leitura de placas.
+                            </p>
+                        </details>
+
+                        <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                            <summary class="flex items-center justify-between font-bold text-sm text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                                <span>Meus dados pessoais são compartilhados com empresas?</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3">
+                                <strong>Nunca.</strong> Dados de login (como nome e e-mail via Google Auth) são utilizados exclusivamente para autenticação e salvamento das suas câmeras favoritas. Não comercializamos dados de usuários.
+                            </p>
+                        </details>
+
+                        <details class="group rounded-2xl bg-gray-50 dark:bg-gray-900/60 p-4 border border-gray-200/70 dark:border-gray-700/60 transition-all open:bg-white open:dark:bg-gray-900 open:shadow-xs">
+                            <summary class="flex items-center justify-between font-bold text-sm text-gray-900 dark:text-white cursor-pointer list-none select-none">
+                                <span>Como posso solicitar a exclusão de todos os meus dados?</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed border-t border-gray-200/60 dark:border-gray-800 pt-3">
+                                Em conformidade com o Art. 18 da LGPD, você pode solicitar a exclusão definitiva da sua conta, comentários e histórico a qualquer momento diretamente pelo seu painel de <a href="/perfil" class="text-indigo-600 dark:text-indigo-400 underline font-semibold">Perfil</a> ou enviando um e-mail para <a href="mailto:suportecamrb@gmail.com" class="text-indigo-600 dark:text-indigo-400 underline font-semibold">suportecamrb@gmail.com</a>.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Contact & DPO Box -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent dark:from-indigo-950/40 dark:via-purple-950/20 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-5">
+                    <div class="flex items-center gap-4 text-center sm:text-left">
+                        <div class="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-sm flex-shrink-0">
+                            <i data-lucide="mail-check" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-900 dark:text-white">Canal Oficial do Encarregado de Dados (DPO)</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Dúvidas sobre os termos, solicitações de privacidade ou relatos de segurança.</p>
+                        </div>
+                    </div>
+                    <a href="mailto:suportecamrb@gmail.com" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20 whitespace-nowrap active:scale-95">
+                        suportecamrb@gmail.com
+                    </a>
                 </div>
             </div>
-            <a href="mailto:suportecamrb@gmail.com" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-colors whitespace-nowrap shadow-sm">
-                suportecamrb@gmail.com
-            </a>
         </div>
     </main>
 
     <!-- Global Footer -->
     <div id="global-footer" data-type="full"></div>
 
-    <script type="module" src="/script/termos-script.js"></script>
+    <!-- ─── Standardized Mobile Bottom Navigation Bar ─── -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex justify-around items-center px-1 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe">
+        <a href="/" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="home" class="w-5 h-5 text-indigo-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Início</span>
+        </a>
+        <a href="/rio" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="waves" class="w-5 h-5 text-blue-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Rio Acre</span>
+        </a>
+        <a href="/?busca=1" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 text-center min-h-[48px]">
+            <div class="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="search" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+            </div>
+            <span class="text-[10px] font-semibold mt-0.5">Busca</span>
+        </a>
+        <a href="/timelapses" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="clock" class="w-5 h-5 text-purple-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Timelapses</span>
+        </a>
+        <a href="/mapa" class="nav-item flex flex-col items-center justify-center p-1.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex-1 text-center min-h-[48px]">
+            <i data-lucide="map" class="w-5 h-5 text-emerald-500"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Mapa</span>
+        </a>
+    </nav>
+
+    <script type="module" src="/script/termos-script.js?v=4"></script>
 </body>
 
 </html>

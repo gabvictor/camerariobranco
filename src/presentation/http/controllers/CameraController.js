@@ -34,6 +34,8 @@ class CameraController {
         this.updateTimelapseConfig    = this.updateTimelapseConfig.bind(this);
         this.captureTimelapseNow      = this.captureTimelapseNow.bind(this);
         this.deleteTimelapseAll       = this.deleteTimelapseAll.bind(this);
+        this.getOnlineCamerasForAnalysis = this.getOnlineCamerasForAnalysis.bind(this);
+        this.generateContactSheet        = this.generateContactSheet.bind(this);
     }
 
     setRioAcreService(service) { this._rioAcreService = service; return this; }
@@ -315,6 +317,62 @@ class CameraController {
         } catch (error) {
             console.error('[CAMERA_UPDATE_ERROR]', error);
             res.status(500).json({ message: 'Erro ao salvar câmera.' });
+        }
+    }
+
+    /**
+     * GET /api/admin/cameras/online-analysis
+     * Retorna apenas as câmeras online com dados reais para o painel de análise.
+     */
+    getOnlineCamerasForAnalysis(req, res) {
+        try {
+            const onlineList = this.cache.getOnline().map(cam => ({
+                codigo: cam.codigo,
+                nome: cam.nome,
+                categoria: cam.categoria || 'Sem Categoria',
+                coords: cam.coords || null,
+                status: cam.status || 'online',
+                level: cam.level || 1,
+                views: this.metrics.topCameras[cam.codigo] || 0
+            }));
+
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            return res.json({
+                totalOnline: onlineList.length,
+                cameras: onlineList
+            });
+        } catch (error) {
+            console.error('[ONLINE_ANALYSIS_ERROR]', error);
+            return res.status(500).json({ error: 'Erro ao listar câmeras online para análise.' });
+        }
+    }
+
+    /**
+     * GET /api/admin/cameras/contact-sheet
+     * Monta e retorna uma imagem JPEG única (contact sheet) com todas as câmeras online.
+     */
+    async generateContactSheet(req, res) {
+        try {
+            const onlineCameras = this.cache.getOnline();
+            if (!onlineCameras || onlineCameras.length === 0) {
+                return res.status(404).json({ error: 'Nenhuma câmera online disponível no momento.' });
+            }
+
+            if (!this._contactSheetService) {
+                const ContactSheetService = require('../../../infrastructure/services/ContactSheetService');
+                this._contactSheetService = new ContactSheetService();
+            }
+
+            const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+            const jpegBuffer = await this._contactSheetService.generateContactSheet(onlineCameras, forceRefresh);
+
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+            res.setHeader('Content-Disposition', `inline; filename="camrb-contact-sheet-${Date.now()}.jpg"`);
+            return res.send(jpegBuffer);
+        } catch (error) {
+            console.error('[CONTACT_SHEET_ERROR]', error);
+            return res.status(500).json({ error: 'Falha ao gerar o painel de análise: ' + error.message });
         }
     }
 }

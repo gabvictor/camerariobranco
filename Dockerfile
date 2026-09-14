@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Instala dependências
+# Instala dependências de compilação
 COPY package*.json ./
 RUN npm ci
 
@@ -18,23 +18,23 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Instala tzdata para suporte completo ao fuso horário de Rio Branco - Acre
-RUN apk add --no-cache tzdata
-ENV TZ=America/Rio_Branco
-ENV NODE_ENV=production
-ENV PORT=3001
+# Instala tzdata e fontes do sistema para renderização gráfica perfeita com Sharp/librsvg
+RUN apk add --no-cache tzdata fontconfig ttf-dejavu font-noto font-liberation && fc-cache -f
+ENV TZ=America/Rio_Branco \
+    NODE_ENV=production \
+    PORT=3001
 
 # Instala apenas dependências de produção
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copia código da aplicação e CSS compilado do builder
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/server.js ./server.js
+# Cria diretório de persistência e prepara permissões
+RUN mkdir -p /app/public/timelapse /app/public/uploads/sponsors && chown -R node:node /app
 
-# Cria diretório persistente para timelapse com permissões adequadas
-RUN mkdir -p /app/public/timelapse && chown -R node:node /app
+# Copia código da aplicação e CSS compilado do builder
+COPY --chown=node:node --from=builder /app/src ./src
+COPY --chown=node:node --from=builder /app/public ./public
+COPY --chown=node:node --from=builder /app/server.js ./server.js
 
 # Executa com usuário não-root por segurança
 USER node

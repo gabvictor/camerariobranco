@@ -18,5 +18,8 @@ module.exports = {
     SCAN_TIMEOUT_MS: parseInteger(process.env.SCAN_TIMEOUT_MS, 420 * 1000),
     SCAN_RETRY_DELAY_MS: parseInteger(process.env.SCAN_RETRY_DELAY_MS, 120 * 1000),
     JSON_BODY_LIMIT: process.env.JSON_BODY_LIMIT || '250kb',
-    TARPIT_DELAY_MS: parseInteger(process.env.TARPIT_DELAY_MS, 30 * 1000)
+    TARPIT_DELAY_MS: parseInteger(process.env.TARPIT_DELAY_MS, 30 * 1000),
+    COMMERCIAL_WHATSAPP: (process.env.COMMERCIAL_WHATSAPP || '5568999999999').replace(/\D/g, ''),
+    COMMERCIAL_EMAIL: process.env.COMMERCIAL_EMAIL || 'comercial@camerasriobranco.com.br'
 };
+

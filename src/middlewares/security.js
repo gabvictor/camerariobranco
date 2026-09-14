@@ -26,14 +26,30 @@ const parseCookies = (req) => {
 // ─── Middleware: Verify Admin Token (API Routes & SSE Streams) ────────────────
 const verifyAdmin = async (req, res, next) => {
     let idToken = null;
+    const cookies = parseCookies(req);
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
         idToken = authHeader.split('Bearer ')[1];
     } else if (req.query && req.query.token) {
         idToken = req.query.token;
-    } else {
-        const cookies = parseCookies(req);
-        if (cookies.__session_token) idToken = cookies.__session_token;
+    } else if (cookies.__session_token) {
+        idToken = cookies.__session_token;
+    }
+
+    // Se idToken não foi enviado, verifica se há cookie de sessão __session (usado pelo navegador do admin)
+    if (!idToken && cookies.__session) {
+        try {
+            const decodedClaims = await admin.auth().verifySessionCookie(cookies.__session, true);
+            if (isUserAdmin(decodedClaims.email)) {
+                req.user = decodedClaims;
+                return next();
+            } else {
+                console.warn(`[SECURITY] Sessão com permissões insuficientes para: ${decodedClaims.email} em ${req.originalUrl}`);
+                return res.status(403).json({ message: 'Acesso negado: Permissões insuficientes.' });
+            }
+        } catch (_) {
+            // Sessão inválida ou expirada
+        }
     }
 
     if (!idToken) {

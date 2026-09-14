@@ -18,5 +18,7 @@ coverage
 .idea
 Dockerfile
 docker-compose.yml
-firebase-test-report.json
 README.md
+public/timelapse
+public/timelapse/**
+scratch

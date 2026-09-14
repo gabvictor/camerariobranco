@@ -142,6 +142,7 @@ function initializeAppLogic() {
         allCameras: [],
         favorites: [],
         filteredCameras: [],
+        sponsorsData: { destaques: [], patrocinadores: [], cameraSponsorMap: {} },
         currentSearch: '',
         currentStatusFilter: 'online',
         currentCategoryFilter: 'all',
@@ -169,6 +170,10 @@ function initializeAppLogic() {
         const d = R * c; // Distance in km
         return d;
     };
+
+    const fetchPublicSponsors = async () => {};
+    const renderSponsorHighlights = () => {};
+    const renderSponsorsShowcase = () => {};
 
     const fetchFavorites = async () => {
         if (!currentUser) return;
@@ -888,6 +893,7 @@ function initializeAppLogic() {
         }
 
         fetchFavorites();
+        fetchPublicSponsors();
         startCountdownTimer();
         syncLoop();
         initTour();

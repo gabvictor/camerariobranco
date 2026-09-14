@@ -23,16 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function refreshCamera(imgId, code, btn) {
         const img = document.getElementById(imgId);
         if (!img) return;
-        if (btn) btn.classList.add('animate-spin');
+        const icon = btn?.querySelector('i, svg') || btn;
+        if (icon) icon.classList.add('animate-spin');
 
         const preloader = new Image();
         preloader.src = `/proxy/camera/${code}?t=${Date.now()}`;
         preloader.onload = () => {
             img.src = preloader.src;
-            if (btn) btn.classList.remove('animate-spin');
+            if (icon) icon.classList.remove('animate-spin');
         };
         preloader.onerror = () => {
-            if (btn) btn.classList.remove('animate-spin');
+            if (icon) icon.classList.remove('animate-spin');
         };
     }
 
@@ -55,13 +56,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Auto-refresh cameras every 10 seconds smoothly with preloader
-    setInterval(() => {
-        if (!document.hidden) {
-            refreshCamera('rio-cam-1426', '001426');
-            refreshCamera('rio-cam-1334', '001334');
-        }
-    }, 10000);
+    const btnRefreshTelemetry = document.getElementById('btn-refresh-telemetry');
+    if (btnRefreshTelemetry) {
+        btnRefreshTelemetry.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const icon = btnRefreshTelemetry.querySelector('i, svg') || btnRefreshTelemetry;
+            if (icon) icon.classList.add('animate-spin');
+            try {
+                await Promise.all([
+                    fetchRioTelemetry(),
+                    initRioHistoryChart()
+                ]);
+            } finally {
+                setTimeout(() => {
+                    if (icon) icon.classList.remove('animate-spin');
+                }, 600);
+            }
+        });
+    }
 
     fetchRioTelemetry();
     setInterval(fetchRioTelemetry, 60000);
@@ -565,6 +577,11 @@ async function fetchRioTelemetry() {
                 elHeroDistancia.textContent = 'Cota Ultrapassada!';
                 elHeroDistancia.className = 'text-xs sm:text-sm font-bold text-rose-400 mt-0.5';
             }
+        }
+
+        const elHeroFonte = document.getElementById('stat-hero-fonte');
+        if (elHeroFonte) {
+            elHeroFonte.textContent = data.fonte ? data.fonte.replace(' (ANA)', '') : 'ANA / CPRM';
         }
 
         // Informações complementares

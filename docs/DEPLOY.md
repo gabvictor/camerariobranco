@@ -15,11 +15,23 @@ SCANNER_SOURCE=prefeitura
 FIREBASE_STORAGE_BUCKET=camerasriobranco.firebasestorage.app
 ```
 
-## Deploy (passo a passo)
+## Deploy com Docker (Recomendado)
+```bash
+# 1. Certifique-se de ter o arquivo serviceAccountKey.json na raiz
+# 2. Suba o container com Docker Compose
+docker compose up -d --build
+
+# 3. Verifique logs e saúde do container
+docker compose logs -f
+docker compose ps
+```
+
+## Deploy Manual (Node.js)
 1. Instale dependências: `npm install`
 2. Compile CSS: `npm run build:css`
 3. Valide Firebase: `npm run test:firebase`
 4. Suba em produção: `npm start`
+
 
 ## Healthcheck
 - Endpoint: `GET /health`

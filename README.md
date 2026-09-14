@@ -192,6 +192,47 @@ O servidor estará disponível em `http://localhost:3001`.
 
 ---
 
+## 🐳 Execução com Docker
+
+O projeto inclui suporte completo a contêineres com **Multi-Stage Build** (Node.js 20 Alpine, compilação automática do Tailwind CSS, fuso horário `America/Rio_Branco`, usuário não-root e healthcheck integrado).
+
+### 1. Pré-requisitos
+- Docker & Docker Compose instalados
+- Chave `serviceAccountKey.json` na raiz do projeto
+
+### 2. Subir a aplicação com Docker Compose
+
+```bash
+# Subir os containers em segundo plano (com build automático)
+docker compose up -d --build
+
+# Acompanhar logs da aplicação em tempo real
+docker compose logs -f
+
+# Verificar status e healthcheck
+docker compose ps
+
+# Parar a aplicação
+docker compose down
+```
+
+### 3. Build & Execução manual da Imagem Docker
+
+```bash
+# Build da imagem de produção
+docker build -t camrb:latest .
+
+# Executar container montando as credenciais e volume do timelapse
+docker run -d \
+  --name camrb-server \
+  -p 3001:3001 \
+  -v "$(pwd)/serviceAccountKey.json:/app/serviceAccountKey.json:ro" \
+  -v "$(pwd)/public/timelapse:/app/public/timelapse" \
+  camrb:latest
+```
+
+---
+
 ## 🧪 Testes Firebase
 ```bash
 npm run test:firebase

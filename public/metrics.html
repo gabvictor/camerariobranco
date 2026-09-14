@@ -40,28 +40,30 @@
                 </a>
                 <h1 class="text-2xl md:text-3xl font-extrabold">Métricas do Sistema</h1>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
                 <!-- Auth Controls -->
                 <a href="/perfil" id="nav-profile-btn" title="Meu Perfil"
-                    class="logged-in-only hidden p-2 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors shadow-sm hover:shadow-md">
-                    <i data-lucide="user" class="w-5 h-5"></i>
+                    class="logged-in-only hidden px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                    <span class="hidden sm:inline">Perfil</span>
                 </a>
 
-                <button id="nav-logout-btn" title="Sair"
-                    class="logged-in-only hidden p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                <button id="logout-btn" title="Sair da conta"
+                    class="logged-in-only hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-red-200 dark:border-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
                 </button>
 
-                <button id="nav-login-btn" class="logged-out-only hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+                <button id="login-btn" class="logged-out-only hidden px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95">
                     Entrar
                 </button>
 
-                <button id="toggle-theme" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors">
-                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                <button id="toggle-theme" title="Alternar tema"
+                    class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                    <i data-lucide="sun" class="w-4 h-4 text-amber-500 block dark:hidden"></i>
+                    <i data-lucide="moon" class="w-4 h-4 text-indigo-400 hidden dark:block"></i>
                 </button>
 
-                <button id="refresh-btn" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold">
+                <button id="refresh-btn" class="px-3.5 py-1.5 sm:py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-xs">
                     Atualizar
                 </button>
                 <span id="last-update" class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400"></span>
