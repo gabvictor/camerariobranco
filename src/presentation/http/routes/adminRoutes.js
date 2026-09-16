@@ -1,5 +1,5 @@
 const express = require('express');
-const { verifyAdmin, verifyOptionalAdmin, createRateLimiter } = require('../../../middlewares/security');
+const { verifyAuth, verifyAdmin, verifyOptionalAdmin, createRateLimiter } = require('../../../middlewares/security');
 
 /**
  * @routes adminRoutes
@@ -18,6 +18,13 @@ function adminRoutes(reportController, dashboardController) {
         message: 'Muitos reportes enviados. Aguarde um minuto antes de tentar novamente.'
     });
 
+    // Rate limiter para envio de comentários (máximo 15 por minuto por IP/usuário)
+    const commentRateLimiter = createRateLimiter({
+        windowMs: 60 * 1000,
+        max: 15,
+        message: 'Muitos comentários enviados recentemente. Aguarde um momento antes de enviar outro.'
+    });
+
     // Reports
     router.post('/report',              reportRateLimiter, reportController.create);
     router.get('/reports',              verifyAdmin,       reportController.list);
@@ -30,8 +37,10 @@ function adminRoutes(reportController, dashboardController) {
     router.delete('/suggestion/:id',    verifyAdmin,       reportController.deleteSuggestion);
 
     // Comments
-    router.get('/comments',             verifyAdmin,       reportController.listComments);
-    router.delete('/comment/:cameraId/:id', verifyAdmin,   reportController.deleteComment);
+    router.post('/comment',                 commentRateLimiter, verifyAuth, reportController.createComment);
+    router.get('/comments/:cameraId',       reportController.listCameraComments);
+    router.get('/comments',                 verifyAdmin,        reportController.listComments);
+    router.delete('/comment/:cameraId/:id', verifyAuth,         reportController.deleteComment);
 
     // Changelog
     router.post('/changelog',           verifyAdmin,       reportController.createChangelog);

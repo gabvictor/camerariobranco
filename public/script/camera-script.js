@@ -92,23 +92,27 @@ if (contentWrapper) {
     setTimeout(() => initAdSense(), 250);
 }
 
+let currentAuthUser = auth.currentUser || null;
+
 // Inicializa lógica da câmera imediatamente (sem depender do Firebase Auth)
 initializeCameraLogic(null);
 
-// Ouve estado de autenticação para atualizar comentários e favoritos
+// Ouve estado de autenticação para atualizar comentários, botões e favoritos
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        initializeCameraLogic(user);
-    }
+    currentAuthUser = user;
+    initializeCameraLogic(user);
 });
 
 // Inicializa widget de clima
 fetchWeather();
 
 /**
- * Gerencia a lógica de comentários (Firestore)
+ * Gerencia a lógica de comentários (Firestore + API Fallback)
  */
+let commentsPollingInterval = null;
+
 function initializeComments(user, cameraCode) {
+    const activeUser = user || auth.currentUser || currentAuthUser;
     const commentsList = document.getElementById('comments-list');
     const commentForm = document.getElementById('comment-form');
     const commentInput = document.getElementById('comment-input');
@@ -117,7 +121,7 @@ function initializeComments(user, cameraCode) {
     if (!commentsList || !commentForm) return;
 
     // Se não estiver logado, altera visual do chat
-    if (!user) {
+    if (!activeUser) {
         commentForm.style.display = 'none';
         let loginMsg = document.getElementById('comment-login-banner');
         if (!loginMsg) {
@@ -145,13 +149,14 @@ function initializeComments(user, cameraCode) {
         commentsUnsubscribe();
         commentsUnsubscribe = null;
     }
+    if (commentsPollingInterval) {
+        clearInterval(commentsPollingInterval);
+        commentsPollingInterval = null;
+    }
 
-    const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
-    const q = query(commentsColRef, orderBy('timestamp', 'desc'));
-
-    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+    const renderCommentCards = (items) => {
         commentsList.innerHTML = '';
-        if (snapshot.empty) {
+        if (!items || items.length === 0) {
             commentsList.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 py-10 space-y-2">
                     <div class="p-3 bg-gray-100 dark:bg-gray-700/40 rounded-2xl">
@@ -164,19 +169,24 @@ function initializeComments(user, cameraCode) {
             return;
         }
 
-        snapshot.forEach(docSnapshot => {
-            const comment = docSnapshot.data();
+        const currentUserObj = auth.currentUser || currentAuthUser;
+        items.forEach(comment => {
             const commentEl = document.createElement('div');
             commentEl.className = 'p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60 text-xs transition-all group';
 
             let dateStr = 'agora';
             if (comment.timestamp) {
-                dateStr = comment.timestamp.toDate().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                const dateObj = typeof comment.timestamp.toDate === 'function'
+                    ? comment.timestamp.toDate()
+                    : new Date(comment.timestamp);
+                if (!isNaN(dateObj.getTime())) {
+                    dateStr = dateObj.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                }
             }
 
-            const isOwner = user && user.uid === comment.userId;
+            const isOwner = currentUserObj && (currentUserObj.uid === comment.userId);
             const deleteBtn = isOwner
-                ? `<button class="delete-btn opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500 cursor-pointer" data-id="${docSnapshot.id}" title="Excluir Comentário">
+                ? `<button class="delete-btn opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500 cursor-pointer" data-id="${comment.id}" title="Excluir Comentário">
                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                    </button>`
                 : '';
@@ -202,18 +212,34 @@ function initializeComments(user, cameraCode) {
         });
 
         if (window.lucide) window.lucide.createIcons();
-    }, (error) => {
-        console.error("Erro ao carregar comentários:", error);
-        if (error.code === 'permission-denied') {
-            commentsList.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-400 py-10 space-y-2">
-                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
-                        <i data-lucide="lock" class="w-6 h-6 text-red-400"></i>
-                    </div>
-                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">Faça login para ver e enviar mensagens.</p>
-                </div>
-            `;
-            if (window.lucide) window.lucide.createIcons();
+    };
+
+    const loadViaApi = async () => {
+        try {
+            const res = await fetch(`/api/comments/${cameraCode}`);
+            if (res.ok) {
+                const items = await res.json();
+                renderCommentCards(items);
+            }
+        } catch (e) {
+            console.warn("Erro ao buscar comentários via API:", e);
+        }
+    };
+
+    const commentsColRef = collection(db, 'cameras', cameraCode, 'comments');
+    const q = query(commentsColRef, orderBy('timestamp', 'desc'));
+
+    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+        const items = [];
+        snapshot.forEach(docSnap => {
+            items.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderCommentCards(items);
+    }, async (error) => {
+        console.warn("Realtime Firestore onSnapshot indisponível, usando API REST:", error.message);
+        await loadViaApi();
+        if (!commentsPollingInterval) {
+            commentsPollingInterval = setInterval(loadViaApi, 12000);
         }
     });
 
@@ -224,10 +250,24 @@ function initializeComments(user, cameraCode) {
             if (!btn) return;
 
             const commentId = btn.dataset.id;
+            const currentUserObj = auth.currentUser || currentAuthUser;
+            if (!currentUserObj) {
+                toggleLoginModal(true);
+                return;
+            }
+
             if (confirm('Tem certeza que deseja excluir seu comentário?')) {
                 try {
-                    await deleteDoc(doc(db, 'cameras', cameraCode, 'comments', commentId));
+                    const idToken = await currentUserObj.getIdToken();
+                    const res = await fetch(`/api/comment/${cameraCode}/${commentId}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${idToken}` }
+                    });
+                    if (!res.ok) {
+                        await deleteDoc(doc(db, 'cameras', cameraCode, 'comments', commentId));
+                    }
                     window.showToast?.('Comentário removido.');
+                    loadViaApi();
                 } catch (error) {
                     console.error("Erro ao excluir comentário:", error);
                     window.showToast?.("Erro ao excluir comentário.", "error");
@@ -236,14 +276,26 @@ function initializeComments(user, cameraCode) {
         });
     }
 
-    if (commentForm.dataset.listenerAttached === 'true') return;
-    commentForm.dataset.listenerAttached = 'true';
+    if (!commentForm.dataset.listenerAttached) {
+        commentForm.dataset.listenerAttached = 'true';
 
-    commentForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = commentInput.value.trim();
+        commentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentUserObj = auth.currentUser || currentAuthUser;
+            if (!currentUserObj) {
+                toggleLoginModal(true);
+                window.showToast?.('Faça login para enviar um comentário.', 'error');
+                return;
+            }
 
-        if (text && user) {
+            const text = commentInput.value.trim();
+            if (!text) return;
+
+            if (text.length > 500) {
+                window.showToast?.('O comentário deve ter no máximo 500 caracteres.', 'error');
+                return;
+            }
+
             commentInput.disabled = true;
             if (submitButton) {
                 submitButton.disabled = true;
@@ -251,14 +303,39 @@ function initializeComments(user, cameraCode) {
             }
 
             try {
-                await addDoc(commentsColRef, {
-                    text: text,
-                    userDisplayName: user.displayName || user.email?.split('@')[0] || 'Usuário',
-                    userId: user.uid,
-                    timestamp: serverTimestamp()
-                });
+                const idToken = await currentUserObj.getIdToken();
+                const displayName = currentUserObj.displayName?.trim() || currentUserObj.email?.split('@')[0] || 'Usuário';
+
+                let success = false;
+                try {
+                    const res = await fetch('/api/comment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`
+                        },
+                        body: JSON.stringify({
+                            cameraCode: cameraCode,
+                            text: text
+                        })
+                    });
+                    if (res.ok) {
+                        success = true;
+                    }
+                } catch (_) {}
+
+                if (!success) {
+                    await addDoc(commentsColRef, {
+                        text: text,
+                        userDisplayName: displayName,
+                        userId: currentUserObj.uid,
+                        timestamp: serverTimestamp()
+                    });
+                }
+
                 commentInput.value = '';
                 window.showToast?.('Mensagem enviada!');
+                loadViaApi();
             } catch (error) {
                 console.error("Erro ao comentar: ", error);
                 window.showToast?.("Erro ao enviar mensagem. Tente novamente.", "error");
@@ -271,8 +348,8 @@ function initializeComments(user, cameraCode) {
                 if (window.lucide) window.lucide.createIcons();
                 commentInput.focus();
             }
-        }
-    });
+        });
+    }
 }
 
 /**
@@ -812,6 +889,9 @@ function setupCarousel(allCameras, currentCode) {
  * Configura Botões de Ação e Captura
  */
 function setupActionButtons(el, cameraCode, user) {
+    // 2. Favorite Button (always update with current user state)
+    setupFavoriteButton(el.favoriteBtn, cameraCode, user);
+
     if (el.shareBtn && el.shareBtn.dataset.hasListener) return;
     if (el.shareBtn) el.shareBtn.dataset.hasListener = 'true';
 
@@ -846,9 +926,6 @@ function setupActionButtons(el, cameraCode, user) {
             }
         });
     }
-
-    // 2. Favorite Button
-    setupFavoriteButton(el.favoriteBtn, cameraCode, user);
 
     // 3. Snapshot Capture
     const snapshotBtn = document.getElementById('snapshot-btn');

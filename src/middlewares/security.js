@@ -71,6 +71,30 @@ const verifyAdmin = async (req, res, next) => {
     }
 };
 
+// ─── Middleware: Verify Authenticated User (qualquer usuário logado) ───────────
+const verifyAuth = async (req, res, next) => {
+    let idToken = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        idToken = authHeader.split('Bearer ')[1];
+    } else if (req.query && req.query.token) {
+        idToken = req.query.token;
+    }
+
+    if (!idToken) {
+        return res.status(401).json({ error: 'Faça login para realizar esta ação.' });
+    }
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        req.user = decoded;
+        req.userIsAdmin = isUserAdmin(decoded.email);
+        next();
+    } catch (error) {
+        return res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.' });
+    }
+};
+
 // ─── Middleware: Verify Optional Admin (para rotas públicas com conteúdo extra) ───
 const verifyOptionalAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -189,6 +213,7 @@ const requestLogger = (METRICS) => (req, res, next) => {
 };
 
 module.exports = {
+    verifyAuth,
     verifyAdmin,
     verifyOptionalAdmin,
     verifyAdminPageSession,

@@ -41,19 +41,22 @@ service cloud.firestore {
     match /cameras/{cameraCode}/comments/{commentId} {
       
       // ✅ PERMISSÃO DE LEITURA (Coleção de Grupo e Tela Normal):
-      // Permite a leitura se for Admin (para CollectionGroup) OU se for um usuário autenticado normal.
-      allow read: if isAdmin() || request.auth != null;
+      // Permite a leitura pública para visualização do chat ao vivo ou por Admin.
+      allow read: if true;
 
-      // PERMISSÃO DE CRIAÇÃO (mantém a validação de dados)
+      // PERMISSÃO DE CRIAÇÃO (mantém a validação de dados para qualquer usuário autenticado)
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.userDisplayName == request.auth.token.name
+                    && request.resource.data.userDisplayName is string
+                    && request.resource.data.userDisplayName.size() > 0
+                    && request.resource.data.userDisplayName.size() <= 100
                     && request.resource.data.text is string
-                    && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500;
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 500;
       
       // PERMISSÃO DE EXCLUSÃO (DELETE):
       // Permite a exclusão se o usuário for o dono OU se o usuário for Admin.
-      allow delete: if request.auth.uid == resource.data.userId || isAdmin();
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.userId || isAdmin());
       
       // Impede a atualização de comentários.
       allow update: if false;

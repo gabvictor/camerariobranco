@@ -18,7 +18,9 @@ class ReportController {
         this.list          = this.list.bind(this);
         this.updateStatus  = this.updateStatus.bind(this);
         this.delete        = this.delete.bind(this);
+        this.createComment = this.createComment.bind(this);
         this.listComments  = this.listComments.bind(this);
+        this.listCameraComments = this.listCameraComments.bind(this);
         this.deleteComment = this.deleteComment.bind(this);
         this.listSuggestions = this.listSuggestions.bind(this);
         this.updateSuggestionStatus = this.updateSuggestionStatus.bind(this);
@@ -86,6 +88,96 @@ class ReportController {
         }
     }
 
+    /** POST /api/comment */
+    async createComment(req, res) {
+        try {
+            const cameraCode = sanitizeCameraCode(req.body.cameraCode || req.body.cameraId);
+            const text = sanitizeMultiline(req.body.text, { maxLength: 500 });
+            if (!cameraCode) return res.status(400).json({ error: 'Código da câmera é obrigatório.' });
+            if (!text || text.trim().length === 0) return res.status(400).json({ error: 'Texto do comentário é obrigatório.' });
+
+            const user = req.user;
+            if (!user) return res.status(401).json({ error: 'Usuário não autenticado.' });
+
+            let displayName = user.name || user.displayName || user.nickname;
+            if (!displayName && this._db) {
+                try {
+                    const userDoc = await this._db.collection('userData').doc(user.uid).get();
+                    if (userDoc.exists) {
+                        const uData = userDoc.data();
+                        displayName = uData.nickname || uData.displayName;
+                    }
+                } catch (_) {}
+            }
+            if (!displayName) {
+                displayName = user.email ? user.email.split('@')[0] : 'Usuário';
+            }
+
+            const FieldValue = admin.firestore.FieldValue;
+            const newComment = {
+                text: text.trim(),
+                userDisplayName: sanitizeString(displayName, { maxLength: 100 }) || 'Usuário',
+                userId: user.uid,
+                timestamp: FieldValue.serverTimestamp()
+            };
+
+            const docRef = await this._db.collection('cameras').doc(cameraCode).collection('comments').add(newComment);
+            res.status(201).json({
+                success: true,
+                message: 'Comentário enviado com sucesso.',
+                comment: {
+                    id: docRef.id,
+                    cameraId: cameraCode,
+                    text: newComment.text,
+                    userDisplayName: newComment.userDisplayName,
+                    userId: newComment.userId,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } catch (error) {
+            console.error('[COMMENT_CREATE_ERROR]', error);
+            res.status(500).json({ error: 'Erro ao processar envio do comentário.' });
+        }
+    }
+
+    /** GET /api/comments/:cameraId */
+    async listCameraComments(req, res) {
+        try {
+            const cameraCode = sanitizeCameraCode(req.params.cameraId);
+            if (!cameraCode) return res.status(400).json({ error: 'Código da câmera inválido.' });
+
+            let snapshot;
+            try {
+                snapshot = await this._db.collection('cameras').doc(cameraCode).collection('comments').orderBy('timestamp', 'desc').limit(60).get();
+            } catch (queryErr) {
+                console.warn('Fallback query para comments da camera:', queryErr.message);
+                snapshot = await this._db.collection('cameras').doc(cameraCode).collection('comments').limit(60).get();
+            }
+
+            const items = snapshot.docs.map(docSnap => {
+                const data = docSnap.data();
+                return {
+                    id: docSnap.id,
+                    cameraId: cameraCode,
+                    text: data.text || '',
+                    userDisplayName: data.userDisplayName || 'Usuário',
+                    userId: data.userId || '',
+                    timestamp: data.timestamp ? (data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp) : null
+                };
+            }).sort((a, b) => {
+                const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                return tb - ta;
+            });
+
+            res.setHeader('Cache-Control', 'no-store');
+            res.json(items);
+        } catch (error) {
+            console.error('[CAMERA_COMMENTS_ERROR]', error);
+            res.status(500).json({ error: 'Erro ao buscar comentários da câmera.' });
+        }
+    }
+
     /** GET /api/comments */
     async listComments(req, res) {
         try {
@@ -116,10 +208,23 @@ class ReportController {
         try {
             const { cameraId, id } = req.params;
             const ref = this._db.collection('cameras').doc(cameraId).collection('comments').doc(id);
-            if (!(await ref.get()).exists) return res.status(404).json({ error: 'Comentário não encontrado' });
+            const docSnap = await ref.get();
+            if (!docSnap.exists) return res.status(404).json({ error: 'Comentário não encontrado' });
+
+            const data = docSnap.data();
+            const isOwner = req.user && req.user.uid === data.userId;
+            const isAdmin = req.userIsAdmin;
+
+            if (!isOwner && !isAdmin) {
+                return res.status(403).json({ error: 'Você não tem permissão para excluir este comentário.' });
+            }
+
             await ref.delete();
-            res.json({ success: true });
-        } catch { res.status(500).json({ error: 'Erro ao excluir comentário' }); }
+            res.json({ success: true, message: 'Comentário excluído.' });
+        } catch (err) {
+            console.error('[DELETE_COMMENT_ERROR]', err);
+            res.status(500).json({ error: 'Erro ao excluir comentário' });
+        }
     }
 
     /** GET /api/suggestions */
