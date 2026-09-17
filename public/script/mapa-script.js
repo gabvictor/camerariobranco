@@ -94,37 +94,11 @@ function parseCoords(coords) {
 }
 
 // ─── Toast Notifications ────────────────────────────────────────────────
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    const bgColors = {
-        success: 'bg-emerald-600 text-white',
-        error: 'bg-red-600 text-white',
-        info: 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-    };
-    const icons = {
-        success: '<i data-lucide="check-circle" class="w-4 h-4"></i>',
-        error: '<i data-lucide="alert-circle" class="w-4 h-4"></i>',
-        info: '<i data-lucide="info" class="w-4 h-4"></i>'
-    };
-
-    toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-semibold transition-all duration-300 transform translate-y-2 opacity-0 ${bgColors[type] || bgColors.info}`;
-    toast.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
-    
-    container.appendChild(toast);
-    if (window.lucide) window.lucide.createIcons();
-
-    requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-    });
-
-    setTimeout(() => {
-        toast.classList.add('opacity-0', '-translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
+const showToast = (message, type = 'info', duration = 3200) => {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
+    }
+};
 
 // ─── Favorites Handling ─────────────────────────────────────────────────
 async function loadFavorites() {
@@ -154,7 +128,7 @@ async function toggleFavorite(cameraCode) {
         showToast('Câmera removida dos favoritos.', 'info');
     } else {
         state.favorites.push(cameraCode);
-        showToast('Câmera salva nos favoritos!', 'success');
+        showToast('⭐ Câmera salva nos seus favoritos!', 'success');
     }
 
     const isFavNow = state.favorites.includes(cameraCode);

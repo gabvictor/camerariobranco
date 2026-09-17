@@ -11,6 +11,14 @@ const escapeHtml = (value = '') => String(value)
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+
+// Toast Notification Helper
+const showToast = (message, type = 'success', duration = 3200) => {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
+    }
+};
+
 // Inicializa widget de clima imediatamente
 fetchWeather();
 initGlobalAuthUI();
@@ -313,8 +321,10 @@ function initializeAppLogic() {
         // Optimistic UI update
         if (wasFavorite) {
             state.favorites.splice(index, 1);
+            showToast('Câmera removida dos favoritos.', 'info');
         } else {
             state.favorites.push(code);
+            showToast('⭐ Câmera salva nos seus favoritos!', 'success');
         }
 
         button.classList.toggle('is-favorite');
@@ -1010,37 +1020,3 @@ function initializeAppLogic() {
 
 // --- Login Modal Logic ---
 initAuthModal();
-
-// Toast Notification System
-window.showToast = (message, type = 'success') => {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/5 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[300px] backdrop-blur-md border border-white/10 ${
-        type === 'error' 
-            ? 'bg-red-500/90 text-white' 
-            : 'bg-gray-900/90 text-white dark:bg-white/90 dark:text-gray-900'
-    }`;
-
-    const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
-    
-    toast.innerHTML = `
-        <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
-        <p class="text-sm font-medium">${message}</p>
-    `;
-
-    container.appendChild(toast);
-    if(window.lucide) window.lucide.createIcons();
-
-    // Animate In
-    requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-8', 'opacity-0');
-    });
-
-    // Remove after delay
-    setTimeout(() => {
-        toast.classList.add('translate-y-4', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-};

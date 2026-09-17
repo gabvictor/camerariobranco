@@ -200,6 +200,13 @@ const loadFavorites = async () => {
     }
 };
 
+// Toast Notification Helper
+const showToast = (message, type = 'success', duration = 3200) => {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
+    }
+};
+
 const removeFavorite = async (code) => {
     if (!currentUser) return;
 
@@ -213,6 +220,7 @@ const removeFavorite = async (code) => {
             favorites = favorites.filter(fav => fav !== code);
             
             await setDoc(userRef, { favoriteCameras: favorites }, { merge: true });
+            showToast('Câmera removida dos favoritos.', 'info');
             
             // Smooth UI removal
             const card = document.getElementById(`fav-card-${code}`);
@@ -226,5 +234,6 @@ const removeFavorite = async (code) => {
         }
     } catch (error) {
         console.error("Erro ao remover favorito:", error);
+        showToast("Erro ao remover favorito.", "error");
     }
 };

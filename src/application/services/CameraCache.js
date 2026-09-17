@@ -12,28 +12,41 @@ class CameraCache {
 
     /**
      * Atualiza o cache a partir dos resultados de uma varredura,
-     * enriquecendo com os dados das câmeras.
+     * enriquecendo com os dados das câmeras cadastradas.
      *
      * @param {Array<{codigo, status}>} statuses
      * @param {Array<object>} cameraInfoList
      */
-    update(statuses, cameraInfoList) {
-        const cameraMap = new Map(cameraInfoList.map(camera => [camera.codigo, camera]));
+    update(statuses, cameraInfoList = []) {
+        const statusMap = new Map((statuses || []).map(s => [s.codigo, s.status]));
 
-        this._cache = statuses.map(status => {
-            const info = cameraMap.get(status.codigo);
-            return {
-                ...status,
-                nome: info?.nome || `Câmera ${status.codigo}`,
-                categoria: info?.categoria || 'Sem Categoria',
-                coords: info?.coords || null,
-                descricao: info?.descricao || '',
-                level: info?.level || 1
-            };
-        }).sort((a, b) =>
-            (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1) ||
-            a.nome.localeCompare(b.nome)
-        );
+        // Se houver câmeras cadastradas no repositório, usa elas como base oficial
+        if (Array.isArray(cameraInfoList) && cameraInfoList.length > 0) {
+            const validCams = cameraInfoList.filter(c => c && c.codigo);
+            this._cache = validCams.map(cam => ({
+                ...cam,
+                status: statusMap.get(cam.codigo) || 'offline',
+                nome: cam.nome || `Câmera ${cam.codigo}`,
+                categoria: cam.categoria || cam.bairro || 'Sem Categoria',
+                coords: cam.coords || null,
+                descricao: cam.descricao || '',
+                level: cam.level || 1
+            })).sort((a, b) =>
+                (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1) ||
+                a.nome.localeCompare(b.nome)
+            );
+            return;
+        }
+
+        // Fallback apenas se a lista de câmeras do Firestore estiver vazia
+        this._cache = (statuses || []).map(status => ({
+            ...status,
+            nome: `Câmera ${status.codigo}`,
+            categoria: 'Sem Categoria',
+            coords: null,
+            descricao: '',
+            level: 1
+        }));
     }
 
     /** @returns {Array} Todos os status cacheados */

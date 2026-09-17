@@ -1,5 +1,5 @@
 import { auth, db } from "./firebase-config.js";
-import { fetchWeather } from "./weather.js";
+import { fetchWeather, cachedWeather } from "./weather.js";
 import { initAuthModal, toggleLoginModal, initGlobalAuthUI } from "./auth-modal.js";
 import { initFooter } from "./footer-component.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -16,44 +16,12 @@ const escapeHtml = (value = '') => String(value ?? '')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-// Toast Notification System
-if (!window.showToast) {
-    window.showToast = (message, type = 'success') => {
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none';
-            document.body.appendChild(container);
-        }
-
-        const toast = document.createElement('div');
-        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl shadow-black/10 transform transition-all duration-300 translate-y-8 opacity-0 min-w-[280px] sm:min-w-[320px] backdrop-blur-md border ${
-            type === 'error'
-                ? 'bg-red-600/95 text-white border-red-400/30'
-                : 'bg-gray-900/95 text-white dark:bg-white/95 dark:text-gray-900 border-white/10 dark:border-gray-200'
-        }`;
-
-        const icon = type === 'error' ? 'alert-circle' : 'check-circle-2';
-
-        toast.innerHTML = `
-            <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
-            <p class="text-xs sm:text-sm font-semibold leading-snug">${message}</p>
-        `;
-
-        container.appendChild(toast);
-        if (window.lucide) window.lucide.createIcons();
-
-        requestAnimationFrame(() => {
-            toast.classList.remove('translate-y-8', 'opacity-0');
-        });
-
-        setTimeout(() => {
-            toast.classList.add('translate-y-4', 'opacity-0');
-            setTimeout(() => toast.remove(), 300);
-        }, 3200);
-    };
-}
+// Toast Notification Helper
+const showToast = (message, type = 'success', duration = 3200) => {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
+    }
+};
 
 let videoInterval = null;
 let commentsUnsubscribe = null;
@@ -92,24 +60,27 @@ if (contentWrapper) {
     setTimeout(() => initAdSense(), 250);
 }
 
+let activeCameraCode = null;
+let allCamerasList = [];
+let allOnlineCameras = [];
+let currentElements = null;
+let activeAuthUser = null;
 let currentAuthUser = auth.currentUser || null;
+let hasBoundPopstate = false;
+let commentsPollingInterval = null;
+let currentFavoritesCache = new Set();
 
-// Inicializa lógica da câmera imediatamente (sem depender do Firebase Auth)
-initializeCameraLogic(null);
-
-// Ouve estado de autenticação para atualizar comentários, botões e favoritos
-onAuthStateChanged(auth, (user) => {
-    currentAuthUser = user;
-    initializeCameraLogic(user);
-});
-
-// Inicializa widget de clima
-fetchWeather();
+// Digital Zoom & Pan Engine State
+let currentZoom = 1.0;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let isFillMode = false;
+let hudTimer = null;
 
 /**
  * Gerencia a lógica de comentários (Firestore + API Fallback)
  */
-let commentsPollingInterval = null;
 
 function initializeComments(user, cameraCode) {
     const activeUser = user || auth.currentUser || currentAuthUser;
@@ -356,6 +327,7 @@ function initializeComments(user, cameraCode) {
  * Lógica Principal da Câmera
  */
 async function initializeCameraLogic(user) {
+    activeAuthUser = user;
     const urlParams = new URLSearchParams(window.location.search);
     let cameraCode = window.SERVER_CAM_CODE || urlParams.get('code');
 
@@ -364,6 +336,8 @@ async function initializeCameraLogic(user) {
         const codeInPath = pathParts.find(part => /^\d{6}$/.test(part));
         if (codeInPath) cameraCode = codeInPath;
     }
+
+    activeCameraCode = cameraCode;
 
     const el = {
         headerSkeleton: document.getElementById('header-skeleton'),
@@ -384,6 +358,8 @@ async function initializeCameraLogic(user) {
         error: document.getElementById('error-message'),
         errorText: document.getElementById('error-text-content'),
         fullscreenBtn: document.getElementById('fullscreen-btn'),
+        toolbarFullscreenBtn: document.getElementById('toolbar-fullscreen-btn'),
+        fullscreenCloseBtn: document.getElementById('fullscreen-close-btn'),
         playerSnapshotBtn: document.getElementById('player-snapshot-btn'),
         playerTimelapseBtn: document.getElementById('player-timelapse-btn'),
 
@@ -404,6 +380,8 @@ async function initializeCameraLogic(user) {
         reportBtn: document.getElementById('report-btn')
     };
 
+    currentElements = el;
+
     if (window.lucide) window.lucide.createIcons();
 
     if (!cameraCode) {
@@ -423,13 +401,16 @@ async function initializeCameraLogic(user) {
             return res.json();
         })
         .then(cameras => {
-            const camera = cameras.find(c => c.codigo === cameraCode);
+            allCamerasList = Array.isArray(cameras) ? cameras : [];
+            allOnlineCameras = allCamerasList.filter(c => c.status === 'online' || !c.status);
+
+            const camera = allCamerasList.find(c => c.codigo === cameraCode);
 
             if (camera) {
                 try { setupCameraInterface(camera, el, cameraCode); } catch (e) { console.error('Error in setupCameraInterface:', e); }
                 try { initRioAcreWidget(camera, cameraCode); } catch (e) { console.error('Error in initRioAcreWidget:', e); }
-                try { renderNearbyCameras(camera, cameras); } catch (e) { console.error('Error in renderNearbyCameras:', e); }
-                try { setupCarousel(cameras, cameraCode); } catch (e) { console.error('Error in setupCarousel:', e); }
+                try { renderNearbyCameras(camera, allCamerasList); } catch (e) { console.error('Error in renderNearbyCameras:', e); }
+                try { setupCarousel(allCamerasList, cameraCode); } catch (e) { console.error('Error in setupCarousel:', e); }
             } else {
                 console.warn("Camera not found in list.");
                 handleErrorState(el, 'Câmera não encontrada ou acesso restrito.', true);
@@ -442,6 +423,17 @@ async function initializeCameraLogic(user) {
 
     try { setupActionButtons(el, cameraCode, user); } catch (e) { console.warn('setupActionButtons error:', e); }
     try { setupModals(cameraCode); } catch (e) { console.warn('setupModals error:', e); }
+
+    if (!hasBoundPopstate) {
+        hasBoundPopstate = true;
+        window.addEventListener('popstate', (e) => {
+            const pathParts = window.location.pathname.split('/');
+            const codeInPath = pathParts.find(part => /^\d{6}$/.test(part));
+            if (codeInPath && codeInPath !== activeCameraCode) {
+                switchToCamera(codeInPath, false);
+            }
+        });
+    }
 
     if (!localStorage.getItem('camrb_tour_seen_camera')) {
         setTimeout(() => {
@@ -600,12 +592,16 @@ function renderNearbyCameras(currentCam, allCameras) {
             .sort((a, b) => a.distanceKm - b.distanceKm)
             .slice(0, 4);
     } else {
-        // Fallback apenas se a câmera atual não possuir coordenadas cadastradas
-        const otherOnline = allCameras.filter(c => c.codigo !== currentCam.codigo && c.status === 'online');
+        // Fallback se a câmera atual não possuir coordenadas cadastradas
+        const otherOnline = allCameras.filter(c => c.codigo !== currentCam.codigo && (c.status === 'online' || !c.status));
         const sameCategory = otherOnline.filter(c => c.categoria && currentCam.categoria && c.categoria === currentCam.categoria);
         const others = otherOnline.filter(c => !sameCategory.some(sc => sc.codigo === c.codigo));
         
-        nearby = [...sameCategory, ...others].slice(0, 4);
+        let pool = [...sameCategory, ...others];
+        if (pool.length === 0) {
+            pool = allCameras.filter(c => c.codigo !== currentCam.codigo);
+        }
+        nearby = pool.slice(0, 4);
     }
 
     if (nearby.length === 0) {
@@ -626,6 +622,10 @@ function renderNearbyCameras(currentCam, allCameras) {
         const item = document.createElement('a');
         item.href = `/camera/${cam.codigo}`;
         item.className = 'flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40 border border-gray-100 dark:border-gray-700/60 transition-all group active:scale-98 cursor-pointer shadow-2xs';
+        item.onclick = (e) => {
+            e.preventDefault();
+            switchToCamera(cam.codigo);
+        };
         item.innerHTML = `
             <div class="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-900 flex-shrink-0">
                 <img src="/proxy/camera/${escapeHtml(cam.codigo)}" alt="${escapeHtml(cam.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.src='/assets/offline.png'">
@@ -701,6 +701,7 @@ async function startVideoFeed(el, cameraCode) {
 
     if (streamIntervalMs < 500) {
         feed.onload = () => {
+            if (cameraCode !== activeCameraCode) return;
             if (el.loader) el.loader.classList.add('hidden');
             if (el.error) {
                 el.error.classList.add('hidden');
@@ -713,6 +714,7 @@ async function startVideoFeed(el, cameraCode) {
         };
 
         feed.onerror = () => {
+            if (cameraCode !== activeCameraCode) return;
             if (el.loader) el.loader.classList.add('hidden');
             if (el.error) {
                 if (el.errorText) el.errorText.textContent = 'Sinal interrompido temporariamente. Aguardando conexão...';
@@ -725,11 +727,24 @@ async function startVideoFeed(el, cameraCode) {
             }
 
             setTimeout(() => {
-                if (feed) feed.src = `/stream/camera/${cameraCode}?t=${Date.now()}`;
+                if (cameraCode === activeCameraCode) {
+                    connectMjpeg();
+                }
             }, 3000);
         };
 
-        feed.src = `/stream/camera/${cameraCode}`;
+        const connectMjpeg = async () => {
+            if (cameraCode !== activeCameraCode) return;
+            const user = auth.currentUser || currentAuthUser;
+            let token = '';
+            if (user) {
+                try { token = await user.getIdToken(); } catch (_) {}
+            }
+            const query = token ? `?token=${encodeURIComponent(token)}&t=${Date.now()}` : `?t=${Date.now()}`;
+            if (feed) feed.src = `/stream/camera/${cameraCode}${query}`;
+        };
+
+        connectMjpeg();
         return;
     }
 
@@ -840,9 +855,15 @@ function setupCarousel(allCameras, currentCode) {
 
     if (!carouselContainer) return;
 
-    const onlineOthers = allCameras
-        .filter(c => c.status === 'online' && c.codigo !== currentCode)
+    let onlineOthers = (Array.isArray(allCameras) ? allCameras : [])
+        .filter(c => (c.status === 'online' || !c.status) && c.codigo !== currentCode)
         .sort(() => 0.5 - Math.random());
+
+    if (onlineOthers.length === 0 && Array.isArray(allCameras)) {
+        onlineOthers = allCameras
+            .filter(c => c.codigo !== currentCode)
+            .sort(() => 0.5 - Math.random());
+    }
 
     if (onlineOthers.length === 0) {
         const parent = carouselContainer.closest('.mt-6');
@@ -856,12 +877,14 @@ function setupCarousel(allCameras, currentCode) {
         const item = document.createElement('a');
         item.href = `/camera/${cam.codigo}`;
         item.className = 'snap-start shrink-0 w-44 sm:w-56 flex flex-col gap-2 rounded-2xl group relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 p-2.5 hover:shadow-md hover:border-indigo-500/50 transition-all cursor-pointer shadow-2xs';
-        item.onclick = function () {
+        item.onclick = function (e) {
+            e.preventDefault();
             if (window.gtag) gtag('event', 'carousel_click', { 'camera_code': cam.codigo });
+            switchToCamera(cam.codigo);
         };
         item.innerHTML = `
             <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-900">
-                <img src="/proxy/camera/${cam.codigo}" alt="Câmera ${escapeHtml(cam.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                <img src="/proxy/camera/${cam.codigo}" alt="Câmera ${escapeHtml(cam.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onerror="this.src='/assets/offline.png'">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
                 <div class="absolute bottom-2 left-2 flex items-center gap-1.5">
                     <span class="relative flex h-2 w-2">
@@ -886,51 +909,802 @@ function setupCarousel(allCameras, currentCode) {
 }
 
 /**
- * Configura Botões de Ação e Captura
+ * Efeito Sonoro Sintético de Obturador de Câmera (Web Audio API - Zero Assets)
+ */
+function playCameraShutterSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        // 1. Shutter Blade Click (Initial mechanical click)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.035);
+        gain.gain.setValueAtTime(0.28, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.035);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.035);
+
+        // 2. Mechanical Shutter Texture Burst
+        const bufferSize = Math.floor(ctx.sampleRate * 0.05);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 1800;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.18, ctx.currentTime + 0.02);
+        noiseGain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.065);
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start(ctx.currentTime + 0.02);
+
+        // 3. Mirror Return / Shutter Close Click
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(580, ctx.currentTime + 0.055);
+        osc2.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.095);
+        gain2.gain.setValueAtTime(0.24, ctx.currentTime + 0.055);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.095);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(ctx.currentTime + 0.055);
+        osc2.stop(ctx.currentTime + 0.095);
+    } catch (_) {}
+}
+
+/**
+ * Motor de Zoom Digital e Pan em Tempo Real
+ */
+function applyDigitalZoom() {
+    const feed = currentElements?.feed || document.getElementById('camera-feed');
+    const feedNext = currentElements?.feedNext || document.getElementById('camera-feed-next');
+    const playerWrapper = currentElements?.playerWrapper || document.getElementById('player-wrapper');
+    const zoomLevelEl = document.getElementById('fs-zoom-level');
+
+    if (zoomLevelEl) {
+        zoomLevelEl.textContent = `${currentZoom.toFixed(1)}x`;
+    }
+
+    const isZoomed = currentZoom > 1.001;
+    const transformStr = isZoomed
+        ? `scale(${currentZoom}) translate(${panX / currentZoom}px, ${panY / currentZoom}px)`
+        : 'none';
+
+    if (feed) feed.style.transform = transformStr;
+    if (feedNext) feedNext.style.transform = transformStr;
+
+    if (playerWrapper) {
+        if (isZoomed) {
+            playerWrapper.classList.add('is-zoomed');
+        } else {
+            playerWrapper.classList.remove('is-zoomed', 'is-panning');
+            panX = 0;
+            panY = 0;
+        }
+    }
+}
+
+function setDigitalZoom(level, focalX = null, focalY = null) {
+    const clamped = Math.max(1.0, Math.min(4.0, Math.round(level * 100) / 100));
+    if (Math.abs(clamped - currentZoom) < 0.005 && clamped !== 1.0) return;
+
+    const player = currentElements?.playerWrapper || document.getElementById('player-wrapper');
+    const rect = player?.getBoundingClientRect() || { width: 800, height: 450, left: 0, top: 0 };
+    const width = rect.width || 800;
+    const height = rect.height || 450;
+
+    if (clamped <= 1.001) {
+        currentZoom = 1.0;
+        panX = 0;
+        panY = 0;
+    } else {
+        const cx = focalX !== null ? (focalX - width / 2) : 0;
+        const cy = focalY !== null ? (focalY - height / 2) : 0;
+
+        const zoomRatio = clamped / currentZoom;
+        const newPanX = cx - (cx - panX) * zoomRatio;
+        const newPanY = cy - (cy - panY) * zoomRatio;
+
+        currentZoom = clamped;
+        const maxPanX = (currentZoom - 1) * (width * 0.5);
+        const maxPanY = (currentZoom - 1) * (height * 0.5);
+        panX = Math.max(-maxPanX, Math.min(maxPanX, newPanX));
+        panY = Math.max(-maxPanY, Math.min(maxPanY, newPanY));
+    }
+    applyDigitalZoom();
+}
+
+function resetDigitalZoom() {
+    currentZoom = 1.0;
+    panX = 0;
+    panY = 0;
+    applyDigitalZoom();
+}
+
+/**
+ * Obter lista de câmeras ativas para navegação sequencial
+ */
+function getCameraNavigationList() {
+    if (Array.isArray(allOnlineCameras) && allOnlineCameras.length > 1) {
+        return allOnlineCameras;
+    }
+    if (Array.isArray(allCamerasList) && allCamerasList.length > 0) {
+        return allCamerasList;
+    }
+    return [];
+}
+
+/**
+ * Troca de Câmera Fluida (sem recarregar a página e sem sair do modo tela cheia)
+ */
+async function switchToCamera(newCode, pushHistory = true) {
+    if (!newCode) return;
+    if (newCode === activeCameraCode && !pushHistory) return;
+
+    let targetCam = allCamerasList.find(c => c.codigo === newCode);
+    if (!targetCam) {
+        try {
+            const res = await fetch('/status-cameras');
+            if (res.ok) {
+                const cams = await res.json();
+                allCamerasList = Array.isArray(cams) ? cams : [];
+                allOnlineCameras = allCamerasList.filter(c => c.status === 'online' || !c.status);
+                targetCam = allCamerasList.find(c => c.codigo === newCode);
+            }
+        } catch (_) {}
+    }
+
+    if (!targetCam) {
+        window.location.href = `/camera/${newCode}`;
+        return;
+    }
+
+    activeCameraCode = newCode;
+    if (pushHistory) {
+        history.pushState({ code: newCode }, '', `/camera/${newCode}`);
+    }
+
+    resetDigitalZoom();
+
+    // Abort active streams immediately
+    const feed = currentElements?.feed || document.getElementById('camera-feed');
+    const feedNext = currentElements?.feedNext || document.getElementById('camera-feed-next');
+    if (feed) {
+        feed.onload = null;
+        feed.onerror = null;
+        feed.src = '';
+    }
+    if (feedNext) {
+        feedNext.onload = null;
+        feedNext.onerror = null;
+        feedNext.src = '';
+    }
+
+    if (currentElements?.loader) {
+        currentElements.loader.classList.remove('hidden');
+    }
+    if (currentElements?.error) {
+        currentElements.error.classList.add('hidden');
+        currentElements.error.classList.remove('flex');
+    }
+
+    setupCameraInterface(targetCam, currentElements, newCode);
+    syncFsInfo(targetCam);
+    showHUD();
+
+    try { setupFavoriteButton(currentElements?.favoriteBtn, newCode, activeAuthUser); } catch (_) {}
+    try { initializeComments(activeAuthUser, newCode); } catch (_) {}
+    try { renderNearbyCameras(targetCam, allCamerasList); } catch (_) {}
+    try { setupCarousel(allCamerasList, newCode); } catch (_) {}
+
+    window.showToast?.(`🎥 Exibindo: ${targetCam.nome}`, 'info', 1800);
+}
+
+function navigateCamera(direction) {
+    const list = getCameraNavigationList();
+    if (!list || list.length <= 1) return;
+    const currentIdx = list.findIndex(c => c.codigo === activeCameraCode);
+    let nextIdx = 0;
+    if (currentIdx !== -1) {
+        nextIdx = currentIdx + direction;
+        if (nextIdx >= list.length) nextIdx = 0;
+        if (nextIdx < 0) nextIdx = list.length - 1;
+    }
+    const nextCam = list[nextIdx];
+    if (nextCam && nextCam.codigo) {
+        switchToCamera(nextCam.codigo);
+    }
+}
+
+/**
+ * Sincroniza informações da Câmera no HUD Fullscreen
+ */
+function syncFsInfo(cam) {
+    const activeCam = cam || allCamerasList.find(c => c.codigo === activeCameraCode);
+    const fsName = document.getElementById('fs-camera-name');
+    const fsCategory = document.getElementById('fs-camera-category');
+    const fsWeather = document.getElementById('fs-camera-weather');
+
+    if (fsName) {
+        fsName.textContent = activeCam?.nome || currentElements?.title?.textContent || 'Câmera ao Vivo';
+    }
+    if (fsCategory) {
+        fsCategory.textContent = activeCam?.categoria || currentElements?.categoryText?.textContent || 'Rio Branco';
+    }
+
+    if (fsWeather) {
+        const weatherTemp = cachedWeather?.tempText || document.getElementById('weather-temp')?.textContent?.trim();
+        const iconName = cachedWeather?.iconName || 'sun';
+        if (weatherTemp) {
+            fsWeather.innerHTML = `<i data-lucide="${iconName}" class="w-3 h-3 text-amber-300"></i><span class="font-bold text-amber-300">${weatherTemp}</span>`;
+            fsWeather.classList.remove('hidden');
+            fsWeather.classList.add('inline-flex', 'items-center', 'gap-1');
+            if (window.lucide) {
+                try { window.lucide.createIcons(); } catch (_) {}
+            }
+        } else {
+            fetchWeather();
+        }
+    }
+
+    updateAllFavoriteButtons(activeCameraCode);
+}
+
+const isCurrentFullscreen = () => {
+    return Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+    );
+};
+
+const showHUD = () => {
+    const player = currentElements?.playerWrapper || document.getElementById('player-wrapper');
+    const fsHud = document.getElementById('fullscreen-hud');
+    if (!isCurrentFullscreen()) return;
+    if (fsHud) {
+        fsHud.classList.remove('opacity-0', 'pointer-events-none');
+        fsHud.classList.add('opacity-100');
+    }
+    player?.classList.remove('fullscreen-idle');
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(hideHUD, 3500);
+};
+
+const hideHUD = () => {
+    const player = currentElements?.playerWrapper || document.getElementById('player-wrapper');
+    const fsHud = document.getElementById('fullscreen-hud');
+    if (!isCurrentFullscreen()) return;
+    if (fsHud) {
+        fsHud.classList.remove('opacity-100');
+        fsHud.classList.add('opacity-0', 'pointer-events-none');
+    }
+    player?.classList.add('fullscreen-idle');
+};
+
+/**
+ * Configura Botões de Ação, Fullscreen Cinema HUD, Zoom & Panning
  */
 function setupActionButtons(el, cameraCode, user) {
-    // 2. Favorite Button (always update with current user state)
+    // 1. Favorite Button (always update with current user state)
     setupFavoriteButton(el.favoriteBtn, cameraCode, user);
 
     if (el.shareBtn && el.shareBtn.dataset.hasListener) return;
     if (el.shareBtn) el.shareBtn.dataset.hasListener = 'true';
 
-    // 1. Fullscreen Button
-    if (el.fullscreenBtn && el.playerWrapper) {
-        el.fullscreenBtn.onclick = async () => {
-            if (!document.fullscreenElement) {
-                try {
-                    await el.playerWrapper.requestFullscreen();
-                    if (screen.orientation && screen.orientation.lock) {
-                        await screen.orientation.lock('landscape').catch(() => {});
-                    }
-                } catch (err) {
-                    console.warn("Fullscreen failed:", err);
-                }
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-            }
-        };
+    // 2. Comprehensive Cinema-Grade Fullscreen Controller with HUD
+    const playerWrapper = el.playerWrapper || document.getElementById('player-wrapper');
+    const fullscreenBtn = el.fullscreenBtn || document.getElementById('fullscreen-btn');
+    const toolbarFullscreenBtn = el.toolbarFullscreenBtn || document.getElementById('toolbar-fullscreen-btn');
+    const fsHud = document.getElementById('fullscreen-hud');
+    const fsCameraClock = document.getElementById('fs-camera-clock');
+    const fsFitBtn = document.getElementById('fs-fit-toggle-btn');
+    const fsFitText = document.getElementById('fs-fit-text');
+    const fsSnapshotBtn = document.getElementById('fs-snapshot-btn');
+    const fsTimelapseBtn = document.getElementById('fs-timelapse-btn');
+    const fsFavoriteBtn = document.getElementById('fs-favorite-btn');
+    const fsExitBtn = document.getElementById('fs-exit-btn');
+    const fsZoomInBtn = document.getElementById('fs-zoom-in-btn');
+    const fsZoomOutBtn = document.getElementById('fs-zoom-out-btn');
+    const fsZoomResetBtn = document.getElementById('fs-zoom-reset-btn');
+    const fsPrevCamBtn = document.getElementById('fs-prev-cam-btn');
+    const fsNextCamBtn = document.getElementById('fs-next-cam-btn');
 
-        document.addEventListener('fullscreenchange', () => {
-            const icon = el.fullscreenBtn.querySelector('i');
-            if (icon) {
-                if (document.fullscreenElement) {
-                    icon.setAttribute('data-lucide', 'minimize');
+    const updateFsClock = () => {
+        if (fsCameraClock) {
+            const now = new Date();
+            fsCameraClock.textContent = now.toLocaleTimeString('pt-BR');
+        }
+    };
+    setInterval(updateFsClock, 1000);
+    updateFsClock();
+
+    const updateFullscreenUI = (isActive) => {
+        // Floating button icon
+        if (fullscreenBtn) {
+            const icon = fullscreenBtn.querySelector('i');
+            if (icon) icon.setAttribute('data-lucide', isActive ? 'minimize' : 'maximize');
+            fullscreenBtn.setAttribute('title', isActive ? 'Sair da Tela Cheia' : 'Modo Tela Cheia');
+        }
+
+        // Toolbar button icon & text
+        if (toolbarFullscreenBtn) {
+            const icon = toolbarFullscreenBtn.querySelector('i');
+            if (icon) icon.setAttribute('data-lucide', isActive ? 'minimize' : 'maximize');
+            const textSpan = toolbarFullscreenBtn.querySelector('.fullscreen-text');
+            if (textSpan) textSpan.textContent = isActive ? 'Sair da Tela Cheia' : 'Tela Cheia';
+            if (isActive) {
+                toolbarFullscreenBtn.classList.add('bg-indigo-600', 'text-white');
+                toolbarFullscreenBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'dark:bg-indigo-950/40', 'dark:text-indigo-300');
+            } else {
+                toolbarFullscreenBtn.classList.remove('bg-indigo-600', 'text-white');
+                toolbarFullscreenBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'dark:bg-indigo-950/40', 'dark:text-indigo-300');
+            }
+        }
+
+        // Hide default non-fullscreen overlays when fullscreen is active to prevent duplicates
+        const defaultOverlays = playerWrapper?.querySelectorAll('.player-default-ui');
+        if (defaultOverlays) {
+            defaultOverlays.forEach(overlay => {
+                if (isActive) {
+                    overlay.classList.add('hidden');
                 } else {
-                    icon.setAttribute('data-lucide', 'maximize');
-                    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                    if (overlay.id === 'player-rio-badge') {
+                        const hasRio = overlay.querySelector('#player-rio-nivel')?.textContent?.includes('m');
+                        if (hasRio) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                        }
+                    } else {
+                        overlay.classList.remove('hidden');
+                    }
                 }
-                if (window.lucide) window.lucide.createIcons();
+            });
+        }
+
+        // Cinema HUD toggle
+        if (fsHud) {
+            if (isActive) {
+                fsHud.classList.remove('hidden');
+                syncFsInfo();
+                showHUD();
+            } else {
+                fsHud.classList.add('hidden');
+                clearTimeout(hudTimer);
+                playerWrapper?.classList.remove('fullscreen-idle');
+                resetDigitalZoom();
+            }
+        }
+
+        if (window.lucide) {
+            try { window.lucide.createIcons(); } catch (_) {}
+        }
+    };
+
+    const requestFs = (target) => {
+        if (!target) return Promise.reject(new Error('No target element'));
+        if (target.requestFullscreen) return target.requestFullscreen();
+        if (target.webkitRequestFullscreen) return Promise.resolve(target.webkitRequestFullscreen());
+        if (target.mozRequestFullScreen) return Promise.resolve(target.mozRequestFullScreen());
+        if (target.msRequestFullscreen) return Promise.resolve(target.msRequestFullscreen());
+        return Promise.reject(new Error('Fullscreen API not supported'));
+    };
+
+    const enterFullscreen = () => {
+        const player = el.playerWrapper || document.getElementById('player-wrapper');
+        if (!player) return;
+
+        // Native Browser Fullscreen (True OS / F11 fullscreen on the camera player)
+        requestFs(player).catch((err) => {
+            console.warn("player.requestFullscreen failed, trying document fallback:", err);
+            requestFs(document.documentElement).catch((e) => {
+                console.warn("Fullscreen request error:", e);
+            });
+        });
+
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+        } catch (_) {}
+    };
+
+    const exitFullscreen = () => {
+        resetDigitalZoom();
+
+        try {
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        } catch (err) {
+            console.warn("Exit fullscreen error:", err);
+        }
+
+        try {
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        } catch (_) {}
+    };
+
+    const toggleFullscreen = () => {
+        if (isCurrentFullscreen()) {
+            exitFullscreen();
+        } else {
+            enterFullscreen();
+        }
+    };
+
+    if (fullscreenBtn) {
+        fullscreenBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleFullscreen();
+        };
+    }
+
+    if (toolbarFullscreenBtn) {
+        toolbarFullscreenBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleFullscreen();
+        };
+    }
+
+    // HUD Actions
+    if (fsExitBtn) {
+        fsExitBtn.onclick = (e) => {
+            e.stopPropagation();
+            exitFullscreen();
+        };
+    }
+
+    if (fsFitBtn) {
+        fsFitBtn.onclick = (e) => {
+            e.stopPropagation();
+            isFillMode = !isFillMode;
+            playerWrapper?.classList.toggle('mode-fill', isFillMode);
+            if (fsFitText) fsFitText.textContent = isFillMode ? 'Preencher' : 'Ajustar';
+            window.showToast?.(isFillMode ? '📐 Exibição: Preencher Tela Inteira' : '📐 Exibição: Ajustar à Tela', 'info', 2000);
+            showHUD();
+        };
+    }
+
+    if (fsSnapshotBtn) {
+        fsSnapshotBtn.onclick = (e) => {
+            e.stopPropagation();
+            captureCameraSnapshot(activeCameraCode || cameraCode);
+            showHUD();
+        };
+    }
+
+    if (fsTimelapseBtn) {
+        fsTimelapseBtn.onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('timelapse-modal-btn')?.click();
+            showHUD();
+        };
+    }
+
+    if (fsFavoriteBtn) {
+        fsFavoriteBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleCameraFavorite(activeCameraCode, activeAuthUser);
+            showHUD();
+        };
+    }
+
+    // Zoom Buttons
+    if (fsZoomInBtn) {
+        fsZoomInBtn.onclick = (e) => {
+            e.stopPropagation();
+            setDigitalZoom(currentZoom + 0.5);
+            showHUD();
+        };
+    }
+
+    if (fsZoomOutBtn) {
+        fsZoomOutBtn.onclick = (e) => {
+            e.stopPropagation();
+            setDigitalZoom(currentZoom - 0.5);
+            showHUD();
+        };
+    }
+
+    if (fsZoomResetBtn) {
+        fsZoomResetBtn.onclick = (e) => {
+            e.stopPropagation();
+            resetDigitalZoom();
+            showHUD();
+        };
+    }
+
+    // In-Fullscreen Camera Switchers
+    if (fsPrevCamBtn) {
+        fsPrevCamBtn.onclick = (e) => {
+            e.stopPropagation();
+            navigateCamera(-1);
+            showHUD();
+        };
+    }
+
+    if (fsNextCamBtn) {
+        fsNextCamBtn.onclick = (e) => {
+            e.stopPropagation();
+            navigateCamera(1);
+            showHUD();
+        };
+    }
+
+    // Mouse Wheel Zoom in Fullscreen centered at cursor
+    if (playerWrapper) {
+        playerWrapper.addEventListener('wheel', (e) => {
+            if (!isCurrentFullscreen()) return;
+            e.preventDefault();
+            const rect = playerWrapper.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const zoomDelta = 0.35;
+            if (e.deltaY < 0) {
+                setDigitalZoom(currentZoom + zoomDelta, mouseX, mouseY);
+            } else {
+                setDigitalZoom(currentZoom - zoomDelta, mouseX, mouseY);
+            }
+            showHUD();
+        }, { passive: false });
+
+        // Mouse Pan Drag when Zoomed & Swipe Navigation
+        let startClientX = 0;
+        let startClientY = 0;
+        let initialPanX = 0;
+        let initialPanY = 0;
+        let isMouseDragging = false;
+        let mouseStartX = 0;
+        let mouseStartY = 0;
+
+        playerWrapper.addEventListener('dragstart', (e) => {
+            e.preventDefault();
+            return false;
+        });
+
+        playerWrapper.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button, a, input, select, textarea')) return;
+            e.preventDefault();
+
+            startClientX = e.clientX;
+            startClientY = e.clientY;
+            initialPanX = panX;
+            initialPanY = panY;
+
+            if (currentZoom > 1.001) {
+                isPanning = true;
+                playerWrapper.classList.add('is-panning');
+            } else if (isCurrentFullscreen()) {
+                isMouseDragging = true;
+                mouseStartX = e.clientX;
+                mouseStartY = e.clientY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning && currentZoom > 1.001) {
+                const dx = e.clientX - startClientX;
+                const dy = e.clientY - startClientY;
+                const maxPanX = (currentZoom - 1) * (playerWrapper.clientWidth * 0.5);
+                const maxPanY = (currentZoom - 1) * (playerWrapper.clientHeight * 0.5);
+                panX = Math.max(-maxPanX, Math.min(maxPanX, initialPanX + dx));
+                panY = Math.max(-maxPanY, Math.min(maxPanY, initialPanY + dy));
+                applyDigitalZoom();
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isPanning) {
+                isPanning = false;
+                playerWrapper.classList.remove('is-panning');
+            }
+            if (isMouseDragging) {
+                if (currentZoom <= 1.001 && isCurrentFullscreen()) {
+                    const dx = e.clientX - mouseStartX;
+                    const dy = e.clientY - mouseStartY;
+                    if (Math.abs(dx) > 70 && Math.abs(dy) < 60) {
+                        if (dx > 0) navigateCamera(-1);
+                        else navigateCamera(1);
+                    }
+                }
+                isMouseDragging = false;
+            }
+        });
+
+        // Touch Drag & Pinch Zoom on Mobile
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartDist = 0;
+        let isTouchSwipe = false;
+
+        playerWrapper.addEventListener('touchstart', (e) => {
+            if (e.target.closest('button, a, input, select')) return;
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                initialPanX = panX;
+                initialPanY = panY;
+                if (currentZoom > 1.001) {
+                    isPanning = true;
+                    playerWrapper.classList.add('is-panning');
+                } else {
+                    isTouchSwipe = true;
+                }
+            } else if (e.touches.length === 2) {
+                touchStartDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+            showHUD();
+        }, { passive: true });
+
+        playerWrapper.addEventListener('touchmove', (e) => {
+            if (isPanning && e.touches.length === 1 && currentZoom > 1.001) {
+                const dx = e.touches[0].clientX - touchStartX;
+                const dy = e.touches[0].clientY - touchStartY;
+                const maxPanX = (currentZoom - 1) * (playerWrapper.clientWidth * 0.5);
+                const maxPanY = (currentZoom - 1) * (playerWrapper.clientHeight * 0.5);
+                panX = Math.max(-maxPanX, Math.min(maxPanX, initialPanX + dx));
+                panY = Math.max(-maxPanY, Math.min(maxPanY, initialPanY + dy));
+                applyDigitalZoom();
+            } else if (e.touches.length === 2 && touchStartDist > 0) {
+                const currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const ratio = currentDist / touchStartDist;
+                if (Math.abs(ratio - 1) > 0.04) {
+                    const rect = playerWrapper.getBoundingClientRect();
+                    const midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+                    const midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+                    setDigitalZoom(currentZoom * ratio, midX, midY);
+                    touchStartDist = currentDist;
+                }
+            }
+        }, { passive: true });
+
+        playerWrapper.addEventListener('touchend', (e) => {
+            if (isTouchSwipe && currentZoom <= 1.001 && isCurrentFullscreen() && e.changedTouches.length > 0) {
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+                    if (dx > 0) navigateCamera(-1);
+                    else navigateCamera(1);
+                }
+            }
+            isPanning = false;
+            isTouchSwipe = false;
+            touchStartDist = 0;
+            playerWrapper.classList.remove('is-panning');
+        }, { passive: true });
+
+        // Auto-hide HUD on user interactions
+        playerWrapper.addEventListener('mousemove', showHUD);
+        playerWrapper.addEventListener('touchstart', showHUD, { passive: true });
+
+        // Double-click / Double-tap: Zoom in/out if fullscreen, or toggle fullscreen if normal
+        let lastTapTime = 0;
+        playerWrapper.addEventListener('click', (e) => {
+            if (e.target.closest('button, a, input, select')) return;
+
+            const currentTime = Date.now();
+            const tapGap = currentTime - lastTapTime;
+            if (tapGap < 300 && tapGap > 0) {
+                if (isCurrentFullscreen()) {
+                    if (currentZoom > 1.001) {
+                        resetDigitalZoom();
+                    } else {
+                        const rect = playerWrapper.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
+                        setDigitalZoom(2.0, mouseX, mouseY);
+                    }
+                    showHUD();
+                } else {
+                    toggleFullscreen();
+                }
+                lastTapTime = 0;
+            } else {
+                lastTapTime = currentTime;
             }
         });
     }
 
-    // 3. Snapshot Capture
+    // Fullscreen change events (F11, ESC or browser native toggle sync)
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            const isNative = isCurrentFullscreen();
+            updateFullscreenUI(isNative);
+            if (!isNative) {
+                resetDigitalZoom();
+            }
+        });
+    });
+
+    // Comprehensive Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.closest('input, textarea, select')) return;
+        const key = e.key.toLowerCase();
+
+        if (e.key === 'Escape' && isCurrentFullscreen()) {
+            exitFullscreen();
+        } else if (key === 'f') {
+            e.preventDefault();
+            toggleFullscreen();
+        } else if (key === 's') {
+            e.preventDefault();
+            captureCameraSnapshot(activeCameraCode || cameraCode);
+        } else if (key === 't') {
+            e.preventDefault();
+            document.getElementById('timelapse-modal-btn')?.click();
+        } else if (key === 'm') {
+            if (isCurrentFullscreen()) {
+                e.preventDefault();
+                fsFitBtn?.click();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            navigateCamera(-1);
+            showHUD();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            navigateCamera(1);
+            showHUD();
+        } else if (e.key === '+' || e.key === '=' || e.key === 'Add') {
+            if (isCurrentFullscreen()) {
+                e.preventDefault();
+                setDigitalZoom(currentZoom + 0.5);
+                showHUD();
+            }
+        } else if (e.key === '-' || e.key === '_' || e.key === 'Subtract') {
+            if (isCurrentFullscreen()) {
+                e.preventDefault();
+                setDigitalZoom(currentZoom - 0.5);
+                showHUD();
+            }
+        } else if (e.key === '0' || e.key === 'NumPad0') {
+            if (isCurrentFullscreen()) {
+                e.preventDefault();
+                resetDigitalZoom();
+                showHUD();
+            }
+        }
+    });
+
+    // 3. Snapshot Capture buttons
     const snapshotBtn = document.getElementById('snapshot-btn');
     const playerSnapshotBtn = document.getElementById('player-snapshot-btn');
-    const handleSnapshot = () => captureCameraSnapshot(cameraCode);
+    const handleSnapshot = () => captureCameraSnapshot(activeCameraCode || cameraCode);
     if (snapshotBtn) snapshotBtn.onclick = handleSnapshot;
     if (playerSnapshotBtn) playerSnapshotBtn.onclick = handleSnapshot;
 
@@ -944,10 +1718,13 @@ function setupActionButtons(el, cameraCode, user) {
 }
 
 /**
- * Captura Snapshot Instantâneo com Efeito Visual Shutter Flash
+ * Captura Snapshot Instantâneo com Efeito Visual Shutter Flash & Áudio Realista
  */
 function captureCameraSnapshot(cameraCode) {
     try {
+        const activeCode = cameraCode || activeCameraCode || window.SERVER_CAM_CODE;
+        playCameraShutterSound();
+
         const shutter = document.getElementById('shutter-flash');
         if (shutter) {
             shutter.classList.remove('animate-shutter');
@@ -959,18 +1736,18 @@ function captureCameraSnapshot(cameraCode) {
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10);
         const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
-        const fileName = `camrb-${cameraCode}-${dateStr}_${timeStr}.jpg`;
+        const fileName = `camrb-${activeCode}-${dateStr}_${timeStr}.jpg`;
 
         const link = document.createElement('a');
         link.download = fileName;
-        link.href = `/proxy/camera/${cameraCode}?t=${Date.now()}`;
+        link.href = `/proxy/camera/${activeCode}?t=${Date.now()}`;
         link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
         window.showToast?.('📸 Foto da câmera capturada com sucesso!');
-        if (window.gtag) window.gtag('event', 'camera_snapshot', { camera_code: cameraCode });
+        if (window.gtag) window.gtag('event', 'camera_snapshot', { camera_code: activeCode });
     } catch (e) {
         console.error('Erro ao capturar foto:', e);
         window.showToast?.('Erro ao salvar imagem.', 'error');
@@ -990,9 +1767,10 @@ function setupModals(cameraCode) {
     const shareLinkInput = document.getElementById('share-link-input');
     const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
 
-    const shareUrl = `${location.origin}/camera/${cameraCode}`;
+    const getShareUrl = () => `${location.origin}/camera/${activeCameraCode || cameraCode}`;
 
     const openShareModal = () => {
+        const shareUrl = getShareUrl();
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && navigator.share;
         if (isMobile) {
             navigator.share({
@@ -1029,8 +1807,9 @@ function setupModals(cameraCode) {
         };
     }
 
-    if (copyShareLinkBtn && shareLinkInput) {
+    if (copyShareLinkBtn) {
         copyShareLinkBtn.onclick = async () => {
+            const shareUrl = getShareUrl();
             try {
                 await navigator.clipboard.writeText(shareUrl);
                 window.showToast?.('Link da câmera copiado!');
@@ -1042,25 +1821,25 @@ function setupModals(cameraCode) {
     const shareWhatsApp = document.getElementById('share-whatsapp-btn');
     if (shareWhatsApp) {
         shareWhatsApp.onclick = () => {
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareUrl)}`, '_blank');
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(getShareUrl())}`, '_blank');
         };
     }
     const shareTelegram = document.getElementById('share-telegram-btn');
     if (shareTelegram) {
         shareTelegram.onclick = () => {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}`, '_blank');
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(getShareUrl())}`, '_blank');
         };
     }
     const shareTwitter = document.getElementById('share-twitter-btn');
     if (shareTwitter) {
         shareTwitter.onclick = () => {
-            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`, '_blank');
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(getShareUrl())}`, '_blank');
         };
     }
     const shareFacebook = document.getElementById('share-facebook-btn');
     if (shareFacebook) {
         shareFacebook.onclick = () => {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`, '_blank');
         };
     }
 
@@ -1072,10 +1851,10 @@ function setupModals(cameraCode) {
     const embedTextarea = document.getElementById('embed-code-textarea');
     const copyEmbedBtn = document.getElementById('copy-embed-btn');
 
-    const iframeCode = `<iframe src="https://camerasriobranco.com.br/embed/${cameraCode}" width="100%" height="450" frameborder="0" allowfullscreen></iframe>`;
+    const getIframeCode = () => `<iframe src="https://camerasriobranco.com.br/embed/${activeCameraCode || cameraCode}" width="100%" height="450" frameborder="0" allowfullscreen></iframe>`;
 
     const openEmbedModal = () => {
-        if (embedTextarea) embedTextarea.value = iframeCode;
+        if (embedTextarea) embedTextarea.value = getIframeCode();
         if (embedModal) {
             embedModal.classList.remove('hidden');
             setTimeout(() => {
@@ -1104,6 +1883,7 @@ function setupModals(cameraCode) {
 
     if (copyEmbedBtn) {
         copyEmbedBtn.onclick = async () => {
+            const iframeCode = getIframeCode();
             try {
                 await navigator.clipboard.writeText(iframeCode);
                 window.showToast?.('Código de incorporação copiado!');
@@ -1198,12 +1978,15 @@ function setupModals(cameraCode) {
 }
 
 /**
- * Lógica de Favoritos
+ * Lógica de Favoritos Unificada
  */
-async function setupFavoriteButton(btn, cameraCode, user) {
-    if (!btn) return;
 
-    let isFav = false;
+async function loadFavorites(user) {
+    currentFavoritesCache.clear();
+    try {
+        const localFavs = JSON.parse(localStorage.getItem('camrb_local_favorites') || '[]');
+        if (Array.isArray(localFavs)) localFavs.forEach(c => currentFavoritesCache.add(c));
+    } catch (_) {}
 
     if (user) {
         try {
@@ -1212,80 +1995,105 @@ async function setupFavoriteButton(btn, cameraCode, user) {
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 const favorites = data.favoriteCameras || data.favorites || [];
-                isFav = favorites.includes(cameraCode);
+                if (Array.isArray(favorites)) favorites.forEach(c => currentFavoritesCache.add(c));
             }
         } catch (err) {
-            console.error("Erro ao carregar favoritos:", err);
+            console.warn("Erro ao carregar favoritos do Firestore:", err);
         }
+    }
+}
+
+function isCurrentCameraFavorited(cameraCode) {
+    const code = cameraCode || activeCameraCode;
+    if (!code) return false;
+    return currentFavoritesCache.has(code);
+}
+
+async function toggleCameraFavorite(cameraCode, user) {
+    const code = cameraCode || activeCameraCode;
+    if (!code) return false;
+    const isCurrentlyFav = currentFavoritesCache.has(code);
+    const nextState = !isCurrentlyFav;
+
+    if (nextState) {
+        currentFavoritesCache.add(code);
+        window.showToast?.('⭐ Câmera salva nos seus favoritos!', 'success');
     } else {
-        const localFavs = JSON.parse(localStorage.getItem('camrb_local_favorites') || '[]');
-        isFav = localFavs.includes(cameraCode);
+        currentFavoritesCache.delete(code);
+        window.showToast?.('Câmera removida dos favoritos.', 'info');
     }
 
-    const updateFavVisual = (active) => {
-        const icon = btn.querySelector('i');
-        const text = btn.querySelector('span');
+    const localFavs = Array.from(currentFavoritesCache);
+    try {
+        localStorage.setItem('camrb_local_favorites', JSON.stringify(localFavs));
+    } catch (_) {}
 
+    if (user) {
+        try {
+            const userRef = doc(db, 'userData', user.uid);
+            await setDoc(userRef, { favoriteCameras: localFavs }, { merge: true });
+        } catch (err) {
+            console.error("Erro ao salvar favoritos no Firestore:", err);
+        }
+    }
+
+    updateAllFavoriteButtons(code, nextState);
+    return nextState;
+}
+
+function updateAllFavoriteButtons(cameraCode, isFav = null) {
+    const code = cameraCode || activeCameraCode;
+    const active = isFav !== null ? isFav : isCurrentCameraFavorited(code);
+
+    // 1. Main Toolbar Favorite Button
+    const mainFavBtn = document.getElementById('favorite-btn');
+    if (mainFavBtn) {
+        const icon = mainFavBtn.querySelector('svg, i');
+        const text = mainFavBtn.querySelector('span');
         if (active) {
-            btn.classList.add('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/25', 'border-amber-300', 'dark:border-amber-700');
-            btn.classList.remove('text-gray-700', 'dark:text-gray-300');
+            mainFavBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer shadow-md shadow-amber-500/25 active:scale-95 transition-all border border-amber-400';
             if (icon) {
                 icon.setAttribute('fill', 'currentColor');
-                icon.classList.add('fill-amber-500');
+                icon.classList.add('fill-white', 'text-white');
             }
             if (text) text.textContent = 'Favoritada';
         } else {
-            btn.classList.remove('text-amber-500', 'bg-amber-50', 'dark:bg-amber-900/25', 'border-amber-300', 'dark:border-amber-700');
-            btn.classList.add('text-gray-700', 'dark:text-gray-300');
+            mainFavBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/60 hover:bg-amber-50 dark:hover:bg-amber-900/25 border border-gray-200/80 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-amber-500 hover:border-amber-300 dark:hover:border-amber-700 transition-all group active:scale-95 font-semibold text-xs cursor-pointer shadow-2xs';
             if (icon) {
                 icon.setAttribute('fill', 'none');
-                icon.classList.remove('fill-amber-500');
+                icon.classList.remove('fill-white', 'text-white', 'fill-amber-500');
             }
             if (text) text.textContent = 'Favoritar';
         }
-    };
+    }
 
-    updateFavVisual(isFav);
-
-    btn.onclick = async () => {
-        const nextState = !btn.classList.contains('text-amber-500');
-        updateFavVisual(nextState);
-
-        if (nextState) {
-            window.showToast?.('⭐ Câmera adicionada aos seus favoritos!');
-        } else {
-            window.showToast?.('Câmera removida dos favoritos.');
-        }
-
-        if (user) {
-            try {
-                const userRef = doc(db, 'userData', user.uid);
-                const userDoc = await getDoc(userRef);
-                let favorites = [];
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    favorites = data.favoriteCameras || data.favorites || [];
-                }
-
-                if (nextState) {
-                    if (!favorites.includes(cameraCode)) favorites.push(cameraCode);
-                } else {
-                    favorites = favorites.filter(code => code !== cameraCode);
-                }
-
-                await setDoc(userRef, { favoriteCameras: favorites }, { merge: true });
-            } catch (err) {
-                console.error("Erro ao salvar favoritos no Firestore:", err);
+    // 2. Fullscreen HUD Favorite Button
+    const fsFavBtn = document.getElementById('fs-favorite-btn');
+    if (fsFavBtn) {
+        const icon = fsFavBtn.querySelector('svg, i');
+        if (active) {
+            fsFavBtn.className = 'p-2 sm:px-3 sm:py-2 flex items-center gap-1.5 bg-amber-500 text-white font-black text-xs rounded-xl backdrop-blur-md border border-amber-300 shadow-xl shadow-amber-500/30 transition-all cursor-pointer ring-2 ring-amber-400/50';
+            if (icon) {
+                icon.setAttribute('fill', 'currentColor');
+                icon.classList.add('fill-white', 'text-white');
             }
         } else {
-            let localFavs = JSON.parse(localStorage.getItem('camrb_local_favorites') || '[]');
-            if (nextState) {
-                if (!localFavs.includes(cameraCode)) localFavs.push(cameraCode);
-            } else {
-                localFavs = localFavs.filter(code => code !== cameraCode);
+            fsFavBtn.className = 'p-2 sm:px-3 sm:py-2 flex items-center gap-1.5 bg-black/65 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 shadow-xl transition-all cursor-pointer';
+            if (icon) {
+                icon.setAttribute('fill', 'none');
+                icon.classList.remove('fill-white', 'text-white', 'fill-amber-500');
             }
-            localStorage.setItem('camrb_local_favorites', JSON.stringify(localFavs));
         }
+    }
+}
+
+async function setupFavoriteButton(btn, cameraCode, user) {
+    await loadFavorites(user);
+    updateAllFavoriteButtons(cameraCode);
+    if (!btn) return;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        toggleCameraFavorite(activeCameraCode || cameraCode, user);
     };
 }
 
@@ -1363,10 +2171,16 @@ async function initRioAcreWidget(camera, cameraCode) {
     }
 
     const isRio = checkIsRio(camera, cameraCode);
+    const fsRioBadge = document.getElementById('fs-camera-rio-badge');
+    const fsRioNivel = document.getElementById('fs-rio-nivel');
 
     if (!isRio) {
         if (rioWidget) rioWidget.classList.add('hidden');
         if (playerRioBadge) playerRioBadge.classList.add('hidden');
+        if (fsRioBadge) {
+            fsRioBadge.classList.add('hidden');
+            fsRioBadge.classList.remove('sm:inline-flex');
+        }
         return;
     }
 
@@ -1374,6 +2188,10 @@ async function initRioAcreWidget(camera, cameraCode) {
     if (playerRioBadge) {
         playerRioBadge.classList.remove('hidden');
         playerRioBadge.classList.add('flex');
+    }
+    if (fsRioBadge) {
+        fsRioBadge.classList.remove('hidden');
+        fsRioBadge.classList.add('sm:inline-flex');
     }
 
     try {
@@ -1395,6 +2213,7 @@ async function initRioAcreWidget(camera, cameraCode) {
 
         if (nivelEl) nivelEl.textContent = nivelFormatado;
         if (playerNivel) playerNivel.textContent = `Rio: ${nivelFormatado}`;
+        if (fsRioNivel) fsRioNivel.textContent = `Rio: ${nivelFormatado}`;
         if (lastUpdateEl) lastUpdateEl.textContent = `Medição oficial: ${dataStr}`;
 
         if (playerStatus) {
@@ -1797,3 +2616,15 @@ function initCameraTour(user) {
 
     driverInstance.drive();
 }
+
+// ─── Bootstrap Principal da Página ─────────────────────────────────────
+initializeCameraLogic(null);
+
+onAuthStateChanged(auth, (user) => {
+    currentAuthUser = user;
+    activeAuthUser = user;
+    initializeCameraLogic(user);
+});
+
+fetchWeather();
+

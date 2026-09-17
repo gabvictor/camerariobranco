@@ -7,9 +7,21 @@ const { verifyAuth, verifyAdmin, verifyOptionalAdmin, createRateLimiter } = requ
  *
  * @param {import('../controllers/ReportController')} reportController
  * @param {import('../controllers/DashboardController')} dashboardController
+ * @param {Object} [deps] Dependências adicionais para monitoramento e operações
  */
-function adminRoutes(reportController, dashboardController) {
+function adminRoutes(reportController, dashboardController, deps = {}) {
     const router = express.Router();
+    const {
+        healthCheckService,
+        scheduler,
+        cameraRepo,
+        cameraCache,
+        resourceMonitor,
+        mjpegStreams,
+        metrics,
+        timelapseScheduler,
+        rioAcreService
+    } = deps;
 
     // Rate limiter para envio público de reportes (máximo 10 por minuto por IP)
     const reportRateLimiter = createRateLimiter({
@@ -47,6 +59,61 @@ function adminRoutes(reportController, dashboardController) {
 
     // Dashboard
     router.get('/dashboard-data',       verifyAdmin,       dashboardController.getDashboard);
+
+    // ─── Central de Monitoramento & NOC ──────────────────────────────────────────
+
+    // Diagnóstico ativo de dependências e subsistemas
+    router.get('/admin/ops/diagnostic', verifyAdmin, async (req, res) => {
+        res.setHeader('Cache-Control', 'no-store');
+        try {
+            if (!healthCheckService) {
+                const HealthCheckService = require('../../../application/services/HealthCheckService');
+                const tempHealth = new HealthCheckService(rioAcreService, cameraRepo);
+                const diagnostic = await tempHealth.runFullDiagnostic();
+                return res.json(diagnostic);
+            }
+            const diagnostic = await healthCheckService.runFullDiagnostic();
+            res.json(diagnostic);
+        } catch (error) {
+            console.error('[DIAGNOSTIC_ERROR]', error);
+            res.status(500).json({ error: error.message || 'Erro ao executar diagnóstico' });
+        }
+    });
+
+    // Forçar varredura manual de câmeras sob demanda
+    router.post('/admin/ops/trigger-scan', verifyAdmin, async (req, res) => {
+        try {
+            if (!scheduler) {
+                return res.status(500).json({ error: 'Serviço de agendamento não disponível.' });
+            }
+            if (scheduler.isScanning) {
+                return res.json({ success: true, message: 'Varredura já está em andamento.' });
+            }
+            // Dispara assincronamente e retorna status
+            scheduler.triggerNow().catch(err => console.error('[TRIGGER_SCAN_ERR]', err));
+            res.json({ success: true, message: 'Varredura de câmeras disparada com sucesso!' });
+        } catch (error) {
+            console.error('[TRIGGER_SCAN_ERROR]', error);
+            res.status(500).json({ error: error.message || 'Erro ao disparar varredura' });
+        }
+    });
+
+    // Recarregar/limpar cache de câmeras
+    router.post('/admin/ops/clear-cache', verifyAdmin, async (req, res) => {
+        try {
+            if (cameraRepo && cameraRepo.refresh) {
+                await cameraRepo.refresh();
+            }
+            if (cameraCache && cameraRepo) {
+                const all = await cameraRepo.findAll();
+                cameraCache.update({}, all);
+            }
+            res.json({ success: true, message: 'Cache de câmeras recarregado com sucesso a partir do banco de dados!' });
+        } catch (error) {
+            console.error('[CLEAR_CACHE_ERROR]', error);
+            res.status(500).json({ error: error.message || 'Erro ao recarregar cache' });
+        }
+    });
 
     // Logs & Resource Monitor (SSE Stream e REST)
     router.get('/admin/logs/stream', verifyAdmin, (req, res) => {

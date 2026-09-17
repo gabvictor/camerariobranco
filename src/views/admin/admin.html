@@ -6,425 +6,525 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/assets/icone.png">
 
-    <title>Painel Administrativo Segura | Câmeras Rio Branco</title>
+    <title>Câmeras & Configurações - Painel CamRB</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="/script/theme.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .form-input {
-            background-color: #F9FAFB;
-            border: 1px solid #D1D5DB;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            width: 100%;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #4F46E5;
-            box-shadow: 0 0 0 1px #4F46E5;
-        }
-
-        .dark .form-input {
-            background-color: #374151;
-            border-color: #4B5563;
-            color: #F9FAFB;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            transition: background-color 0.2s, opacity 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background-color: #4F46E5;
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background-color: #4338CA;
-        }
-
-        .btn-secondary {
-            background-color: #E5E7EB;
-            color: #1F2937;
-        }
-
-        .dark .btn-secondary {
-            background-color: #4B5563;
-            color: #F9FAFB;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background-color: #D1D5DB;
-        }
-
-        .dark .btn-secondary:hover:not(:disabled) {
-            background-color: #6B7280;
-        }
-
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
         .loader {
-            width: 48px;
-            height: 48px;
-            border: 5px solid;
+            width: 24px;
+            height: 24px;
+            border: 3px solid;
             border-color: #4F46E5 transparent;
             border-radius: 50%;
             display: inline-block;
             box-sizing: border-box;
             animation: rotation 1s linear infinite;
         }
-
         @keyframes rotation {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-
-        #toast {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #333;
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            z-index: 100;
-            transition: bottom 0.5s ease-in-out;
-            font-size: 0.9rem;
-        }
-
-        #toast.show {
-            bottom: 30px;
-        }
-
-        #toast.success {
-            background-color: #22c55e;
-        }
-
-        #toast.error {
-            background-color: #ef4444;
-        }
-
-        #content-wrapper {
-            display: none;
-        }
-
         .skeleton-pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-
         @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: .5;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
         }
     </style>
 </head>
 
-<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
 
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Access Denied Screen -->
     <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-md w-full border border-gray-100 dark:border-gray-700">
-            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-8">Esta área é exclusiva para administradores.</p>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados do CamRB.</p>
             <div class="flex flex-col gap-3">
-                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-600/20">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 text-sm">
                     Fazer Login como Admin
                 </button>
-                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors">
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors text-sm">
                     Voltar para Início
                 </a>
             </div>
         </div>
     </div>
 
+    <!-- Content Wrapper -->
     <div id="content-wrapper">
-        <div id="edit-modal"
-            class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4 transition-opacity">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+
+        <!-- Modal de Edição de Câmera -->
+        <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 transition-opacity">
+            <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center px-6 py-5 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex items-center gap-3">
-                        <h2 id="modal-title" class="text-xl font-bold">Editar Câmera</h2>
-                        <button id="refresh-preview-btn" title="Atualizar imagem"
-                            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    <button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto">
-                    <div class="bg-black rounded-lg flex items-center justify-center min-h-[300px] relative"><img
-                            id="modal-preview-img" src="" alt="Pré-visualização da câmera"
-                            class="w-full h-full object-contain rounded-lg">
-                        <div id="modal-loader" class="absolute">
-                            <div class="loader"></div>
+                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                            <i data-lucide="edit-3" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 id="modal-title" class="text-lg font-bold text-gray-900 dark:text-white">Editar Dados da Câmera</h2>
+                            <p class="text-xs text-gray-400">Atualize nome, categoria, nível de acesso e coordenadas GPS</p>
                         </div>
                     </div>
-                    <div>
+                    <div class="flex items-center gap-2">
+                        <button id="refresh-preview-btn" title="Atualizar preview" class="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                        <button id="close-modal-btn" class="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-y-auto">
+                    <!-- Left: Camera Preview Card -->
+                    <div class="lg:col-span-5 flex flex-col gap-3">
+                        <div class="bg-black rounded-2xl flex items-center justify-center min-h-[260px] aspect-video relative overflow-hidden shadow-inner border border-gray-800">
+                            <img id="modal-preview-img" src="" alt="Pré-visualização da câmera" class="w-full h-full object-contain">
+                            <div id="modal-loader" class="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <div class="loader"></div>
+                            </div>
+                        </div>
+                        <div class="p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                            <div class="flex justify-between items-center font-mono">
+                                <span>Código:</span>
+                                <span id="modal-camera-code-badge" class="font-bold text-gray-900 dark:text-white">--</span>
+                            </div>
+                            <div class="flex justify-between items-center font-mono">
+                                <span>Status Atual:</span>
+                                <span id="modal-camera-status-badge" class="font-bold">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Form Fields -->
+                    <div class="lg:col-span-7">
                         <form id="modal-form" class="space-y-4">
                             <input type="hidden" name="codigo">
-                            <div><label class="font-semibold text-sm mb-1 block">Nome</label><input type="text"
-                                    name="nome" class="form-input" required></div>
-                            <div><label class="font-semibold text-sm mb-1 block">Categoria</label><input type="text"
-                                    name="categoria" class="form-input"></div>
-                            <div><label class="font-semibold text-sm mb-1 block">Descrição</label><textarea
-                                    name="descricao" class="form-input" rows="3"></textarea></div>
-                            <div><label class="font-semibold text-sm mb-1 block">Coordenadas (lat, lon)</label><input
-                                    type="text" name="coords" class="form-input" placeholder="-9.9731, -67.8108"></div>
+                            
                             <div>
-                                <label class="font-semibold text-sm mb-1 block">Nível de Permissão</label>
-                                <select name="level" class="form-input">
-                                    <option value="1">Nível 1 (Público)</option>
-                                    <option value="3">Nível 3 (Privado)</option>
-                                </select>
+                                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nome da Câmera</label>
+                                <input type="text" name="nome" required placeholder="Ex: Av. Ceará - Trecho Centro"
+                                    class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
                             </div>
-                            <div class="flex justify-end gap-3 pt-4"><button type="button" id="cancel-modal-btn"
-                                    class="btn btn-secondary">Cancelar</button><button type="submit"
-                                    class="btn btn-primary save-btn">Salvar Alterações</button></div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Categoria</label>
+                                    <input type="text" name="categoria" required placeholder="Ex: Avenidas, Pontes..."
+                                        class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nível de Acesso</label>
+                                    <select name="level" class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                                        <option value="1">Nível 1 — Pública (Visível a todos)</option>
+                                        <option value="3">Nível 3 — Privada (Apenas Admins)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Coordenadas (Lat, Lon)</label>
+                                    <a id="modal-map-link" href="#" target="_blank" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                                        <i data-lucide="map-pin" class="w-3 h-3"></i>
+                                        Ver no Google Maps
+                                    </a>
+                                </div>
+                                <input type="text" name="coords" placeholder="-9.9731, -67.8108"
+                                    class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descrição / Pontos de Referência</label>
+                                <textarea name="descricao" rows="2" placeholder="Descreva o enquadramento, estabelecimentos comerciais próximos ou detalhes do ponto..."
+                                    class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"></textarea>
+                            </div>
+
+                            <div class="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                                <button type="button" id="cancel-modal-btn" class="px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-xs transition-colors">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-indigo-600/20 active:scale-95 save-btn flex items-center gap-1.5">
+                                    <i data-lucide="save" class="w-4 h-4"></i>
+                                    <span>Salvar Alterações</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="container mx-auto p-4 md:p-8">
+
+        <!-- Modal de Stream Player ao Vivo -->
+        <div id="stream-player-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 transition-opacity">
+            <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="play" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 id="player-modal-title" class="text-base font-bold text-gray-900 dark:text-white">Transmissão ao Vivo MJPEG</h3>
+                            <p id="player-modal-code" class="text-xs font-mono text-gray-400">Câmera: --</p>
+                        </div>
+                    </div>
+                    <button id="close-player-modal-btn" class="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-6 bg-black flex items-center justify-center min-h-[380px] relative">
+                    <img id="player-modal-stream-img" src="" alt="Stream MJPEG ao vivo" class="w-full h-full object-contain max-h-[500px]">
+                    <div id="player-modal-loader" class="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container Principal -->
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Header Superior -->
             <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
-                    <div class="flex items-center gap-2">
-                        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-md shadow-indigo-600/20">
                             <i data-lucide="video" class="w-6 h-6"></i>
                         </div>
                         <div>
                             <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                                Gerenciador de Câmeras
+                                Gerenciador de Câmeras & Frota
                             </h1>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Edite nomes, categorias, coordenadas e permissões públicas/privadas das câmeras.</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Edite metadados, categorias, visibilidade pública/privada, taxa de transmissão e snapshots.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <!-- App Banner Toggle -->
-                    <label class="relative inline-flex items-center cursor-pointer mr-2" title="Habilitar/Desabilitar Banner do App">
+                    <label class="relative inline-flex items-center cursor-pointer mr-1" title="Habilitar/Desabilitar Banner do App">
                         <input type="checkbox" id="app-banner-toggle" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                        <span class="ml-3 text-xs font-bold text-gray-900 dark:text-gray-300 hidden sm:inline">Banner App</span>
+                        <span class="ml-2.5 text-xs font-bold text-gray-900 dark:text-gray-300 hidden sm:inline">Banner App</span>
                     </label>
 
                     <button id="toggle-theme" title="Alternar tema"
-                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
                     </button>
                     <a href="/" title="Ver Site"
-                        class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        class="px-3.5 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm font-semibold text-xs flex items-center gap-1.5">
                         <i data-lucide="external-link" class="w-4 h-4"></i>
                         <span class="hidden sm:inline">Ver Site</span>
                     </a>
                     <button id="nav-logout-btn" title="Sair"
-                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
                     </button>
                 </div>
             </header>
 
             <!-- Admin Navigation Tabs -->
-            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800">
-                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
-                <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
                 </a>
-                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
                 </a>
-                <a href="/admin/resources" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="cpu" class="w-4 h-4"></i> Recursos & Sistema
-                </a>
-                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
                 </a>
-                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
                 </a>
-                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
                 </a>
-                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
                 </a>
             </nav>
 
-            <!-- Live Stream Speed / Interval Control Card -->
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
-                <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
-                            <i data-lucide="activity" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Velocidade da Transmissão ao Vivo (Stream das Câmeras)</h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Ajuste o intervalo de atualização das câmeras (0s, 2s, 4s...) para economizar rede ou obter máxima fluidez</p>
+            <!-- 4 Fleet Metric Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <!-- Stat 1: Total Câmeras -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Total de Câmeras</span>
+                        <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                            <i data-lucide="video" class="w-4 h-4"></i>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5" id="current-stream-interval-badge">
-                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                            Ativo: <span id="current-stream-interval-text">0 ms (Velocidade Máxima)</span>
+                    <div>
+                        <span id="stat-total-cameras" class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white font-mono">--</span>
+                        <p class="text-[11px] font-medium text-gray-400 mt-0.5">Cadastradas na base</p>
+                    </div>
+                </div>
+
+                <!-- Stat 2: Públicas (Nível 1) -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Públicas (Nível 1)</span>
+                        <div class="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <i data-lucide="globe" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-public-cameras" class="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">--</span>
+                        <p class="text-[11px] font-medium text-blue-600 dark:text-blue-400 mt-0.5">Acesso livre</p>
+                    </div>
+                </div>
+
+                <!-- Stat 3: Privadas (Nível 3) -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Privadas (Nível 3)</span>
+                        <div class="p-2 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-xl">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-private-cameras" class="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">--</span>
+                        <p class="text-[11px] font-medium text-purple-600 dark:text-purple-400 mt-0.5">Apenas administradores</p>
+                    </div>
+                </div>
+
+                <!-- Stat 4: Online Agora -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Status Online</span>
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-online-cameras" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">--</span>
+                        <p class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">Respondendo no scanner</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls: Velocidade Stream & Timelapse -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Stream Rate Card -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl text-emerald-600 dark:text-emerald-400">
+                                <i data-lucide="gauge" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Velocidade de Transmissão (MJPEG)</h2>
+                                <p class="text-xs text-gray-400">Taxa de quadros no proxy de visualização</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] rounded-xl border border-emerald-200 dark:border-emerald-800/60 font-mono" id="current-stream-interval-badge">
+                            <span id="current-stream-interval-text">0 ms</span>
                         </span>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                            Intervalo entre Atualizações
-                        </label>
-                        <select id="stream-interval-select" class="form-input w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm">
-                            <option value="0">0 ms - Velocidade Máxima / Imediato (Máxima Fluidez)</option>
-                            <option value="500">500 ms - 2 quadros por segundo (Alta Velocidade)</option>
-                            <option value="1000">1.000 ms - 1 segundo (Padrão Moderado)</option>
-                            <option value="2000">2.000 ms - 2 segundos (Econômico / Menor tráfego)</option>
-                            <option value="3000">3.000 ms - 3 segundos (Baixo consumo)</option>
-                            <option value="4000">4.000 ms - 4 segundos (Mínimo tráfego de rede)</option>
-                            <option value="6000">6.000 ms - 6 segundos (Ultra econômico)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <button id="save-stream-interval-btn" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+                    <div class="flex flex-col sm:flex-row gap-3 items-end">
+                        <div class="w-full sm:flex-1">
+                            <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Intervalo entre Quadros</label>
+                            <select id="stream-interval-select" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                                <option value="0">0 ms — Velocidade Máxima / Imediato</option>
+                                <option value="500">500 ms — 2 fps (Alta Velocidade)</option>
+                                <option value="1000">1.000 ms — 1 segundo (Padrão Moderado)</option>
+                                <option value="2000">2.000 ms — 2 segundos (Econômico)</option>
+                                <option value="4000">4.000 ms — 4 segundos (Baixo Tráfego)</option>
+                            </select>
+                        </div>
+                        <button id="save-stream-interval-btn" class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap">
                             <i data-lucide="save" class="w-4 h-4"></i>
-                            <span>Salvar Velocidade</span>
+                            <span>Salvar</span>
                         </button>
                     </div>
                 </div>
-                <div id="stream-admin-feedback" class="text-xs font-medium hidden"></div>
+
+                <!-- Timelapse Manager Card -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400">
+                                <i data-lucide="film" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Gerenciador de Timelapse 24h</h2>
+                                <p class="text-xs text-gray-400">Gravação em disco e snapshots periódicos</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-[11px] rounded-xl font-mono" id="timelapse-stat-frames">
+                            Frames: --
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2.5 items-end">
+                        <div class="w-full sm:flex-1">
+                            <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Frequência</label>
+                            <select id="timelapse-interval-select" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                                <option value="1">A cada 1 minuto (Modo Teste)</option>
+                                <option value="5">A cada 5 minutos</option>
+                                <option value="15">A cada 15 minutos</option>
+                                <option value="30" selected>A cada 30 minutos (Padrão)</option>
+                                <option value="60">A cada 1 hora</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button id="save-timelapse-interval-btn" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Salvar</span>
+                            </button>
+                            <button id="capture-timelapse-now-btn" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5" title="Capturar snapshot de todas agora">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                <span>Capturar</span>
+                            </button>
+                            <button id="delete-all-timelapse-btn" class="px-3 py-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-600 text-red-600 dark:text-red-400 hover:text-white border border-red-200 dark:border-red-900/60 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center" title="Excluir snapshots em disco">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Timelapse 24h Control Card -->
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 mb-8 space-y-5">
-                <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
-                            <i data-lucide="history" class="w-6 h-6"></i>
+            <!-- Filtros e Barra de Busca da Frota -->
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                            <i data-lucide="sliders" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Gerenciador de Timelapse 24h</h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Altere o intervalo de gravação, capture fotos agora ou exclua todos os snapshots</p>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Filtros & Busca Rápida</h2>
+                            <p class="text-xs text-gray-400">Localize câmeras por nome, código, categoria ou nível de acesso</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 font-medium" id="timelapse-stat-frames">Frames: Carregando...</span>
-                        <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 font-medium" id="timelapse-stat-size">Espaço: --</span>
+                    <div class="flex items-center gap-2">
+                        <span id="filtered-count-badge" class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-mono font-bold text-gray-600 dark:text-gray-300">
+                            Exibindo: --
+                        </span>
+                        <div class="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 border border-gray-200/60 dark:border-gray-700/60">
+                            <button id="view-grid-btn" title="Visualização em Grade" class="p-1.5 rounded-lg bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-xs transition-all">
+                                <i data-lucide="grid" class="w-4 h-4"></i>
+                            </button>
+                            <button id="view-list-btn" title="Visualização em Lista" class="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all">
+                                <i data-lucide="list" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <!-- Busca Texto -->
+                    <div class="relative sm:col-span-2 lg:col-span-1">
+                        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+                        <input type="text" id="search-input" placeholder="Buscar por nome ou código..."
+                            class="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+
+                    <!-- Filtro Categoria -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                            Intervalo de Gravação
-                        </label>
-                        <select id="timelapse-interval-select" class="form-input w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm">
-                            <option value="1">A cada 1 minuto (Modo Teste Rápido)</option>
-                            <option value="5">A cada 5 minutos</option>
-                            <option value="15">A cada 15 minutos</option>
-                            <option value="30">A cada 30 minutos (Padrão)</option>
-                            <option value="60">A cada 1 hora</option>
+                        <select id="filter-category-select" class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <option value="all">Todas as Categorias</option>
                         </select>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button id="save-timelapse-interval-btn" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-1.5">
-                            <i data-lucide="save" class="w-4 h-4"></i>
-                            <span>Salvar Intervalo</span>
-                        </button>
-                        <button id="capture-timelapse-now-btn" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5" title="Capturar snapshot de todas as câmeras agora">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span>Capturar Agora</span>
-                        </button>
-                    </div>
-
+                    <!-- Filtro Nível -->
                     <div>
-                        <button id="delete-all-timelapse-btn" class="w-full px-4 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-600 text-red-600 dark:text-red-400 hover:text-white border border-red-200 dark:border-red-800 hover:border-red-600 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            <span>Excluir Todas as Fotos</span>
-                        </button>
+                        <select id="filter-level-select" class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <option value="all">Todos os Níveis</option>
+                            <option value="1">Apenas Públicas (Nível 1)</option>
+                            <option value="3">Apenas Privadas (Nível 3)</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Status -->
+                    <div>
+                        <select id="filter-status-select" class="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <option value="all">Todos os Status</option>
+                            <option value="online">Apenas Online</option>
+                            <option value="offline">Apenas Offline</option>
+                        </select>
                     </div>
                 </div>
-                <div id="timelapse-admin-feedback" class="text-xs font-medium hidden"></div>
             </div>
 
-            <div class="mb-6 flex flex-col sm:flex-row gap-4">
-                <div class="relative flex-grow">
-                    <i data-lucide="search"
-                        class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"></i>
-                    <input type="text" id="search-input" placeholder="Buscar por nome ou código..."
-                        class="form-input w-full pl-10">
-                </div>
-                <div class="flex-shrink-0">
-                    <select id="filter-level-select" class="form-input w-full sm:w-auto">
-                        <option value="all">Todos os Níveis</option>
-                        <option value="1">Apenas Públicas</option>
-                        <option value="3">Apenas Privadas</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="camera-list" class="space-y-4">
-                <div class="text-center py-10">
-                    <div class="loader mx-auto"></div>
+            <!-- Grade / Lista de Câmeras -->
+            <div id="camera-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="col-span-full text-center py-16">
+                    <div class="loader mx-auto mb-3"></div>
+                    <p class="text-xs text-gray-400 font-medium">Carregando frota de câmeras...</p>
                 </div>
             </div>
 
             <div id="global-footer"></div>
         </div>
-        <div id="toast"></div>
     </div>
 
+    <script type="module">
+        import { initFooter } from '/script/footer-component.js';
+        document.addEventListener('DOMContentLoaded', initFooter);
+    </script>
     <script type="module">
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { auth } from "/script/firebase-config.js";
         import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
-        import { initFooter } from "/script/footer-component.js";
 
-        // Initialize Auth Modal & Footer
+        // Initialize Auth Modal
         initAuthModal();
-        initFooter();
+
+        const toastContainer = document.getElementById('toast-container');
+        const showToast = (message, type = 'success') => {
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl text-xs font-bold text-white transition-all transform translate-y-2 opacity-0 ${
+                type === 'success' ? 'bg-emerald-600 shadow-emerald-600/30' :
+                type === 'error' ? 'bg-red-600 shadow-red-600/30' :
+                'bg-indigo-600 shadow-indigo-600/30'
+            }`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'success' ? 'check-circle-2' : type === 'error' ? 'alert-circle' : 'info'}" class="w-4 h-4"></i>
+                <span>${message}</span>
+            `;
+            toastContainer.appendChild(toast);
+            if (window.lucide) window.lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
 
         // --- Configuração do Site (Banner App) ---
         const appBannerToggle = document.getElementById('app-banner-toggle');
@@ -434,7 +534,7 @@
                 const res = await fetch('/api/site-config');
                 const config = await res.json();
                 if (appBannerToggle) {
-                    appBannerToggle.checked = config.showAppBanner;
+                    appBannerToggle.checked = !!config.showAppBanner;
                 }
             } catch (error) {
                 console.error("Erro ao carregar config:", error);
@@ -446,8 +546,8 @@
                 const newValue = e.target.checked;
                 const user = auth.currentUser;
                 if (!user) {
-                    alert("Você precisa estar logado.");
-                    e.target.checked = !newValue; // Reverte
+                    showToast("Você precisa estar logado.", "error");
+                    e.target.checked = !newValue;
                     return;
                 }
 
@@ -463,22 +563,14 @@
                     });
 
                     if (!res.ok) throw new Error("Falha ao salvar");
-                    
-                    // Feedback visual (opcional)
-                    const toast = document.getElementById('toast');
-                    toast.textContent = "Configuração atualizada!";
-                    toast.className = "show success";
-                    setTimeout(() => toast.className = "", 3000);
-
+                    showToast(`Banner do aplicativo ${newValue ? 'ativado' : 'desativado'} com sucesso!`, 'success');
                 } catch (error) {
-                    console.error("Erro ao atualizar config:", error);
-                    alert("Erro ao salvar configuração.");
-                    e.target.checked = !newValue; // Reverte
+                    showToast("Erro ao salvar configuração do banner.", "error");
+                    e.target.checked = !newValue;
                 }
             });
         }
 
-        // Carregar config ao iniciar
         loadSiteConfig();
 
         const accessDeniedEl = document.getElementById('access-denied');
@@ -507,7 +599,7 @@
                 window.adminToken = await user.getIdToken();
                 accessDeniedEl.classList.add('hidden');
                 contentWrapperEl.style.display = 'block';
-                initializeAdminLogic();
+                initializeAdminLogic(user);
             } else {
                 contentWrapperEl.style.display = 'none';
                 accessDeniedEl.classList.remove('hidden');
@@ -517,37 +609,108 @@
                 } else {
                     const p = accessDeniedEl.querySelector('p');
                     if (p) p.textContent = `Acesso negado para ${user.email}. Esta área é exclusiva para administradores.`;
-                    const btn = document.getElementById('login-trigger');
-                    if (btn) btn.textContent = "Entrar com outra conta";
                 }
             }
         });
 
-        function initializeAdminLogic() {
+        function initializeAdminLogic(user) {
             const elements = {
                 cameraList: document.getElementById('camera-list'),
                 themeToggleButton: document.getElementById('toggle-theme'),
                 searchInput: document.getElementById('search-input'),
+                filterCategorySelect: document.getElementById('filter-category-select'),
                 filterLevelSelect: document.getElementById('filter-level-select'),
+                filterStatusSelect: document.getElementById('filter-status-select'),
+                filteredCountBadge: document.getElementById('filtered-count-badge'),
+                viewGridBtn: document.getElementById('view-grid-btn'),
+                viewListBtn: document.getElementById('view-list-btn'),
+                
+                // Stat counters
+                statTotalCameras: document.getElementById('stat-total-cameras'),
+                statPublicCameras: document.getElementById('stat-public-cameras'),
+                statPrivateCameras: document.getElementById('stat-private-cameras'),
+                statOnlineCameras: document.getElementById('stat-online-cameras'),
+
+                // Edit Modal
                 modal: document.getElementById('edit-modal'),
                 closeModalBtn: document.getElementById('close-modal-btn'),
                 cancelModalBtn: document.getElementById('cancel-modal-btn'),
                 modalForm: document.getElementById('modal-form'),
                 modalPreviewImg: document.getElementById('modal-preview-img'),
                 modalLoader: document.getElementById('modal-loader'),
-                toast: document.getElementById('toast'),
+                modalCodeBadge: document.getElementById('modal-camera-code-badge'),
+                modalStatusBadge: document.getElementById('modal-camera-status-badge'),
+                modalMapLink: document.getElementById('modal-map-link'),
                 refreshPreviewBtn: document.getElementById('refresh-preview-btn'),
+
+                // Stream Player Modal
+                streamPlayerModal: document.getElementById('stream-player-modal'),
+                closePlayerModalBtn: document.getElementById('close-player-modal-btn'),
+                playerModalTitle: document.getElementById('player-modal-title'),
+                playerModalCode: document.getElementById('player-modal-code'),
+                playerModalStreamImg: document.getElementById('player-modal-stream-img'),
+                playerModalLoader: document.getElementById('player-modal-loader'),
             };
+
             let allCameras = [];
+            let currentViewMode = 'grid'; // 'grid' | 'list'
             let previewInterval;
             let isPreviewLoading = false;
 
-            const showToast = (message, type = 'success') => {
-                elements.toast.textContent = message; elements.toast.className = ``; elements.toast.classList.add(type, 'show');
-                setTimeout(() => { elements.toast.classList.remove('show'); }, 3000);
-            };
-            elements.themeToggleButton.addEventListener('click', () => { if (window.toggleTheme) window.toggleTheme(); });
+            elements.themeToggleButton.addEventListener('click', () => {
+                if (window.toggleTheme) window.toggleTheme();
+            });
 
+            // View Mode Switching
+            elements.viewGridBtn?.addEventListener('click', () => {
+                currentViewMode = 'grid';
+                elements.viewGridBtn.className = 'p-1.5 rounded-lg bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-xs transition-all';
+                elements.viewListBtn.className = 'p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all';
+                elements.cameraList.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+                applyFilters();
+            });
+
+            elements.viewListBtn?.addEventListener('click', () => {
+                currentViewMode = 'list';
+                elements.viewListBtn.className = 'p-1.5 rounded-lg bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-xs transition-all';
+                elements.viewGridBtn.className = 'p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all';
+                elements.cameraList.className = 'space-y-3';
+                applyFilters();
+            });
+
+            // Open Stream Player Modal
+            const openStreamPlayer = (camera) => {
+                elements.playerModalTitle.textContent = camera.nome;
+                elements.playerModalCode.textContent = `Câmera: ${camera.codigo} • ${camera.categoria || 'Geral'}`;
+                elements.playerModalLoader.classList.remove('hidden');
+                elements.playerModalStreamImg.style.display = 'none';
+
+                const tokenParam = window.adminToken ? `?token=${window.adminToken}` : '';
+                const streamUrl = `/proxy/stream/${camera.codigo}${tokenParam}`;
+
+                elements.playerModalStreamImg.onload = () => {
+                    elements.playerModalLoader.classList.add('hidden');
+                    elements.playerModalStreamImg.style.display = 'block';
+                };
+                elements.playerModalStreamImg.onerror = () => {
+                    elements.playerModalLoader.classList.add('hidden');
+                    elements.playerModalStreamImg.src = '/assets/offline.png';
+                    elements.playerModalStreamImg.style.display = 'block';
+                };
+
+                elements.playerModalStreamImg.src = streamUrl;
+                elements.streamPlayerModal.classList.remove('hidden');
+                if (window.lucide) window.lucide.createIcons();
+            };
+
+            const closeStreamPlayer = () => {
+                elements.streamPlayerModal.classList.add('hidden');
+                elements.playerModalStreamImg.src = '';
+            };
+
+            elements.closePlayerModalBtn?.addEventListener('click', closeStreamPlayer);
+
+            // Open Edit Modal
             const openEditModal = (camera) => {
                 elements.modalForm.reset();
                 elements.modalForm.elements.codigo.value = camera.codigo;
@@ -556,12 +719,28 @@
                 elements.modalForm.elements.descricao.value = camera.descricao || '';
                 elements.modalForm.elements.coords.value = camera.coords ? camera.coords.join(', ') : '';
                 elements.modalForm.elements.level.value = camera.level || 1;
+                
+                elements.modalCodeBadge.textContent = camera.codigo;
+                elements.modalStatusBadge.textContent = camera.status === 'online' ? 'Online' : 'Offline';
+                elements.modalStatusBadge.className = camera.status === 'online' ? 'font-bold text-emerald-500 font-mono' : 'font-bold text-red-500 font-mono';
+
+                if (camera.coords && camera.coords.length === 2) {
+                    elements.modalMapLink.href = `https://www.google.com/maps/search/?api=1&query=${camera.coords[0]},${camera.coords[1]}`;
+                    elements.modalMapLink.classList.remove('hidden');
+                } else {
+                    elements.modalMapLink.classList.add('hidden');
+                }
+
                 elements.modal.classList.remove('hidden');
-                lucide.createIcons();
+                if (window.lucide) window.lucide.createIcons();
                 updatePreview(camera.codigo);
             };
 
-            const closeEditModal = () => { elements.modal.classList.add('hidden'); clearInterval(previewInterval); elements.modalPreviewImg.src = ''; };
+            const closeEditModal = () => {
+                elements.modal.classList.add('hidden');
+                clearInterval(previewInterval);
+                elements.modalPreviewImg.src = '';
+            };
 
             const updatePreview = (code) => {
                 clearInterval(previewInterval);
@@ -577,13 +756,11 @@
                     }
 
                     const tempImg = new Image();
-                    // Adiciona o token na URL de preview também
                     const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
                     const newSrc = `/proxy/camera/${code}?t=${Date.now()}${tokenParam}`;
 
                     tempImg.onload = () => {
                         elements.modalPreviewImg.src = newSrc;
-
                         if (isFirstLoad) {
                             elements.modalLoader.classList.add('hidden');
                             elements.modalPreviewImg.style.display = 'block';
@@ -606,7 +783,6 @@
                 };
 
                 elements.refreshPreviewBtn.onclick = () => update();
-
                 update();
                 previewInterval = setInterval(update, 8000);
             };
@@ -621,150 +797,339 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
 
-            const createCameraRow = (camera) => {
-                const div = document.createElement('div');
-                div.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm flex items-center justify-between gap-4';
+            // Quick Toggle Level (Público vs Privado)
+            const handleQuickLevelToggle = async (camera, buttonEl) => {
+                const targetLevel = camera.level === 3 ? 1 : 3;
+                const originalIcon = buttonEl.innerHTML;
+                buttonEl.disabled = true;
+                buttonEl.innerHTML = '<div class="loader w-3.5 h-3.5 border-2"></div>';
 
-                const statusBadge = camera.status === 'online' ? `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Online</span>` : `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Offline</span>`;
-                const levelText = camera.level === 3 ? ' (Privado)' : ' (Público)';
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch('/api/update-camera-info', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            codigo: camera.codigo,
+                            nome: camera.nome,
+                            categoria: camera.categoria,
+                            descricao: camera.descricao,
+                            coords: camera.coords,
+                            level: targetLevel
+                        })
+                    });
+
+                    if (!res.ok) throw new Error("Falha ao alterar nível");
+
+                    camera.level = targetLevel;
+                    showToast(`Câmera ${camera.codigo} alterada para Nível ${targetLevel} (${targetLevel === 3 ? 'Privada' : 'Pública'})!`, 'success');
+                    updateStatsCounters();
+                    applyFilters();
+                } catch (err) {
+                    showToast(err.message || 'Erro ao alterar nível', 'error');
+                } finally {
+                    buttonEl.disabled = false;
+                    buttonEl.innerHTML = originalIcon;
+                }
+            };
+
+            // Render Card (Grid Mode)
+            const createCameraCard = (camera) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-all group';
+
+                const isOnline = camera.status === 'online';
+                const isPrivate = camera.level === 3;
+                const safeCode = escapeHtml(camera.codigo);
+                const safeName = escapeHtml(camera.nome);
+                const safeCategory = escapeHtml(camera.categoria || 'Geral');
+                const safeDesc = escapeHtml(camera.descricao || 'Sem descrição cadastrada.');
 
                 const cacheBuster = Math.round(Date.now() / 15000) * 15000;
                 const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
-                const safeCode = escapeHtml(camera.codigo);
-                const safeName = escapeHtml(camera.nome);
-                const safeCategory = escapeHtml(camera.categoria);
-                const safeDesc = escapeHtml(camera.descricao || 'Sem descrição');
                 const imageUrl = `/proxy/camera/${safeCode}?t=${cacheBuster}${tokenParam}`;
 
-                div.innerHTML = `
-                    <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="w-24 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0 relative skeleton-pulse">
-                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover rounded-md" alt="Câmera ${safeCode}">
-                            <div class="absolute bottom-1 right-1">${statusBadge}</div>
+                card.innerHTML = `
+                    <div>
+                        <!-- Thumbnail Header with badges -->
+                        <div class="aspect-video w-full bg-gray-900 relative overflow-hidden skeleton-pulse">
+                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="${safeName}">
+                            
+                            <!-- Badges Overlay -->
+                            <div class="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                    isOnline ? 'bg-emerald-500/90 text-white backdrop-blur-xs' : 'bg-red-500/80 text-white backdrop-blur-xs'
+                                }">
+                                    <span class="inline-block w-1.5 h-1.5 rounded-full mr-1 ${isOnline ? 'bg-white animate-pulse' : 'bg-white/80'}"></span>
+                                    ${isOnline ? 'Online' : 'Offline'}
+                                </span>
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    isPrivate ? 'bg-purple-600/90 text-white' : 'bg-blue-600/90 text-white'
+                                } backdrop-blur-xs flex items-center gap-1">
+                                    <i data-lucide="${isPrivate ? 'lock' : 'globe'}" class="w-3 h-3"></i>
+                                    ${isPrivate ? 'Privada (N3)' : 'Pública (N1)'}
+                                </span>
+                            </div>
+
+                            <button class="player-btn absolute bottom-2.5 right-2.5 p-2 bg-black/60 hover:bg-indigo-600 text-white rounded-xl backdrop-blur-sm transition-all active:scale-95 shadow-lg" title="Assistir Stream MJPEG">
+                                <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
                         </div>
-                        <div class="overflow-hidden">
-                            <p class="font-bold text-lg truncate flex items-center gap-2">
-                                ${safeName}
+
+                        <!-- Card Content -->
+                        <div class="p-5 space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <h3 class="font-bold text-sm text-gray-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title="${safeName}">
+                                        ${safeName}
+                                    </h3>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-md font-mono text-[10px] font-bold">
+                                            #${safeCode}
+                                        </span>
+                                        <span class="text-[11px] text-gray-400">•</span>
+                                        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
+                                            ${safeCategory}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                                ${safeDesc}
                             </p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${safeCode} &bull; ${safeCategory}<span class="font-semibold">${levelText}</span></p>
-                            <p class="text-xs text-gray-400 mt-1 italic description-text">${safeDesc}</p>
                         </div>
                     </div>
-                    <div class="flex-shrink-0 flex gap-2">
-                        <button class="btn btn-secondary edit-btn">
-                            <i data-lucide="edit" class="w-4 h-4 sm:mr-2 -ml-1"></i>
-                            <span class="hidden sm:inline">Editar</span>
-                        </button>
-                    </div>`;
 
-                div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
-                
-                return div;
+                    <!-- Card Actions Footer -->
+                    <div class="px-5 pb-5 pt-0 flex items-center justify-between gap-2 border-t border-gray-50 dark:border-gray-800/60 mt-2">
+                        <button class="level-toggle-btn px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5" title="Alternar entre Pública e Privada">
+                            <i data-lucide="${isPrivate ? 'unlock' : 'lock'}" class="w-3.5 h-3.5"></i>
+                            <span class="hidden sm:inline">${isPrivate ? 'Tornar Pública' : 'Tornar Privada'}</span>
+                        </button>
+
+                        <button class="edit-btn px-4 py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-xs">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            <span>Editar</span>
+                        </button>
+                    </div>
+                `;
+
+                card.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
+                card.querySelector('.player-btn').addEventListener('click', () => openStreamPlayer(camera));
+                card.querySelector('.level-toggle-btn').addEventListener('click', (e) => handleQuickLevelToggle(camera, e.currentTarget));
+
+                return card;
+            };
+
+            // Render Row (List Mode)
+            const createCameraRow = (camera) => {
+                const row = document.createElement('div');
+                row.className = 'bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all';
+
+                const isOnline = camera.status === 'online';
+                const isPrivate = camera.level === 3;
+                const safeCode = escapeHtml(camera.codigo);
+                const safeName = escapeHtml(camera.nome);
+                const safeCategory = escapeHtml(camera.categoria || 'Geral');
+
+                const cacheBuster = Math.round(Date.now() / 15000) * 15000;
+                const tokenParam = window.adminToken ? `&token=${window.adminToken}` : '';
+                const imageUrl = `/proxy/camera/${safeCode}?t=${cacheBuster}${tokenParam}`;
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="w-20 h-14 rounded-xl bg-gray-900 flex-shrink-0 relative overflow-hidden skeleton-pulse">
+                            <img data-src="${imageUrl}" class="lazy-load w-full h-full object-cover" alt="${safeName}">
+                            <div class="absolute bottom-1 right-1 w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}"></div>
+                        </div>
+                        <div class="overflow-hidden space-y-0.5">
+                            <p class="font-bold text-sm text-gray-900 dark:text-white truncate">
+                                ${safeName}
+                            </p>
+                            <div class="flex items-center gap-2 font-mono text-[11px] text-gray-500 dark:text-gray-400">
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400">#${safeCode}</span>
+                                <span>•</span>
+                                <span>${safeCategory}</span>
+                                <span>•</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isPrivate ? 'bg-purple-100 dark:bg-purple-950 text-purple-600' : 'bg-blue-100 dark:bg-blue-950 text-blue-600'
+                                }">${isPrivate ? 'Privada' : 'Pública'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button class="player-btn p-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-gray-600 dark:text-gray-300 hover:text-indigo-600 rounded-xl transition-all" title="Assistir Stream">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                        </button>
+                        <button class="level-toggle-btn p-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl transition-all" title="${isPrivate ? 'Tornar Pública' : 'Tornar Privada'}">
+                            <i data-lucide="${isPrivate ? 'unlock' : 'lock'}" class="w-4 h-4"></i>
+                        </button>
+                        <button class="edit-btn px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center gap-1.5">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            <span>Editar</span>
+                        </button>
+                    </div>
+                `;
+
+                row.querySelector('.edit-btn').addEventListener('click', () => openEditModal(camera));
+                row.querySelector('.player-btn').addEventListener('click', () => openStreamPlayer(camera));
+                row.querySelector('.level-toggle-btn').addEventListener('click', (e) => handleQuickLevelToggle(camera, e.currentTarget));
+
+                return row;
             };
 
             const renderCameras = (cameras) => {
                 elements.cameraList.innerHTML = '';
+                elements.filteredCountBadge.textContent = `Exibindo: ${cameras.length} de ${allCameras.length}`;
+
                 if (cameras.length === 0) {
-                    elements.cameraList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma câmera encontrada para os filtros aplicados.</p>';
+                    elements.cameraList.innerHTML = `
+                        <div class="col-span-full bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-100 dark:border-gray-800">
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 text-gray-400">
+                                <i data-lucide="search-x" class="w-6 h-6"></i>
+                            </div>
+                            <h4 class="text-base font-bold text-gray-900 dark:text-white">Nenhuma câmera encontrada</h4>
+                            <p class="text-xs text-gray-400 mt-1">Tente remover ou ajustar os filtros de busca aplicados.</p>
+                        </div>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
                     return;
                 }
-                const fragment = document.createDocumentFragment();
-                cameras.forEach(camera => fragment.appendChild(createCameraRow(camera)));
-                elements.cameraList.appendChild(fragment);
-                lucide.createIcons();
 
+                const fragment = document.createDocumentFragment();
+                cameras.forEach(camera => {
+                    const item = currentViewMode === 'grid' ? createCameraCard(camera) : createCameraRow(camera);
+                    fragment.appendChild(item);
+                });
+
+                elements.cameraList.appendChild(fragment);
+                if (window.lucide) window.lucide.createIcons();
                 initializeLazyLoading();
             };
 
             const initializeLazyLoading = () => {
                 const lazyImages = document.querySelectorAll('img.lazy-load');
-
                 if ("IntersectionObserver" in window) {
                     const observer = new IntersectionObserver((entries, observer) => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting) {
                                 const img = entry.target;
                                 const imgContainer = img.parentElement;
-
                                 img.src = img.dataset.src;
-
                                 img.onload = () => {
                                     img.classList.remove('lazy-load');
-                                    imgContainer.classList.remove('skeleton-pulse');
+                                    if (imgContainer) imgContainer.classList.remove('skeleton-pulse');
                                 };
                                 img.onerror = () => {
                                     img.classList.remove('lazy-load');
-                                    imgContainer.classList.remove('skeleton-pulse');
-                                    img.alt = "Falha ao carregar";
+                                    if (imgContainer) imgContainer.classList.remove('skeleton-pulse');
+                                    img.src = '/assets/offline.png';
                                 };
                                 observer.unobserve(img);
                             }
                         });
-                    }, { rootMargin: "0px 0px 200px 0px" });
+                    }, { rootMargin: "0px 0px 300px 0px" });
 
                     lazyImages.forEach(img => observer.observe(img));
                 } else {
                     lazyImages.forEach(img => {
                         img.src = img.dataset.src;
-                        img.parentElement.classList.remove('skeleton-pulse');
+                        img.parentElement?.classList.remove('skeleton-pulse');
                     });
                 }
             };
 
-            const applyFilters = () => {
-                const searchTerm = elements.searchInput.value.toLowerCase();
-                const selectedLevel = elements.filterLevelSelect.value;
+            const updateStatsCounters = () => {
+                const total = allCameras.length;
+                const privates = allCameras.filter(c => c.level === 3).length;
+                const publics = total - privates;
+                const online = allCameras.filter(c => c.status === 'online').length;
 
-                let filteredCameras = allCameras;
+                if (elements.statTotalCameras) elements.statTotalCameras.textContent = total;
+                if (elements.statPublicCameras) elements.statPublicCameras.textContent = publics;
+                if (elements.statPrivateCameras) elements.statPrivateCameras.textContent = privates;
+                if (elements.statOnlineCameras) elements.statOnlineCameras.textContent = online;
+            };
+
+            const populateCategories = () => {
+                const cats = new Set();
+                allCameras.forEach(c => { if (c.categoria) cats.add(c.categoria.trim()); });
+                const sorted = Array.from(cats).sort();
+
+                elements.filterCategorySelect.innerHTML = '<option value="all">Todas as Categorias</option>';
+                sorted.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    elements.filterCategorySelect.appendChild(opt);
+                });
+            };
+
+            const applyFilters = () => {
+                const searchTerm = elements.searchInput.value.toLowerCase().trim();
+                const selectedCat = elements.filterCategorySelect.value;
+                const selectedLevel = elements.filterLevelSelect.value;
+                const selectedStatus = elements.filterStatusSelect.value;
+
+                let filtered = allCameras;
 
                 if (searchTerm) {
-                    filteredCameras = filteredCameras.filter(camera =>
-                        camera.nome.toLowerCase().includes(searchTerm) ||
-                        camera.codigo.includes(searchTerm)
+                    filtered = filtered.filter(camera =>
+                        (camera.nome && camera.nome.toLowerCase().includes(searchTerm)) ||
+                        (camera.codigo && String(camera.codigo).includes(searchTerm)) ||
+                        (camera.categoria && camera.categoria.toLowerCase().includes(searchTerm)) ||
+                        (camera.descricao && camera.descricao.toLowerCase().includes(searchTerm))
                     );
+                }
+
+                if (selectedCat !== 'all') {
+                    filtered = filtered.filter(camera => camera.categoria === selectedCat);
                 }
 
                 if (selectedLevel !== 'all') {
                     const level = parseInt(selectedLevel, 10);
-                    if (level === 1) {
-                        filteredCameras = filteredCameras.filter(camera => camera.level !== 3);
-                    } else if (level === 3) {
-                        filteredCameras = filteredCameras.filter(camera => camera.level === 3);
-                    }
+                    if (level === 1) filtered = filtered.filter(camera => camera.level !== 3);
+                    else if (level === 3) filtered = filtered.filter(camera => camera.level === 3);
                 }
 
-                renderCameras(filteredCameras);
+                if (selectedStatus !== 'all') {
+                    filtered = filtered.filter(camera => camera.status === selectedStatus);
+                }
+
+                renderCameras(filtered);
             };
+
+            elements.searchInput.addEventListener('input', applyFilters);
+            elements.filterCategorySelect.addEventListener('change', applyFilters);
+            elements.filterLevelSelect.addEventListener('change', applyFilters);
+            elements.filterStatusSelect.addEventListener('change', applyFilters);
 
             const loadCameras = async () => {
                 try {
-                    const user = auth.currentUser;
-                    if (!user) throw new Error("Utilizador não autenticado.");
-
                     const idToken = await user.getIdToken();
-                    window.adminToken = idToken; // Armazena o token globalmente para uso nas imagens
+                    window.adminToken = idToken;
 
                     const response = await fetch('/status-cameras', {
                         headers: { 'Authorization': `Bearer ${idToken}` }
                     });
-                    if (!response.ok) throw new Error("Falha ao buscar câmeras.");
+                    if (!response.ok) throw new Error("Falha ao buscar lista de câmeras.");
 
                     allCameras = await response.json();
+                    updateStatsCounters();
+                    populateCategories();
                     applyFilters();
-                } catch (error) { elements.cameraList.innerHTML = `<p class="text-red-500 text-center">Não foi possível carregar as câmeras. ${error.message}</p>`; }
+                } catch (error) {
+                    elements.cameraList.innerHTML = `<div class="col-span-full p-8 bg-red-50 dark:bg-red-950/40 rounded-3xl text-center text-red-600 dark:text-red-400 font-bold text-xs">Erro ao carregar câmeras: ${error.message}</div>`;
+                }
             };
-
-            elements.searchInput.addEventListener('input', applyFilters);
-            elements.filterLevelSelect.addEventListener('change', applyFilters);
 
             elements.modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const user = auth.currentUser;
-                if (!user) {
-                    showToast('Sessão expirada. Por favor, faça login novamente.', 'error');
-                    return;
-                }
-
                 const formData = new FormData(elements.modalForm);
                 const coordsRaw = formData.get('coords').split(',').map(c => parseFloat(c.trim()));
                 const data = {
@@ -777,8 +1142,9 @@
                 };
 
                 const saveBtn = elements.modalForm.querySelector('.save-btn');
-                const originalText = saveBtn.textContent;
-                saveBtn.textContent = 'A Salvar...'; saveBtn.disabled = true;
+                const originalHtml = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<div class="loader w-3.5 h-3.5 border-2"></div><span class="ml-1.5">Salvando...</span>';
+                saveBtn.disabled = true;
 
                 try {
                     const idToken = await user.getIdToken();
@@ -791,42 +1157,36 @@
                         body: JSON.stringify(data)
                     });
                     const result = await response.json();
-                    if (!response.ok) { throw new Error(result.message || 'Falha ao salvar'); }
-                    showToast(result.message, 'success');
+                    if (!response.ok) throw new Error(result.message || 'Falha ao salvar');
+
+                    showToast(result.message || 'Câmera atualizada com sucesso!', 'success');
                     await loadCameras();
                     closeEditModal();
-                } catch (error) { showToast(error.message, 'error'); console.error(error); } finally { saveBtn.textContent = originalText; saveBtn.disabled = false; }
+                } catch (error) {
+                    showToast(error.message, 'error');
+                } finally {
+                    saveBtn.innerHTML = originalHtml;
+                    saveBtn.disabled = false;
+                }
             });
 
+            // ─── Setup Timelapse & Stream Controls ───────────────────────────────────
             async function setupTimelapseAdminControls() {
                 const intervalSelect = document.getElementById('timelapse-interval-select');
                 const saveIntervalBtn = document.getElementById('save-timelapse-interval-btn');
                 const captureNowBtn = document.getElementById('capture-timelapse-now-btn');
                 const deleteAllBtn = document.getElementById('delete-all-timelapse-btn');
                 const statFrames = document.getElementById('timelapse-stat-frames');
-                const statSize = document.getElementById('timelapse-stat-size');
-                const feedback = document.getElementById('timelapse-admin-feedback');
-
-                const showFeedback = (msg, isError = false) => {
-                    if (!feedback) return;
-                    feedback.className = `text-xs font-semibold ${isError ? 'text-red-500' : 'text-emerald-500'}`;
-                    feedback.textContent = msg;
-                    feedback.classList.remove('hidden');
-                    setTimeout(() => feedback.classList.add('hidden'), 5000);
-                };
 
                 const loadTimelapseStats = async () => {
                     try {
-                        const user = auth.currentUser;
-                        if (!user) return;
                         const token = await user.getIdToken();
                         const res = await fetch('/api/timelapse-admin/stats', {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (!res.ok) return;
                         const stats = await res.json();
-                        if (statFrames) statFrames.textContent = `Frames: ${stats.totalFrames || 0} (${stats.cameraCount || 0} câmeras)`;
-                        if (statSize) statSize.textContent = `Espaço: ${stats.totalSizeFormatted || '0 MB'}`;
+                        if (statFrames) statFrames.textContent = `Frames: ${stats.totalFrames || 0} (${stats.totalSizeFormatted || '0 MB'})`;
                         if (intervalSelect && stats.intervalMinutes) {
                             intervalSelect.value = String(stats.intervalMinutes);
                         }
@@ -835,8 +1195,6 @@
 
                 saveIntervalBtn?.addEventListener('click', async () => {
                     try {
-                        const user = auth.currentUser;
-                        if (!user) return;
                         const token = await user.getIdToken();
                         const minutes = intervalSelect.value;
                         saveIntervalBtn.disabled = true;
@@ -851,14 +1209,12 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showFeedback(`✅ Intervalo atualizado para ${minutes} minuto(s)!`);
-                            showToast(`Intervalo alterado para ${minutes} minuto(s)!`, 'success');
+                            showToast(`Intervalo de timelapse alterado para ${minutes} min!`, 'success');
                             loadTimelapseStats();
                         } else {
                             throw new Error(data.error || 'Falha ao salvar');
                         }
                     } catch (e) {
-                        showFeedback(`❌ ${e.message}`, true);
                         showToast(e.message, 'error');
                     } finally {
                         saveIntervalBtn.disabled = false;
@@ -867,11 +1223,9 @@
 
                 captureNowBtn?.addEventListener('click', async () => {
                     try {
-                        const user = auth.currentUser;
-                        if (!user) return;
                         const token = await user.getIdToken();
                         captureNowBtn.disabled = true;
-                        captureNowBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Capturando...</span>';
+                        captureNowBtn.innerHTML = '<div class="loader w-3.5 h-3.5 border-2"></div><span>Capturando...</span>';
 
                         const res = await fetch('/api/timelapse-admin/capture-now', {
                             method: 'POST',
@@ -879,44 +1233,37 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showFeedback('✅ Captura de todas as câmeras online realizada!');
-                            showToast('Captura concluída com sucesso!', 'success');
+                            showToast('Captura instantânea concluída!', 'success');
                             loadTimelapseStats();
                         } else {
                             throw new Error(data.error || 'Falha na captura');
                         }
                     } catch (e) {
-                        showFeedback(`❌ ${e.message}`, true);
                         showToast(e.message, 'error');
                     } finally {
                         captureNowBtn.disabled = false;
-                        captureNowBtn.innerHTML = '<i data-lucide="camera" class="w-4 h-4"></i><span>Capturar Agora</span>';
+                        captureNowBtn.innerHTML = '<i data-lucide="camera" class="w-4 h-4"></i><span>Capturar</span>';
                         if (window.lucide) window.lucide.createIcons();
                     }
                 });
 
                 deleteAllBtn?.addEventListener('click', async () => {
-                    if (!confirm('Tem certeza de que deseja excluir permanentemente todas as fotos de timelapse salvas no servidor?')) return;
+                    if (!confirm('Deseja excluir permanentemente todas as fotos de timelapse em disco?')) return;
                     try {
-                        const user = auth.currentUser;
-                        if (!user) return;
                         const token = await user.getIdToken();
                         deleteAllBtn.disabled = true;
-
                         const res = await fetch('/api/timelapse-admin/delete-all', {
                             method: 'DELETE',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showFeedback('✅ Todos os snapshots foram excluídos com sucesso!');
                             showToast('Todos os snapshots foram excluídos!', 'success');
                             loadTimelapseStats();
                         } else {
                             throw new Error(data.error || 'Falha ao excluir');
                         }
                     } catch (e) {
-                        showFeedback(`❌ ${e.message}`, true);
                         showToast(e.message, 'error');
                     } finally {
                         deleteAllBtn.disabled = false;
@@ -930,21 +1277,12 @@
                 const streamSelect = document.getElementById('stream-interval-select');
                 const saveStreamBtn = document.getElementById('save-stream-interval-btn');
                 const currentText = document.getElementById('current-stream-interval-text');
-                const feedback = document.getElementById('stream-admin-feedback');
 
                 const formatIntervalText = (val) => {
                     const num = parseInt(val, 10);
-                    if (num === 0) return '0 ms (Velocidade Máxima / Imediato)';
+                    if (num === 0) return '0 ms (Fluidez Máxima)';
                     if (num < 1000) return `${num} ms`;
-                    return `${num / 1000} segundo(s)`;
-                };
-
-                const showFeedback = (msg, isError = false) => {
-                    if (!feedback) return;
-                    feedback.className = `text-xs font-semibold ${isError ? 'text-red-500' : 'text-emerald-500'}`;
-                    feedback.textContent = msg;
-                    feedback.classList.remove('hidden');
-                    setTimeout(() => feedback.classList.add('hidden'), 5000);
+                    return `${num / 1000}s`;
                 };
 
                 const loadStreamConfig = async () => {
@@ -960,8 +1298,6 @@
 
                 saveStreamBtn?.addEventListener('click', async () => {
                     try {
-                        const user = auth.currentUser;
-                        if (!user) return;
                         const token = await user.getIdToken();
                         const intervalMs = parseInt(streamSelect.value, 10);
                         saveStreamBtn.disabled = true;
@@ -976,14 +1312,12 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showFeedback(`✅ Velocidade do stream salva! Quadros atualizados a cada ${formatIntervalText(intervalMs)}.`);
                             showToast(`Velocidade do stream alterada para ${formatIntervalText(intervalMs)}!`, 'success');
                             if (currentText) currentText.textContent = formatIntervalText(intervalMs);
                         } else {
                             throw new Error(data.message || 'Falha ao salvar');
                         }
                     } catch (e) {
-                        showFeedback(`❌ ${e.message}`, true);
                         showToast(e.message, 'error');
                     } finally {
                         saveStreamBtn.disabled = false;
@@ -996,7 +1330,7 @@
             setupStreamSpeedAdminControls();
             setupTimelapseAdminControls();
             loadCameras();
-            lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
         }
     </script>
 </body>

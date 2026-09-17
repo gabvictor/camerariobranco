@@ -165,9 +165,10 @@ class HidroWebAuthService {
                 if (typeof data.items === 'string') {
                     tokenStr = data.items;
                 } else if (data.items && typeof data.items === 'object') {
-                    tokenStr = data.items.token || data.items.access_token || data.items.accessToken || data.items.usuarioToken || data.items.tokenDeAcesso;
-                } else if (data.token || data.access_token || data.accessToken) {
-                    tokenStr = data.token || data.access_token || data.accessToken;
+                    // Prioriza o token JWT de autenticação (tokenautenticacao) exigido pela API da ANA
+                    tokenStr = data.items.tokenautenticacao || data.items.tokenAutenticacao || data.items.access_token || data.items.accessToken || data.items.usuarioToken || data.items.tokenDeAcesso || data.items.token;
+                } else if (data.tokenautenticacao || data.tokenAutenticacao || data.access_token || data.accessToken || data.token) {
+                    tokenStr = data.tokenautenticacao || data.tokenAutenticacao || data.access_token || data.accessToken || data.token;
                 }
             }
 

@@ -84,6 +84,9 @@
                 <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
+                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
+                </a>
                 <a href="/admin" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
                 </a>
@@ -417,23 +420,61 @@
                 // Streams Table
                 const tbody = document.getElementById('streams-table-body');
                 if (streamData.streams && streamData.streams.length > 0) {
-                    tbody.innerHTML = streamData.streams.map(s => `
+                    tbody.innerHTML = streamData.streams.map(s => {
+                        const viewers = s.viewers || [];
+                        const viewersBadges = viewers.length > 0
+                            ? viewers.map(v => {
+                                if (v.isLoggedIn) {
+                                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]"><i data-lucide="user-check" class="w-3 h-3 text-indigo-500"></i> ${escapeHtml(v.name)}</span>`;
+                                } else {
+                                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[11px] font-medium"><i data-lucide="user" class="w-3 h-3 text-gray-400"></i> Anônimo</span>`;
+                                }
+                            }).join(' ')
+                            : '';
+
+                        const isPage = Boolean(s.isPage);
+                        let codeDisplay;
+                        if (isPage) {
+                            if (s.code === 'HOME') {
+                                codeDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs"><i data-lucide="home" class="w-3.5 h-3.5"></i> HOME</span>`;
+                            } else if (s.code === 'RIO') {
+                                codeDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-xs"><i data-lucide="waves" class="w-3.5 h-3.5"></i> RIO</span>`;
+                            } else if (s.code === 'MAPA') {
+                                codeDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-bold text-xs"><i data-lucide="map" class="w-3.5 h-3.5"></i> MAPA</span>`;
+                            } else if (s.code === 'TIMELAPSE') {
+                                codeDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold text-xs"><i data-lucide="clock" class="w-3.5 h-3.5"></i> TIMELAPSE</span>`;
+                            } else {
+                                codeDisplay = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-xs"><i data-lucide="globe" class="w-3.5 h-3.5"></i> ${escapeHtml(s.code)}</span>`;
+                            }
+                        } else {
+                            codeDisplay = `<span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${s.code}</span>`;
+                        }
+
+                        const statusBadge = isPage
+                            ? `<span class="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold"><div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div> Navegando</span>`
+                            : `<span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Transmitindo</span>`;
+
+                        return `
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td class="py-3 px-6 font-mono font-bold text-indigo-600 dark:text-indigo-400">${s.code}</td>
+                            <td class="py-3 px-6">${codeDisplay}</td>
                             <td class="py-3 px-6 font-semibold text-gray-900 dark:text-white">${escapeHtml(s.name)}</td>
-                            <td class="py-3 px-6 font-mono">
-                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold">
-                                    ${s.subscribersCount} visualizadores
-                                </span>
+                            <td class="py-3 px-6">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded-full ${isPage ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'} font-bold text-xs">
+                                        ${s.subscribersCount} ${s.subscribersCount === 1 ? 'visitante' : 'visitantes'}
+                                    </span>
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        ${viewersBadges}
+                                    </div>
+                                </div>
                             </td>
                             <td class="py-3 px-6 font-mono text-gray-600 dark:text-gray-300">${s.frameSizeFormatted}</td>
                             <td class="py-3 px-6">
-                                <span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Transmitindo
-                                </span>
+                                ${statusBadge}
                             </td>
                         </tr>
-                    `).join('');
+                        `;
+                    }).join('');
                 } else {
                     tbody.innerHTML = `
                         <tr>

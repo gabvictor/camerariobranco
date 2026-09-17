@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Central de Monitoramento & NOC - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
+        .smooth-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.96); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-800">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="shield-alert" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área do NOC é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/25 active:scale-[0.98]">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-colors text-sm">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl space-y-6">
+            
+            <!-- Top Admin Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 p-3 rounded-2xl text-white shadow-lg shadow-indigo-600/30">
+                        <i data-lucide="activity" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Central de Monitoramento & NOC
+                            </h1>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                Live Command Center
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Visão unificada em tempo real: câmeras, hardware, fluxos MJPEG, tráfego e integridade operacional.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shadow-sm">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site" class="px-3.5 py-2.5 rounded-xl bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs
+                </a>
+                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- NOC Command Bar: Health Score & Quick Controls -->
+            <div class="bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="health-badge-container" class="flex items-center gap-3 px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+                        <span id="health-pulse-dot" class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Saúde Global</span>
+                                <span id="health-score-val" class="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">100/100</span>
+                            </div>
+                            <span id="health-status-text" class="text-xs font-bold text-emerald-700 dark:text-emerald-300">Sistema 100% Operacional</span>
+                        </div>
+                    </div>
+
+                    <div class="hidden sm:flex flex-col text-xs font-mono text-gray-500 dark:text-gray-400 pl-2 border-l border-gray-200 dark:border-gray-800">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="radio" class="w-3.5 h-3.5 text-indigo-500"></i>
+                            <span id="sse-indicator">Stream SSE Ativo (1s)</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-gray-400"></i>
+                            <span id="noc-clock">--:--:--</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btn-trigger-scan" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-xs transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="scan" class="w-4 h-4"></i>
+                        <span>Varredura Agora</span>
+                    </button>
+                    <button id="btn-clear-cache" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 font-bold text-xs transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Recarregar Cache</span>
+                    </button>
+                    <button id="btn-run-diag" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs transition-all active:scale-95 shadow-md shadow-violet-600/20">
+                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                        <span>Diagnóstico Completo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5 Key Health Pillars (Cards Grid) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                
+                <!-- Pillar 1: CPU Usage -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Uso de CPU</span>
+                        <div class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="card-cpu-val" class="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div id="card-cpu-bar" class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p id="card-cpu-details" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1.5 truncate">-- Cores</p>
+                    </div>
+                </div>
+
+                <!-- Pillar 2: Memória RAM -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Memória RAM</span>
+                        <div class="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl">
+                            <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="card-mem-percent" class="text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div id="card-mem-bar" class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p id="card-mem-summary" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1.5 truncate">-- / --</p>
+                    </div>
+                </div>
+
+                <!-- Pillar 3: Streams & Viewers -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Streams & Viewers</span>
+                        <div class="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="card-active-viewers" class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">0</span>
+                            <span class="text-xs font-semibold text-gray-400">espectadores</span>
+                        </div>
+                        <p id="card-streams-count" class="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-2">0 câmeras ativas</p>
+                        <p id="card-bandwidth" class="text-[11px] font-mono text-gray-500 dark:text-gray-400">Banda: 0 KB/s</p>
+                    </div>
+                </div>
+
+                <!-- Pillar 4: Motor de Varredura -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Motor de Varredura</span>
+                        <div class="p-2 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-xl">
+                            <i data-lucide="radar" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="card-scan-countdown" class="text-2xl font-black text-teal-600 dark:text-teal-400 font-mono">--s</span>
+                        </div>
+                        <p id="card-scan-status" class="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-2">Próxima em breve</p>
+                        <p id="card-last-scan-duration" class="text-[11px] font-mono text-gray-500 dark:text-gray-400">Última: --</p>
+                    </div>
+                </div>
+
+                <!-- Pillar 5: Rio Acre Telemetria -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Rio Acre (ANA)</span>
+                        <div class="p-2 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-xl">
+                            <i data-lucide="waves" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="card-rio-nivel" class="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">-- m</span>
+                        </div>
+                        <p id="card-rio-status" class="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-2">Ponte Metálica</p>
+                        <p id="card-rio-tendencia" class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Tendência: --</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Real-time Live Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: CPU Usage Timeline -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                                <i data-lucide="line-chart" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-900 dark:text-white">Consumo de CPU em Tempo Real</h3>
+                                <p class="text-xs text-gray-400 font-mono">Histórico deslizante dos últimos 60 segundos</p>
+                            </div>
+                        </div>
+                        <span id="chart-cpu-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                            0%
+                        </span>
+                    </div>
+                    <div class="h-56 w-full">
+                        <canvas id="cpuChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: RAM Memory Timeline -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm text-gray-900 dark:text-white">Alocação de Memória RAM (Heap vs RSS)</h3>
+                                <p class="text-xs text-gray-400 font-mono">Distribuição em Megabytes do processo Node.js</p>
+                            </div>
+                        </div>
+                        <span id="chart-mem-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                            0 MB
+                        </span>
+                    </div>
+                    <div class="h-56 w-full">
+                        <canvas id="memChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dependency Health Check Matrix -->
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="network" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-900 dark:text-white">Matriz de Conectividade & Serviços Externos</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Status operacional das APIs primárias, bancos de dados e telemetria.</p>
+                        </div>
+                    </div>
+                    <button id="btn-refresh-dependencies" class="px-3.5 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Testar Conexões
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                    <!-- Service 1: API Prefeitura -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-gray-700 dark:text-gray-200">API Prefeitura</span>
+                            <span id="dep-pref-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                                Operacional
+                            </span>
+                        </div>
+                        <p id="dep-pref-msg" class="text-xs text-gray-500 dark:text-gray-400 truncate">Consultando stream...</p>
+                        <div class="flex justify-between items-center text-[11px] font-mono text-gray-400 pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                            <span>Latência:</span>
+                            <span id="dep-pref-latency" class="font-bold text-gray-700 dark:text-gray-300">-- ms</span>
+                        </div>
+                    </div>
+
+                    <!-- Service 2: Cloud Firestore -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-gray-700 dark:text-gray-200">Cloud Firestore</span>
+                            <span id="dep-firestore-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                                Operacional
+                            </span>
+                        </div>
+                        <p id="dep-firestore-msg" class="text-xs text-gray-500 dark:text-gray-400 truncate">Persistência ativa</p>
+                        <div class="flex justify-between items-center text-[11px] font-mono text-gray-400 pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                            <span>Latência:</span>
+                            <span id="dep-firestore-latency" class="font-bold text-gray-700 dark:text-gray-300">-- ms</span>
+                        </div>
+                    </div>
+
+                    <!-- Service 3: Firebase Storage -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-gray-700 dark:text-gray-200">Firebase Storage</span>
+                            <span id="dep-storage-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                                Operacional
+                            </span>
+                        </div>
+                        <p id="dep-storage-msg" class="text-xs text-gray-500 dark:text-gray-400 truncate">Bucket conectado</p>
+                        <div class="flex justify-between items-center text-[11px] font-mono text-gray-400 pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                            <span>Latência:</span>
+                            <span id="dep-storage-latency" class="font-bold text-gray-700 dark:text-gray-300">-- ms</span>
+                        </div>
+                    </div>
+
+                    <!-- Service 4: Telemetria ANA -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-gray-700 dark:text-gray-200">ANA / HidroWeb</span>
+                            <span id="dep-ana-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                                Operacional
+                            </span>
+                        </div>
+                        <p id="dep-ana-msg" class="text-xs text-gray-500 dark:text-gray-400 truncate">Estação 13600002</p>
+                        <div class="flex justify-between items-center text-[11px] font-mono text-gray-400 pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                            <span>Latência:</span>
+                            <span id="dep-ana-latency" class="font-bold text-gray-700 dark:text-gray-300">-- ms</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active MJPEG Streams Monitor Table -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-900 dark:text-white">Transmissões de Vídeo MJPEG Ao Vivo</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Câmeras com usuários simultâneos conectados no momento.</p>
+                        </div>
+                    </div>
+                    <span id="streams-count-badge" class="px-3 py-1 rounded-full text-xs font-bold font-mono bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                        0 ativas
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-gray-50/75 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 uppercase font-mono tracking-wider border-b border-gray-100 dark:border-gray-800">
+                                <th class="py-3 px-5">Código</th>
+                                <th class="py-3 px-5">Identificação da Câmera</th>
+                                <th class="py-3 px-5">Bairro / Região</th>
+                                <th class="py-3 px-5">Espectadores</th>
+                                <th class="py-3 px-5">Tamanho Frame</th>
+                                <th class="py-3 px-5 text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="streams-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-300">
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-gray-400">
+                                    Nenhum usuário assistindo streams ao vivo no momento.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+            <!-- Server & Process Runtime Details -->
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                <h3 class="font-bold text-base text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="info" class="w-5 h-5 text-indigo-500"></i>
+                    Parâmetros do Ambiente & Runtime
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-xs font-mono">
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Process Uptime</span>
+                        <strong id="env-proc-uptime" class="text-gray-900 dark:text-white">--</strong>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Host Uptime</span>
+                        <strong id="env-sys-uptime" class="text-gray-900 dark:text-white">--</strong>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Node Version</span>
+                        <strong id="env-node-ver" class="text-gray-900 dark:text-white">--</strong>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Plataforma</span>
+                        <strong id="env-platform" class="text-gray-900 dark:text-white">--</strong>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Taxa Erros Proxy</span>
+                        <strong id="env-error-rate" class="text-gray-900 dark:text-white">0%</strong>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-400 block mb-1">Total Requisições</span>
+                        <strong id="env-total-reqs" class="text-gray-900 dark:text-white">0</strong>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Diagnostic Modal Window -->
+    <div id="diag-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-900 rounded-3xl max-w-2xl w-full p-6 border border-gray-100 dark:border-gray-800 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-violet-50 dark:bg-violet-900/30 text-violet-600 rounded-xl">
+                        <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-gray-900 dark:text-white">Relatório de Diagnóstico Completo</h3>
+                </div>
+                <button id="close-diag-modal" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div id="diag-modal-content" class="space-y-4 text-xs font-mono">
+                <div class="flex items-center justify-center py-8">
+                    <div class="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="ml-3 font-sans text-sm font-semibold text-gray-600 dark:text-gray-300">Executando diagnósticos ativos...</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="btn-close-diag-footer" class="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de Inicialização & Lógica NOC -->
+    <script type="module">
+        import { auth } from "/script/firebase-config.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initAuthModal, toggleLoginModal } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        initAuthModal();
+        initFooter();
+
+        let currentUser = null;
+        let eventSource = null;
+        let cpuChartInstance = null;
+        let memChartInstance = null;
+
+        // Relógio local em tempo real
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Rio_Branco' });
+            const clockEl = document.getElementById('noc-clock');
+            if (clockEl) clockEl.textContent = `${timeStr} (UTC-5)`;
+        }, 1000);
+
+        onAuthStateChanged(auth, async (user) => {
+            const accessDenied = document.getElementById('access-denied');
+            const contentWrapper = document.getElementById('content-wrapper');
+
+            if (!user) {
+                accessDenied.classList.remove('hidden');
+                contentWrapper.style.display = 'none';
+                return;
+            }
+
+            try {
+                const token = await user.getIdToken();
+                const authRes = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const authData = await authRes.json();
+
+                if (!authData.isAdmin) {
+                    accessDenied.classList.remove('hidden');
+                    contentWrapper.style.display = 'none';
+                    return;
+                }
+
+                // Autenticado com sucesso
+                currentUser = user;
+                accessDenied.classList.add('hidden');
+                contentWrapper.style.display = 'block';
+
+                initCharts();
+                setupNocStream();
+                setupEventListeners();
+                runActiveDependencyCheck();
+
+            } catch (err) {
+                console.error("Erro ao autenticar no NOC:", err);
+                accessDenied.classList.remove('hidden');
+            }
+        });
+
+        // Logout
+        document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = '/login';
+        });
+
+        document.getElementById('login-trigger')?.addEventListener('click', () => {
+            toggleLoginModal(true);
+        });
+
+        // Inicialização dos Gráficos Chart.js
+        function initCharts() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = isDark ? '#9CA3AF' : '#6B7280';
+
+            // CPU Chart
+            const ctxCpu = document.getElementById('cpuChart')?.getContext('2d');
+            if (ctxCpu) {
+                cpuChartInstance = new Chart(ctxCpu, {
+                    type: 'line',
+                    data: {
+                        labels: Array(30).fill(''),
+                        datasets: [{
+                            label: 'CPU (%)',
+                            data: Array(30).fill(0),
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 400 },
+                        scales: {
+                            x: { grid: { color: gridColor }, ticks: { color: textColor, maxRotation: 0 } },
+                            y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor, callback: (v) => `${v}%` } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // Memory Chart
+            const ctxMem = document.getElementById('memChart')?.getContext('2d');
+            if (ctxMem) {
+                memChartInstance = new Chart(ctxMem, {
+                    type: 'line',
+                    data: {
+                        labels: Array(30).fill(''),
+                        datasets: [
+                            {
+                                label: 'Heap (MB)',
+                                data: Array(30).fill(0),
+                                borderColor: '#8B5CF6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'RSS (MB)',
+                                data: Array(30).fill(0),
+                                borderColor: '#EC4899',
+                                borderWidth: 1.5,
+                                borderDash: [4, 4],
+                                fill: false,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 400 },
+                        scales: {
+                            x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                            y: { grid: { color: gridColor }, ticks: { color: textColor, callback: (v) => `${v} MB` } }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { color: textColor, boxWidth: 12, font: { size: 10, family: 'Inter' } }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Conecta ao fluxo SSE em tempo real (1 segundo)
+        async function setupNocStream() {
+            try {
+                const token = await currentUser.getIdToken();
+                if (eventSource) eventSource.close();
+
+                eventSource = new EventSource(`/api/admin/system-resources/stream?token=${encodeURIComponent(token)}`);
+                
+                eventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        renderNocData(data);
+                    } catch (e) {
+                        console.error("Erro no parsing dos dados do NOC:", e);
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    document.getElementById('sse-indicator').textContent = 'Reconectando stream...';
+                    setTimeout(setupNocStream, 3000);
+                };
+            } catch (err) {
+                console.error("Erro ao iniciar SSE stream:", err);
+            }
+        }
+
+        // Renderiza dados no painel
+        function renderNocData(d) {
+            if (!d) return;
+
+            // 1. Health Badge
+            const score = d.health?.score ?? 100;
+            const healthScoreVal = document.getElementById('health-score-val');
+            const healthStatusText = document.getElementById('health-status-text');
+            const pulseDot = document.getElementById('health-pulse-dot');
+            const healthContainer = document.getElementById('health-badge-container');
+
+            if (healthScoreVal) healthScoreVal.textContent = `${score}/100`;
+            if (healthStatusText) healthStatusText.textContent = d.health?.status || 'Sistema Operacional';
+
+            if (score >= 85) {
+                pulseDot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse';
+                healthContainer.className = 'flex items-center gap-3 px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60';
+                healthScoreVal.className = 'text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono';
+            } else if (score >= 60) {
+                pulseDot.className = 'w-3.5 h-3.5 rounded-full bg-amber-500 animate-pulse';
+                healthContainer.className = 'flex items-center gap-3 px-4 py-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60';
+                healthScoreVal.className = 'text-sm font-black text-amber-600 dark:text-amber-400 font-mono';
+            } else {
+                pulseDot.className = 'w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse';
+                healthContainer.className = 'flex items-center gap-3 px-4 py-2 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60';
+                healthScoreVal.className = 'text-sm font-black text-red-600 dark:text-red-400 font-mono';
+            }
+
+
+
+            // 3. CPU
+            const cpu = d.hardware?.cpuPercent || 0;
+            document.getElementById('card-cpu-val').textContent = `${cpu}%`;
+            document.getElementById('card-cpu-bar').style.width = `${cpu}%`;
+            document.getElementById('card-cpu-details').textContent = `${d.hardware?.cpuCount || 1} Núcleos (${d.hardware?.arch || 'x64'})`;
+            document.getElementById('chart-cpu-badge').textContent = `${cpu}%`;
+
+            // 4. Memória
+            const mem = d.memory || {};
+            const sysPercent = mem.system?.usedPercent || 0;
+            document.getElementById('card-mem-percent').textContent = `${sysPercent}%`;
+            document.getElementById('card-mem-bar').style.width = `${sysPercent}%`;
+            document.getElementById('card-mem-summary').textContent = `${mem.system?.usedFormatted || '0'} / ${mem.system?.totalFormatted || '0'}`;
+            document.getElementById('chart-mem-badge').textContent = mem.process?.heapUsedFormatted || '0 MB';
+
+            // 5. Streams & Viewers
+            const streamData = d.streaming || {};
+            document.getElementById('card-active-viewers').textContent = streamData.totalSubscribers || 0;
+            document.getElementById('card-streams-count').textContent = `${streamData.activeStreamsCount || 0} transmissões ativas`;
+            document.getElementById('card-bandwidth').textContent = `Banda: ${streamData.estimatedBandwidthFormatted || '0 KB/s'}`;
+            document.getElementById('streams-count-badge').textContent = `${streamData.activeStreamsCount || 0} ativas`;
+            renderStreamsTable(streamData.streams || []);
+
+            // 6. Scanner
+            const scanner = d.scanner || {};
+            const nextSec = scanner.nextScanInSeconds ?? 60;
+            document.getElementById('card-scan-countdown').textContent = `${nextSec}s`;
+            document.getElementById('card-scan-status').textContent = scanner.isScanning ? 'Varredura em andamento...' : 'Agendador ativo';
+            if (scanner.lastScan?.durationMs) {
+                document.getElementById('card-last-scan-duration').textContent = `Última: ${(scanner.lastScan.durationMs / 1000).toFixed(2)}s (${scanner.lastScan.online} online)`;
+            }
+
+            // 7. Rio Acre
+            const rio = d.rioAcre;
+            if (rio && rio.nivel) {
+                document.getElementById('card-rio-nivel').textContent = rio.nivel.formatado || `${rio.nivel.metros} m`;
+                document.getElementById('card-rio-status').textContent = `${rio.status?.tipo || 'Normal'} (Ponte Metálica)`;
+                document.getElementById('card-rio-tendencia').textContent = `Tendência: ${rio.tendencia?.status || 'Estável'}`;
+            }
+
+            // 8. Runtime & Environment
+            document.getElementById('env-proc-uptime').textContent = d.uptime?.processUptimeFormatted || '--';
+            document.getElementById('env-sys-uptime').textContent = d.uptime?.systemUptimeFormatted || '--';
+            document.getElementById('env-node-ver').textContent = d.hardware?.nodeVersion || '--';
+            document.getElementById('env-platform').textContent = `${d.hardware?.platform} (${d.hardware?.arch})`;
+            document.getElementById('env-error-rate').textContent = `${d.network?.errorRatePercent || 0}%`;
+            document.getElementById('env-total-reqs').textContent = (d.network?.totalViews || 0).toLocaleString('pt-BR');
+
+            // 9. Atualização de Gráficos (History buffer)
+            if (d.history && cpuChartInstance && memChartInstance) {
+                const cpuHist = d.history.cpu || [];
+                const memHist = d.history.memory || [];
+
+                if (cpuHist.length > 0) {
+                    cpuChartInstance.data.labels = cpuHist.map(h => h.time);
+                    cpuChartInstance.data.datasets[0].data = cpuHist.map(h => h.value);
+                    cpuChartInstance.update('none');
+                }
+
+                if (memHist.length > 0) {
+                    memChartInstance.data.labels = memHist.map(h => h.time);
+                    memChartInstance.data.datasets[0].data = memHist.map(h => h.heapMb);
+                    memChartInstance.data.datasets[1].data = memHist.map(h => h.rssMb);
+                    memChartInstance.update('none');
+                }
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // Renderiza tabela de streams ao vivo
+        function renderStreamsTable(streams) {
+            const tbody = document.getElementById('streams-table-body');
+            if (!tbody) return;
+
+            if (streams.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-gray-400">
+                            Nenhum usuário assistindo streams ao vivo no momento.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = streams.map(s => {
+                const isPage = Boolean(s.isPage);
+                const viewers = s.viewers || [];
+                const viewersBadges = viewers.length > 0
+                    ? viewers.map(v => {
+                        if (v.isLoggedIn) {
+                            return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800" title="${escapeHtml(v.email || v.name)}"><i data-lucide="user-check" class="w-3 h-3 text-indigo-600 dark:text-indigo-400"></i> ${escapeHtml(v.name)}</span>`;
+                        } else {
+                            return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[11px] font-medium border border-gray-200 dark:border-gray-700" title="Visitante sem conta"><i data-lucide="user" class="w-3 h-3 text-gray-400"></i> Anônimo</span>`;
+                        }
+                    }).join(' ')
+                    : `<span class="text-gray-400 text-[11px]">Nenhum</span>`;
+
+                let codeDisplay;
+                if (isPage) {
+                    if (s.code === 'HOME') {
+                        codeDisplay = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 font-bold font-mono text-xs border border-emerald-300 dark:border-emerald-800"><i data-lucide="home" class="w-3.5 h-3.5 text-emerald-500"></i> HOME</span>`;
+                    } else if (s.code === 'RIO') {
+                        codeDisplay = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold font-mono text-xs border border-blue-300 dark:border-blue-800"><i data-lucide="waves" class="w-3.5 h-3.5 text-blue-500"></i> RIO</span>`;
+                    } else if (s.code === 'MAPA') {
+                        codeDisplay = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-100 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 font-bold font-mono text-xs border border-teal-300 dark:border-teal-800"><i data-lucide="map" class="w-3.5 h-3.5 text-teal-500"></i> MAPA</span>`;
+                    } else if (s.code === 'TIMELAPSE') {
+                        codeDisplay = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 font-bold font-mono text-xs border border-purple-300 dark:border-purple-800"><i data-lucide="clock" class="w-3.5 h-3.5 text-purple-500"></i> TIMELAPSE</span>`;
+                    } else {
+                        codeDisplay = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold font-mono text-xs border border-gray-300 dark:border-gray-700"><i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-500"></i> ${escapeHtml(s.code)}</span>`;
+                    }
+                } else {
+                    codeDisplay = `<span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${s.code}</span>`;
+                }
+
+                const actionButton = isPage
+                    ? `<a href="${s.url || '/'}" target="_blank" class="px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-colors border border-gray-200 dark:border-gray-700">
+                            Abrir <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </a>`
+                    : `<a href="/camera/${s.code}" target="_blank" class="px-3 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-colors">
+                            Abrir <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </a>`;
+
+                const rowBg = isPage ? 'bg-indigo-50/20 dark:bg-indigo-950/10 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40';
+
+                return `
+                <tr class="${rowBg} transition-colors border-b border-gray-100 dark:border-gray-800/60 last:border-b-0">
+                    <td class="py-3.5 px-5">${codeDisplay}</td>
+                    <td class="py-3.5 px-5 font-semibold text-gray-900 dark:text-white">${escapeHtml(s.name)}</td>
+                    <td class="py-3.5 px-5 text-gray-500">${escapeHtml(s.categoria || 'Rio Branco')}</td>
+                    <td class="py-3.5 px-5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2 py-0.5 rounded-full ${isPage ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 border border-indigo-300/60 dark:border-indigo-700/60' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'} font-bold font-mono text-[11px]">
+                                ${s.subscribersCount} ${s.subscribersCount === 1 ? 'visitante' : 'visitantes'}
+                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                ${viewersBadges}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-5 font-mono text-gray-500">${s.frameSizeFormatted}</td>
+                    <td class="py-3.5 px-5 text-right">
+                        ${actionButton}
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+
+
+        // Teste de conectividade e dependências
+        async function runActiveDependencyCheck() {
+            try {
+                const token = await currentUser.getIdToken();
+                const res = await fetch('/api/admin/ops/diagnostic', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.services) {
+                    // Prefeitura
+                    const pref = data.services.prefeitura;
+                    document.getElementById('dep-pref-badge').textContent = pref.status === 'healthy' ? 'Operacional' : (pref.status === 'degraded' ? 'Degradado' : 'Falha');
+                    document.getElementById('dep-pref-badge').className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${pref.status === 'healthy' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'}`;
+                    document.getElementById('dep-pref-msg').textContent = pref.message || '';
+                    document.getElementById('dep-pref-latency').textContent = `${pref.latencyMs} ms`;
+
+                    // Firestore
+                    const fs = data.services.firestore;
+                    document.getElementById('dep-firestore-badge').textContent = fs.status === 'healthy' ? 'Operacional' : 'Falha';
+                    document.getElementById('dep-firestore-badge').className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${fs.status === 'healthy' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'}`;
+                    document.getElementById('dep-firestore-msg').textContent = fs.message || '';
+                    document.getElementById('dep-firestore-latency').textContent = `${fs.latencyMs} ms`;
+
+                    // Storage
+                    const st = data.services.storage;
+                    document.getElementById('dep-storage-badge').textContent = st.status === 'healthy' ? 'Operacional' : 'Aviso';
+                    document.getElementById('dep-storage-badge').className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${st.status === 'healthy' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'}`;
+                    document.getElementById('dep-storage-msg').textContent = st.message || '';
+                    document.getElementById('dep-storage-latency').textContent = `${st.latencyMs} ms`;
+
+                    // ANA
+                    const ana = data.services.rioAcre;
+                    document.getElementById('dep-ana-badge').textContent = ana.status === 'healthy' ? 'Operacional' : 'Degradado';
+                    document.getElementById('dep-ana-badge').className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${ana.status === 'healthy' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'}`;
+                    document.getElementById('dep-ana-msg').textContent = ana.message || '';
+                    document.getElementById('dep-ana-latency').textContent = `${ana.latencyMs} ms`;
+                }
+            } catch (e) {
+                console.error("Erro no diagnóstico de dependências:", e);
+            }
+        }
+
+        // Configuração dos Event Listeners
+        function setupEventListeners() {
+            // Botão Forçar Varredura
+            document.getElementById('btn-trigger-scan')?.addEventListener('click', async () => {
+                const btn = document.getElementById('btn-trigger-scan');
+                btn.disabled = true;
+                btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div> <span>Iniciando...</span>`;
+
+                try {
+                    const token = await currentUser.getIdToken();
+                    const res = await fetch('/api/admin/ops/trigger-scan', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    alert(data.message || 'Varredura disparada!');
+                } catch (e) {
+                    alert('Erro ao disparar varredura: ' + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-lucide="scan" class="w-4 h-4"></i> <span>Varredura Agora</span>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            });
+
+            // Botão Recarregar Cache
+            document.getElementById('btn-clear-cache')?.addEventListener('click', async () => {
+                const btn = document.getElementById('btn-clear-cache');
+                btn.disabled = true;
+                btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div> <span>Recarregando...</span>`;
+
+                try {
+                    const token = await currentUser.getIdToken();
+                    const res = await fetch('/api/admin/ops/clear-cache', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    alert(data.message || 'Cache atualizado!');
+                } catch (e) {
+                    alert('Erro ao recarregar cache: ' + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i> <span>Recarregar Cache</span>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            });
+
+            // Botão Testar Conexões
+            document.getElementById('btn-refresh-dependencies')?.addEventListener('click', () => {
+                runActiveDependencyCheck();
+            });
+
+            // Modal Diagnóstico Completo
+            const diagModal = document.getElementById('diag-modal');
+            const openDiagBtn = document.getElementById('btn-run-diag');
+            const closeDiagBtn = document.getElementById('close-diag-modal');
+            const closeDiagFooter = document.getElementById('btn-close-diag-footer');
+
+            openDiagBtn?.addEventListener('click', async () => {
+                diagModal.classList.remove('hidden');
+                const content = document.getElementById('diag-modal-content');
+                content.innerHTML = `
+                    <div class="flex items-center justify-center py-8">
+                        <div class="w-8 h-8 border-3 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="ml-3 font-sans text-sm font-semibold text-gray-600 dark:text-gray-300">Executando diagnósticos ativos...</span>
+                    </div>
+                `;
+
+                try {
+                    const token = await currentUser.getIdToken();
+                    const res = await fetch('/api/admin/ops/diagnostic', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+
+                    content.innerHTML = `
+                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-sm text-gray-900 dark:text-white font-sans">Status Geral:</span>
+                                <span class="px-3 py-1 rounded-full font-bold text-xs ${data.overallStatus === 'healthy' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                    ${data.overallStatus.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="text-[11px] text-gray-500">Executado em: ${new Date(data.timestamp).toLocaleString('pt-BR')}</div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <h4 class="font-bold font-sans text-sm text-gray-900 dark:text-white">Resultado Detalhado dos Subsistemas:</h4>
+                            <pre class="p-4 rounded-2xl bg-gray-900 text-emerald-400 text-[11px] overflow-x-auto leading-relaxed">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } catch (e) {
+                    content.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-xl">Falha ao executar diagnóstico: ${e.message}</div>`;
+                }
+            });
+
+            closeDiagBtn?.addEventListener('click', () => diagModal.classList.add('hidden'));
+            closeDiagFooter?.addEventListener('click', () => diagModal.classList.add('hidden'));
+
+
+        }
+
+        const escapeHtml = (str) => String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    </script>
+</body>
+
+</html>

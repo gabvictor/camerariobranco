@@ -108,3 +108,179 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 .dark .custom-scrollbar {
     scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
 }
+
+/* ─── Camera Player Fullscreen Mode (Native Top-Layer) ───────────────────────────── */
+#player-wrapper:fullscreen,
+#player-wrapper:-webkit-full-screen,
+#player-wrapper:-moz-full-screen,
+#player-wrapper:-ms-fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background-color: #000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+}
+
+#player-wrapper.fullscreen-idle {
+    cursor: none !important;
+}
+
+#player-wrapper.fullscreen-idle #fullscreen-hud {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#player-wrapper:fullscreen .player-default-ui,
+#player-wrapper:-webkit-full-screen .player-default-ui,
+#player-wrapper:-moz-full-screen .player-default-ui,
+#player-wrapper:-ms-fullscreen .player-default-ui {
+    display: none !important;
+}
+
+#player-wrapper:fullscreen #image-container,
+#player-wrapper:-webkit-full-screen #image-container,
+#player-wrapper:-moz-full-screen #image-container,
+#player-wrapper:-ms-fullscreen #image-container {
+    position: relative !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+}
+
+#player-wrapper:fullscreen #camera-feed,
+#player-wrapper:fullscreen #camera-feed-next,
+#player-wrapper:-webkit-full-screen #camera-feed,
+#player-wrapper:-webkit-full-screen #camera-feed-next,
+#player-wrapper:-moz-full-screen #camera-feed,
+#player-wrapper:-moz-full-screen #camera-feed-next {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    object-fit: contain;
+    transition: object-fit 0.2s ease, transform 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+#player-wrapper.mode-fill #camera-feed,
+#player-wrapper.mode-fill #camera-feed-next {
+    object-fit: cover !important;
+}
+
+/* ─── Shutter Flash Animation ─────────────────────────────────────────── */
+@keyframes shutterFlash {
+    0% { opacity: 0.9; }
+    40% { opacity: 0.6; }
+    100% { opacity: 0; }
+}
+
+.animate-shutter {
+    animation: shutterFlash 0.35s ease-out forwards;
+}
+
+/* ─── Fullscreen Zoom & Pan Engine ────────────────────────────────────── */
+#player-wrapper,
+#image-container,
+#camera-feed,
+#camera-feed-next {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+#camera-feed,
+#camera-feed-next {
+    pointer-events: none !important;
+}
+
+#player-wrapper.is-zoomed {
+    cursor: grab !important;
+}
+
+#player-wrapper.is-zoomed.is-panning {
+    cursor: grabbing !important;
+    user-select: none !important;
+}
+
+#player-wrapper.is-panning #camera-feed,
+#player-wrapper.is-panning #camera-feed-next {
+    transition: none !important;
+}
+
+#camera-feed,
+#camera-feed-next {
+    transform-origin: center center;
+    will-change: transform;
+}
+
+/* ─── Fullscreen HUD & Navigation Glow ────────────────────────────────── */
+#fullscreen-hud {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#fs-top-bar {
+    width: 100% !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+#fs-bottom-bar {
+    width: 100% !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+#fs-side-nav {
+    transition: opacity 0.3s ease;
+}
+
+#player-wrapper.fullscreen-idle #fs-top-bar {
+    transform: translateY(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#player-wrapper.fullscreen-idle #fs-bottom-bar {
+    transform: translateY(100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#player-wrapper.fullscreen-idle #fs-side-nav,
+#player-wrapper.fullscreen-idle #fs-prev-cam-btn,
+#player-wrapper.fullscreen-idle #fs-next-cam-btn {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#fs-prev-cam-btn,
+#fs-next-cam-btn {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+}
+
+#fs-prev-cam-btn:hover,
+#fs-next-cam-btn:hover {
+    box-shadow: 0 0 28px rgba(99, 102, 241, 0.75);
+}

@@ -169,27 +169,9 @@ function setupContactForm() {
     }
 }
 
-// Simple Toast fallback
-function showToast(msg) {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none';
-        document.body.appendChild(container);
+// Toast Notification Helper
+const showToast = (message, type = 'success', duration = 3200) => {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
     }
-
-    const toast = document.createElement('div');
-    toast.className = 'pointer-events-auto flex items-center gap-2 px-4 py-3 bg-gray-900/95 dark:bg-white/95 text-white dark:text-gray-900 text-xs font-bold rounded-2xl shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-4 opacity-0 border border-white/10';
-    toast.textContent = msg;
-
-    container.appendChild(toast);
-    requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-4', 'opacity-0');
-    });
-
-    setTimeout(() => {
-        toast.classList.add('translate-y-4', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
+};

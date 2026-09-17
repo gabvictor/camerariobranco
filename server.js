@@ -55,6 +55,7 @@ const resourceMonitor = require('./src/infrastructure/services/ResourceMonitorSe
 // ─── Aplicação ────────────────────────────────────────────────────────────────
 const MetricsService = require('./src/application/services/MetricsService');
 const CameraCache = require('./src/application/services/CameraCache');
+const HealthCheckService = require('./src/application/services/HealthCheckService');
 const CreateReportUseCase = require('./src/application/use-cases/CreateReportUseCase');
 const TrackVisitUseCase = require('./src/application/use-cases/TrackVisitUseCase');
 const GetDashboardDataUseCase = require('./src/application/use-cases/GetDashboardDataUseCase');
@@ -107,6 +108,7 @@ const trackVisit = new TrackVisitUseCase(db);
 const dashboardUC = new GetDashboardDataUseCase(admin.auth(), cameraRepo, metrics, trackVisit);
 const rioAcreService = new RioAcreService();
 const timelapseScheduler = new TimelapseScheduler(cameraRepo, cameraCache, path.join(PUBLIC_FOLDER, 'timelapse'));
+const healthCheckService = new HealthCheckService(rioAcreService, cameraRepo);
 
 const cameraCtrl = new CameraController(cameraCache, metrics, cameraRepo, trackVisit)
     .setDb(db)
@@ -135,6 +137,11 @@ app.use(helmet({
     originAgentCluster: false,
     frameguard: { action: 'sameorigin' }  // bloqueia iframes por padrão
 }));
+
+app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 'fullscreen=(self "*"), accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()');
+    next();
+});
 
 // ─── Middleware: libera iframes apenas para /embed/* ──────────────────────────
 app.use('/embed', (req, res, next) => {
@@ -448,13 +455,16 @@ const proxyCameraHandler = async (req, res) => {
 // Gerenciador central de transmissão MJPEG contínua de alta velocidade (Multipart/x-mixed-replace)
 const mjpegStreams = new Map();
 
+// Gerenciador de presença em tempo real de todas as páginas do site
+const sitePresence = new Map(); // chave: res (Response), valor: viewerInfo object
+
 function getOrCreateCameraStream(code) {
     if (mjpegStreams.has(code)) {
         return mjpegStreams.get(code);
     }
 
     const streamInfo = {
-        subscribers: new Set(),
+        subscribers: new Map(), // chave: res (Response), valor: viewerInfo object
         timer: null,
         lastFrame: null,
         isFetching: false
@@ -487,7 +497,7 @@ function getOrCreateCameraStream(code) {
                     streamInfo.lastFrame = frameData;
 
                     const header = `--myboundary\r\nContent-Type: image/jpeg\r\nContent-Length: ${frameData.length}\r\n\r\n`;
-                    for (const clientRes of streamInfo.subscribers) {
+                    for (const [clientRes] of streamInfo.subscribers.entries()) {
                         try {
                             if (!clientRes.writableEnded && !clientRes.closed) {
                                 clientRes.write(header);
@@ -526,14 +536,42 @@ const streamCameraHandler = async (req, res) => {
     if (!code || !/^\d{6}$/.test(code)) return res.status(400).send('Código inválido.');
 
     const camera = cameraRepo.getCached().find(c => c.codigo === code);
-    if (camera?.level === 3) {
-        const token = req.query.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split('Bearer ')[1] : null);
-        let isAdminUser = false;
-        if (token) {
+    
+    // Identificação do espectador: Logado com conta ou Anônimo
+    const viewerInfo = {
+        name: 'Anônimo',
+        email: null,
+        isLoggedIn: false,
+        ip: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1',
+        connectedAt: new Date().toISOString()
+    };
+
+    const token = req.query.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split('Bearer ')[1] : null);
+    if (token) {
+        try {
+            const decoded = await admin.auth().verifyIdToken(token);
+            viewerInfo.name = decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Usuário Logado');
+            viewerInfo.email = decoded.email || null;
+            viewerInfo.uid = decoded.uid || null;
+            viewerInfo.isLoggedIn = true;
+        } catch (_) {}
+    } else {
+        const cookies = parseCookies(req);
+        if (cookies.__session) {
             try {
-                const decoded = await admin.auth().verifyIdToken(token);
-                if (isUserAdmin(decoded.email)) isAdminUser = true;
+                const decoded = await admin.auth().verifySessionCookie(cookies.__session, true);
+                viewerInfo.name = decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Usuário Logado');
+                viewerInfo.email = decoded.email || null;
+                viewerInfo.uid = decoded.uid || null;
+                viewerInfo.isLoggedIn = true;
             } catch (_) {}
+        }
+    }
+
+    if (camera?.level === 3) {
+        let isAdminUser = false;
+        if (viewerInfo.isLoggedIn && isUserAdmin(viewerInfo.email)) {
+            isAdminUser = true;
         }
         if (!isAdminUser) return res.status(403).send('Acesso negado.');
     }
@@ -556,7 +594,7 @@ const streamCameraHandler = async (req, res) => {
         } catch (_) {}
     }
 
-    stream.subscribers.add(res);
+    stream.subscribers.set(res, viewerInfo);
 
     req.on('close', () => {
         stream.subscribers.delete(res);
@@ -587,10 +625,115 @@ app.get('/proxy/camera/:code', proxyCameraHandler);
 app.get('/stream/camera', streamCameraHandler);
 app.get('/stream/camera/:code', streamCameraHandler);
 
+// ─── Rastreamento Global de Presença em Tempo Real (Todas as Páginas) ───────
+const handlePresenceConnection = async (req, res) => {
+    const rawPath = req.query.path || req.path || '/';
+    const cleanPath = typeof rawPath === 'string' ? rawPath.split('?')[0] : '/';
+    const tabId = req.query.tabId || null;
+
+    // Deduplicação: se a mesma guia (tabId) já tinha uma conexão anterior aberta, encerra e remove
+    if (tabId) {
+        for (const [oldRes, oldViewer] of sitePresence.entries()) {
+            if (oldViewer.tabId === tabId && oldRes !== res) {
+                if (oldRes._presencePingTimer) {
+                    clearInterval(oldRes._presencePingTimer);
+                }
+                try {
+                    if (!oldRes.writableEnded && !oldRes.closed) {
+                        oldRes.end();
+                    }
+                } catch (_) {}
+                sitePresence.delete(oldRes);
+            }
+        }
+    }
+
+    const viewerInfo = {
+        tabId: tabId || null,
+        name: 'Anônimo',
+        email: null,
+        isLoggedIn: false,
+        ip: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1',
+        connectedAt: new Date().toISOString(),
+        path: cleanPath,
+        pageTitle: req.query.title || 'Página',
+        pageCode: req.query.code || 'PAGE',
+        pageCategory: req.query.category || 'Navegação Web'
+    };
+
+    const token = req.query.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split('Bearer ')[1] : null);
+    if (token) {
+        try {
+            const decoded = await admin.auth().verifyIdToken(token);
+            viewerInfo.name = decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Usuário Logado');
+            viewerInfo.email = decoded.email || null;
+            viewerInfo.uid = decoded.uid || null;
+            viewerInfo.isLoggedIn = true;
+        } catch (_) {}
+    } else {
+        const cookies = parseCookies(req);
+        if (cookies.__session) {
+            try {
+                const decoded = await admin.auth().verifySessionCookie(cookies.__session, true);
+                viewerInfo.name = decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Usuário Logado');
+                viewerInfo.email = decoded.email || null;
+                viewerInfo.uid = decoded.uid || null;
+                viewerInfo.isLoggedIn = true;
+            } catch (_) {}
+        }
+    }
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        'Access-Control-Allow-Origin': '*'
+    });
+
+    res.write(': connected\n\n');
+    sitePresence.set(res, viewerInfo);
+
+    const pingInterval = setInterval(() => {
+        try {
+            if (res.writableEnded || res.closed) {
+                clearInterval(pingInterval);
+                sitePresence.delete(res);
+                return;
+            }
+            res.write(': ping\n\n');
+        } catch (_) {
+            clearInterval(pingInterval);
+            sitePresence.delete(res);
+        }
+    }, 10000);
+
+    res._presencePingTimer = pingInterval;
+
+    req.on('close', () => {
+        clearInterval(pingInterval);
+        sitePresence.delete(res);
+    });
+};
+
+app.get('/api/presence/stream', handlePresenceConnection);
+app.get('/api/presence/home', handlePresenceConnection);
+
 // ─── Rotas Modulares ─────────────────────────────────────────────────────────
 app.use('/', cameraRoutes(cameraCtrl));
 app.use('/', sponsorRoutes(sponsorCtrl));
-app.use('/api', adminRoutes(reportCtrl, dashboardCtrl));
+app.use('/api', adminRoutes(reportCtrl, dashboardCtrl, {
+    healthCheckService,
+    scheduler,
+    cameraRepo,
+    cameraCache,
+    resourceMonitor,
+    mjpegStreams,
+    sitePresence,
+    metrics,
+    timelapseScheduler,
+    rioAcreService
+}));
 
 // ─── System Resources API & SSE Stream (Protegida) ───────────────────────────
 const { verifyAdmin } = require('./src/middlewares/security');
@@ -606,7 +749,7 @@ app.get('/api/admin/system-resources/stream', verifyAdmin, (req, res) => {
     const sendSnapshot = () => {
         try {
             if (!res.writableEnded && !res.closed) {
-                const data = resourceMonitor.getSystemResources(mjpegStreams, cameraRepo, metrics, timelapseScheduler);
+                const data = resourceMonitor.getSystemResources(mjpegStreams, cameraRepo, metrics, timelapseScheduler, scheduler, rioAcreService, cameraCache, sitePresence);
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
             }
         } catch (_) {}
@@ -622,7 +765,7 @@ app.get('/api/admin/system-resources/stream', verifyAdmin, (req, res) => {
 
 app.get('/api/admin/system-resources', verifyAdmin, (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    res.json(resourceMonitor.getSystemResources(mjpegStreams, cameraRepo, metrics, timelapseScheduler));
+    res.json(resourceMonitor.getSystemResources(mjpegStreams, cameraRepo, metrics, timelapseScheduler, scheduler, rioAcreService, cameraCache, sitePresence));
 });
 
 // ─── Health / Sync ───────────────────────────────────────────────────────────
@@ -779,7 +922,8 @@ app.get('/embed/:id', (req, res) => {
 // ─── Clean URL Routes Administrativas (Protegidas no Servidor) ────────────────
 const adminPage = (file) => (req, res) => res.sendFile(path.join(ADMIN_VIEWS_FOLDER, file));
 app.get('/admin', verifyAdminPageSession, adminPage('admin.html'));
-app.get('/admin/resources', verifyAdminPageSession, adminPage('resources.html'));
+app.get('/admin/monitor', verifyAdminPageSession, adminPage('monitor.html'));
+app.get('/admin/resources', (req, res) => res.redirect(301, '/admin/monitor'));
 app.get('/admin/logs', verifyAdminPageSession, adminPage('logs.html'));
 app.get('/admin/suggestions', verifyAdminPageSession, adminPage('suggestions.html'));
 app.get('/admin/reports', verifyAdminPageSession, adminPage('reports.html'));

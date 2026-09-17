@@ -77,6 +77,57 @@
         return newTheme;
     };
 
+    // ─── Global Standardized Toast Notification System ─────────────────────────
+    window.showToast = function(message, type = 'success', duration = 3200) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed bottom-20 sm:bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        
+        let bgClass = 'bg-indigo-600/95 text-white border-indigo-400/30 shadow-indigo-950/25';
+        let defaultIcon = 'check-circle-2';
+
+        if (type === 'error') {
+            bgClass = 'bg-red-600/95 text-white border-red-400/30 shadow-red-950/25';
+            defaultIcon = 'alert-circle';
+        } else if (type === 'info') {
+            bgClass = 'bg-gray-900/95 text-white dark:bg-gray-800/95 dark:text-white border-white/10 dark:border-gray-700 shadow-black/25';
+            defaultIcon = 'info';
+        } else if (type === 'warning') {
+            bgClass = 'bg-amber-600/95 text-white border-amber-400/30 shadow-amber-950/25';
+            defaultIcon = 'alert-triangle';
+        }
+
+        const hasStar = typeof message === 'string' && message.includes('⭐');
+        const icon = hasStar ? 'star' : defaultIcon;
+        const cleanMessage = hasStar ? message.replace(/⭐/g, '').trim() : message;
+
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-8 opacity-0 min-w-[280px] sm:min-w-[320px] max-w-sm backdrop-blur-md border ${bgClass}`;
+        toast.innerHTML = `
+            <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0 ${hasStar ? 'text-amber-300 fill-amber-300' : ''}"></i>
+            <p class="text-xs sm:text-sm font-semibold leading-snug">${cleanMessage}</p>
+        `;
+
+        container.appendChild(toast);
+        if (window.lucide) {
+            try { window.lucide.createIcons(); } catch (_) {}
+        }
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-8', 'opacity-0');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('translate-y-4', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+
     // ─── Cookie Inspector & Preferences Modal ─────────────────────────────────
     function renderInspectorList() {
         const listContainer = document.getElementById('cookie-inspector-list');
@@ -527,4 +578,172 @@
 
         startCountdown();
     }
+
+    // ─── Global Real-Time Presence System (Todas as Páginas) ──────────────────
+    function initGlobalPresence() {
+        const currentPath = window.location.pathname.toLowerCase();
+        // Na página dedicada de câmera individual ou embed, o player de vídeo MJPEG (/stream/camera/:code) já gerencia o espectador ao vivo
+        if (currentPath.startsWith('/camera') || currentPath.startsWith('/embed')) {
+            return;
+        }
+
+        let presenceEventSource = null;
+        let currentUserToken = null;
+        let syncDebounceTimer = null;
+
+        function getOrCreateTabId() {
+            try {
+                let tabId = sessionStorage.getItem('camrb_tab_id');
+                if (!tabId) {
+                    tabId = 'tab_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
+                    sessionStorage.setItem('camrb_tab_id', tabId);
+                }
+                return tabId;
+            } catch (_) {
+                return 'tab_' + Math.random().toString(36).substring(2, 11);
+            }
+        }
+
+        function getPageInfo() {
+            const rawPath = window.location.pathname.toLowerCase();
+            const path = rawPath.replace(/\/$/, '') || '/';
+            
+            let title = document.title ? document.title.split('|')[0].split(' - ')[0].trim() : 'Página';
+            let code = 'PAGE';
+            let category = 'Navegação Web';
+
+            if (path === '/' || path === '/index.html') {
+                title = 'Tela Inicial (Início)';
+                code = 'HOME';
+                category = 'Página Principal';
+            } else if (path === '/rio' || path === '/rio.html') {
+                title = 'Nível do Rio Acre';
+                code = 'RIO';
+                category = 'Telemetria';
+            } else if (path === '/mapa' || path === '/mapa.html') {
+                title = 'Mapa Interativo';
+                code = 'MAPA';
+                category = 'Geolocalização';
+            } else if (path === '/timelapses' || path === '/timelapses.html') {
+                title = 'Central de Timelapses';
+                code = 'TIMELAPSE';
+                category = 'Multimídia';
+            } else if (path === '/sobre' || path === '/sobre.html') {
+                title = 'Sobre o CamRB';
+                code = 'SOBRE';
+                category = 'Institucional';
+            } else if (path === '/contato' || path === '/contato.html') {
+                title = 'Contato & Suporte';
+                code = 'CONTATO';
+                category = 'Atendimento';
+            } else if (path === '/perfil' || path === '/perfil.html') {
+                title = 'Meu Perfil';
+                code = 'PERFIL';
+                category = 'Usuário';
+            } else if (path === '/novidades' || path === '/novidades.html') {
+                title = 'Novidades & Changelog';
+                code = 'NOVIDADES';
+                category = 'Informativo';
+            } else if (path === '/patrocine' || path === '/patrocine.html') {
+                title = 'Seja um Patrocinador';
+                code = 'PATROCINE';
+                category = 'Comercial';
+            } else if (path === '/termos' || path === '/termos.html') {
+                title = 'Termos de Uso';
+                code = 'TERMOS';
+                category = 'Legal';
+            } else if (path === '/metrics' || path === '/metrics.html') {
+                title = 'Métricas Públicas';
+                code = 'METRICS';
+                category = 'Estatísticas';
+            } else if (path.startsWith('/admin') || path.startsWith('/dashboard')) {
+                title = 'Painel Administrativo';
+                code = 'ADMIN';
+                category = 'Administração';
+            } else if (path.startsWith('/camera/')) {
+                const parts = path.split('/');
+                const camCode = parts[2] || '';
+                title = `Câmera ${camCode}`;
+                code = camCode || 'CAMERA';
+                category = 'Câmera ao Vivo';
+            }
+
+            return { path: window.location.pathname, title, code, category };
+        }
+
+        function _connectPresenceStream() {
+            if (presenceEventSource) {
+                try { presenceEventSource.close(); } catch (_) {}
+                presenceEventSource = null;
+            }
+
+            const info = getPageInfo();
+            const tabId = getOrCreateTabId();
+            const queryParams = new URLSearchParams({
+                path: info.path,
+                title: info.title,
+                code: info.code,
+                category: info.category,
+                tabId: tabId
+            });
+
+            if (currentUserToken) {
+                queryParams.set('token', currentUserToken);
+            }
+
+            try {
+                presenceEventSource = new EventSource(`/api/presence/stream?${queryParams.toString()}`);
+
+                presenceEventSource.onerror = () => {
+                    if (presenceEventSource) {
+                        try { presenceEventSource.close(); } catch (_) {}
+                        presenceEventSource = null;
+                    }
+                    setTimeout(() => {
+                        _connectPresenceStream();
+                    }, 5000);
+                };
+            } catch (_) {}
+        }
+
+        function syncPresence(token = null) {
+            if (token !== undefined) currentUserToken = token;
+
+            if (syncDebounceTimer) {
+                clearTimeout(syncDebounceTimer);
+            }
+
+            // Debounce curto de 80ms para consolidar DOMContentLoaded e autenticação do Firebase sem criar conexões duplas
+            syncDebounceTimer = setTimeout(() => {
+                _connectPresenceStream();
+            }, 80);
+        }
+
+        window.syncGlobalPresenceAuth = function(token) {
+            syncPresence(token);
+        };
+
+        // Conecta na inicialização da página
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => syncPresence());
+        } else {
+            syncPresence();
+        }
+
+        const cleanupPresence = () => {
+            if (syncDebounceTimer) {
+                clearTimeout(syncDebounceTimer);
+                syncDebounceTimer = null;
+            }
+            if (presenceEventSource) {
+                try { presenceEventSource.close(); } catch (_) {}
+                presenceEventSource = null;
+            }
+        };
+
+        window.addEventListener('beforeunload', cleanupPresence);
+        window.addEventListener('pagehide', cleanupPresence);
+    }
+
+    initGlobalPresence();
 })();

@@ -730,5 +730,72 @@ body.is-admin iframe[src*="ads"] {
     }
 }
 
+/* ─── Camera Player Fullscreen & Mobile Mode ───────────────────────────── */
+#player-wrapper:fullscreen,
+#player-wrapper:-webkit-full-screen,
+#player-wrapper:-moz-full-screen,
+#player-wrapper:-ms-fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background-color: #000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+}
+
+#player-wrapper.fullscreen-idle {
+    cursor: none !important;
+}
+
+#player-wrapper:fullscreen #camera-feed,
+#player-wrapper:fullscreen #camera-feed-next,
+#player-wrapper:-webkit-full-screen #camera-feed,
+#player-wrapper:-webkit-full-screen #camera-feed-next,
+#player-wrapper:-moz-full-screen #camera-feed,
+#player-wrapper:-moz-full-screen #camera-feed-next {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    object-fit: contain;
+    transition: object-fit 0.2s ease;
+}
+
+#player-wrapper,
+#image-container,
+#camera-feed,
+#camera-feed-next {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+#camera-feed,
+#camera-feed-next {
+    pointer-events: none !important;
+}
+
+#player-wrapper.mode-fill #camera-feed,
+#player-wrapper.mode-fill #camera-feed-next {
+    object-fit: cover !important;
+}
+
+
 
 

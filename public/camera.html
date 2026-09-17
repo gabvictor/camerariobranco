@@ -282,7 +282,7 @@
                                 class="w-full h-full relative flex items-center justify-center bg-black">
 
                                 <!-- Live Indicator Top-Left -->
-                                <div class="absolute top-3 sm:top-4 left-3 sm:left-4 z-30 flex items-center gap-2 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none shadow-lg">
+                                <div class="player-default-ui absolute top-3 sm:top-4 left-3 sm:left-4 z-30 flex items-center gap-2 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none shadow-lg">
                                     <div class="relative flex h-2 w-2">
                                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
                                          <span class="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
@@ -291,29 +291,155 @@
                                 </div>
 
                                 <!-- Floating Rio Acre Badge (Only for Rio cameras) -->
-                                <a id="player-rio-badge" href="/rio" class="hidden absolute top-3 sm:top-4 left-24 sm:left-32 z-30 items-center gap-1.5 bg-black/75 hover:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-cyan-400/50 text-white shadow-lg transition-all active:scale-95 cursor-pointer" title="Ver medição e gráficos do Rio Acre">
+                                <a id="player-rio-badge" href="/rio" class="player-default-ui hidden absolute top-3 sm:top-4 left-24 sm:left-32 z-30 items-center gap-1.5 bg-black/75 hover:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-cyan-400/50 text-white shadow-lg transition-all active:scale-95 cursor-pointer" title="Ver medição e gráficos do Rio Acre">
                                     <i data-lucide="waves" class="w-3.5 h-3.5 text-cyan-300"></i>
                                     <span class="text-xs font-black tracking-tight" id="player-rio-nivel">Rio: ...</span>
                                     <span id="player-rio-status" class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-xs">Normal</span>
                                 </a>
 
                                 <!-- Player Quick Floating Action Buttons (Top-Right) -->
-                                <div class="absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                <div class="player-default-ui absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 opacity-95 hover:opacity-100 transition-opacity duration-200">
                                     <button id="player-snapshot-btn"
-                                        class="p-2 sm:p-2.5 bg-black/50 hover:bg-black/80 backdrop-blur-md text-white rounded-xl border border-white/15 hover:scale-105 transition-all cursor-pointer shadow-lg"
-                                        title="Capturar Foto Instantânea">
+                                        class="p-2 sm:p-2.5 bg-black/60 hover:bg-black/85 active:scale-95 backdrop-blur-md text-white rounded-xl border border-white/20 hover:scale-105 transition-all cursor-pointer shadow-lg"
+                                        title="Capturar Foto Instantânea" aria-label="Capturar Foto">
                                         <i data-lucide="camera" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                                     </button>
                                     <button id="player-timelapse-btn"
-                                        class="p-2 sm:p-2.5 bg-black/50 hover:bg-black/80 backdrop-blur-md text-white rounded-xl border border-white/15 hover:scale-105 transition-all cursor-pointer shadow-lg"
-                                        title="Abrir Timelapse 24 Horas">
+                                        class="p-2 sm:p-2.5 bg-black/60 hover:bg-black/85 active:scale-95 backdrop-blur-md text-white rounded-xl border border-white/20 hover:scale-105 transition-all cursor-pointer shadow-lg"
+                                        title="Abrir Timelapse 24 Horas" aria-label="Abrir Timelapse">
                                         <i data-lucide="history" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                                     </button>
                                     <button id="fullscreen-btn"
-                                        class="p-2 sm:p-2.5 bg-black/50 hover:bg-black/80 backdrop-blur-md text-white rounded-xl border border-white/15 hover:scale-105 transition-all cursor-pointer shadow-lg"
+                                        class="p-2 sm:p-2.5 bg-indigo-600/80 hover:bg-indigo-600 active:scale-95 backdrop-blur-md text-white rounded-xl border border-white/25 hover:scale-105 transition-all cursor-pointer shadow-lg ring-1 ring-white/20"
                                         aria-label="Tela Cheia" title="Modo Tela Cheia">
                                         <i data-lucide="maximize" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                                     </button>
+                                </div>
+
+                                <!-- Fullscreen Cinema HUD Layer (Full edge-to-edge coverage with smooth auto-hide) -->
+                                <!-- Fullscreen Cinema HUD Layer (Full edge-to-edge coverage with smooth auto-hide) -->
+                                <div id="fullscreen-hud" class="hidden absolute inset-0 z-40 flex flex-col justify-between pointer-events-none transition-opacity duration-300">
+                                    <!-- Top HUD Bar -->
+                                    <div id="fs-top-bar" class="w-full bg-transparent pt-3.5 sm:pt-5 pb-3 px-3 sm:px-6 flex items-center justify-between gap-3 pointer-events-none transition-transform duration-300">
+                                        <!-- Left: Camera Info & Telemetry Pill -->
+                                        <div class="flex items-center gap-2.5 sm:gap-3 bg-black/65 backdrop-blur-md px-3 sm:px-4 py-1.5 rounded-2xl border border-white/15 shadow-xl max-w-[70vw] sm:max-w-[55vw] min-w-0 pointer-events-auto">
+                                            <div class="flex items-center gap-1.5 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md shadow-red-600/30 flex-shrink-0">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                                                <span>Ao Vivo</span>
+                                            </div>
+                                            <div class="min-w-0 text-left">
+                                                <h3 id="fs-camera-name" class="text-white text-xs sm:text-sm font-extrabold truncate drop-shadow-md">Carregando...</h3>
+                                                <div class="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-300 truncate mt-0.5">
+                                                    <span id="fs-camera-category" class="font-semibold text-indigo-300 truncate">Rio Branco</span>
+                                                    <span>•</span>
+                                                    <span id="fs-camera-clock" class="font-mono text-gray-200 font-bold tracking-wider">--:--:--</span>
+                                                    <span id="fs-camera-weather" class="hidden sm:inline-block bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-300">--°C</span>
+                                                    <span id="fs-camera-rio-badge" class="hidden sm:inline-flex items-center gap-1 bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                                        <i data-lucide="waves" class="w-3 h-3"></i> <span id="fs-rio-nivel">Rio: --</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right: Action Controls & Digital Zoom (Clean on mobile) -->
+                                        <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 pointer-events-auto">
+                                            <!-- Digital Zoom Controls (Hidden on mobile - pinch to zoom available) -->
+                                            <div class="hidden sm:flex items-center bg-black/65 backdrop-blur-md rounded-xl border border-white/15 p-0.5 shadow-xl">
+                                                <button id="fs-zoom-out-btn" class="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/15 transition-colors cursor-pointer" title="Diminuir Zoom (-)">
+                                                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                                                </button>
+                                                <button id="fs-zoom-reset-btn" class="font-mono text-[11px] font-bold text-indigo-300 px-1.5 py-1 hover:text-white transition-colors cursor-pointer" title="Redefinir Zoom (0)">
+                                                    <span id="fs-zoom-level">1.0x</span>
+                                                </button>
+                                                <button id="fs-zoom-in-btn" class="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/15 transition-colors cursor-pointer" title="Aumentar Zoom (+)">
+                                                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- Fit / Fill Screen Toggle -->
+                                            <button id="fs-fit-toggle-btn"
+                                                class="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-black/65 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 shadow-xl transition-all cursor-pointer"
+                                                title="Alternar Proporção: Ajustar à Tela ou Preencher Tela (Atalho: M)">
+                                                <i data-lucide="scaling" class="w-4 h-4"></i>
+                                                <span id="fs-fit-text" class="hidden md:inline">Ajustar</span>
+                                            </button>
+
+                                            <!-- Snapshot Button -->
+                                            <button id="fs-snapshot-btn"
+                                                class="hidden md:flex p-2 sm:px-3 sm:py-2 items-center gap-1.5 bg-black/65 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 shadow-xl transition-all cursor-pointer"
+                                                title="Capturar Foto Instantânea (Atalho: S)">
+                                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                                <span class="hidden md:inline">Foto</span>
+                                            </button>
+
+                                            <!-- Timelapse Button -->
+                                            <button id="fs-timelapse-btn"
+                                                class="hidden md:flex p-2 sm:px-3 sm:py-2 items-center gap-1.5 bg-black/65 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 shadow-xl transition-all cursor-pointer"
+                                                title="Abrir Timelapse 24h (Atalho: T)">
+                                                <i data-lucide="history" class="w-4 h-4"></i>
+                                                <span class="hidden md:inline">Timelapse</span>
+                                            </button>
+
+                                            <!-- Favorite Button -->
+                                            <button id="fs-favorite-btn"
+                                                class="hidden sm:flex p-2 sm:px-3 sm:py-2 items-center gap-1.5 bg-black/65 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl backdrop-blur-md border border-white/15 shadow-xl transition-all cursor-pointer"
+                                                title="Favoritar Câmera">
+                                                <i data-lucide="star" class="w-4 h-4"></i>
+                                            </button>
+
+                                            <!-- Exit Fullscreen Button (Always available) -->
+                                            <button id="fs-exit-btn"
+                                                class="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-red-600/90 hover:bg-red-600 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-xl shadow-red-600/30 backdrop-blur-md border border-red-400/40 transition-all cursor-pointer"
+                                                title="Sair da Tela Cheia (Esc)">
+                                                <i data-lucide="minimize" class="w-4 h-4"></i>
+                                                <span class="hidden sm:inline">Sair</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Floating Side Navigation: Next & Previous Camera Switchers (Hidden on mobile, uses swipe) -->
+                                    <div id="fs-side-nav" class="hidden sm:flex items-center justify-between w-full px-3 sm:px-6 pointer-events-none">
+                                        <button id="fs-prev-cam-btn" class="pointer-events-auto p-3.5 sm:p-4 rounded-full bg-black/60 hover:bg-indigo-600 text-white backdrop-blur-md border border-white/20 shadow-2xl hover:scale-110 active:scale-90 transition-all cursor-pointer group" title="Câmera Anterior (Seta Esquerda)">
+                                            <i data-lucide="chevron-left" class="w-6 h-6 sm:w-7 sm:h-7 group-hover:-translate-x-0.5 transition-transform"></i>
+                                        </button>
+                                        <button id="fs-next-cam-btn" class="pointer-events-auto p-3.5 sm:p-4 rounded-full bg-black/60 hover:bg-indigo-600 text-white backdrop-blur-md border border-white/20 shadow-2xl hover:scale-110 active:scale-90 transition-all cursor-pointer group" title="Próxima Câmera (Seta Direita)">
+                                            <i data-lucide="chevron-right" class="w-6 h-6 sm:w-7 sm:h-7 group-hover:translate-x-0.5 transition-transform"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Bottom HUD Bar -->
+                                    <div id="fs-bottom-bar" class="w-full bg-transparent pt-2 pb-3 sm:pb-4 px-3 sm:px-6 flex items-center justify-between gap-3 pointer-events-none transition-transform duration-300">
+                                        <!-- Left: Live Status Badge -->
+                                        <div class="flex items-center gap-2 pointer-events-auto">
+                                            <span class="flex items-center gap-2 bg-black/75 backdrop-blur-md px-3 sm:px-3.5 py-1.5 rounded-2xl border border-white/20 text-xs shadow-xl">
+                                                <span class="relative flex h-2 w-2">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                </span>
+                                                <span class="font-bold text-white text-xs">CamRB • Ao Vivo</span>
+                                            </span>
+                                        </div>
+
+                                        <!-- Right: High-Contrast Shortcuts Capsule -->
+                                        <div class="hidden md:flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 sm:px-4 py-1.5 rounded-2xl border border-white/20 shadow-xl pointer-events-auto text-xs font-semibold text-gray-200">
+                                            <span class="text-indigo-400 font-bold flex items-center gap-1">
+                                                <i data-lucide="keyboard" class="w-3.5 h-3.5"></i> Atalhos:
+                                            </span>
+                                            <span class="flex items-center gap-1.5 text-[11px] text-gray-200">
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">ESC</kbd> Sair
+                                                <span class="text-gray-500">•</span>
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">F</kbd> Tela Cheia
+                                                <span class="text-gray-500">•</span>
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">← →</kbd> Câmeras
+                                                <span class="text-gray-500">•</span>
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">+ -</kbd> Zoom
+                                                <span class="text-gray-500">•</span>
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">S</kbd> Foto
+                                                <span class="text-gray-500">•</span>
+                                                <kbd class="px-1.5 py-0.5 bg-white/20 border border-white/30 rounded text-[10px] text-white font-mono font-bold shadow-xs">M</kbd> Ajustar
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Visual Shutter Flash Overlay -->
@@ -321,9 +447,9 @@
 
                                 <!-- Feed Image Layers (Smooth Transition for >= 500ms / Direct for 0ms) -->
                                 <img id="camera-feed" src="" alt="Transmissão ao vivo"
-                                    class="absolute inset-0 w-full h-full object-contain z-10">
+                                    class="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none select-none" draggable="false">
                                 <img id="camera-feed-next" src="" alt="Transmissão ao vivo"
-                                    class="absolute inset-0 w-full h-full object-contain z-10 opacity-0 pointer-events-none">
+                                    class="absolute inset-0 w-full h-full object-contain z-10 opacity-0 pointer-events-none select-none" draggable="false">
 
                                 <!-- Loading State -->
                                 <div id="loader"
@@ -360,6 +486,11 @@
 
                         <!-- Enhanced Actions Toolbar -->
                         <div class="flex flex-wrap items-center justify-start gap-2 px-1 sm:px-2 pt-1 pb-1">
+                            <button id="toolbar-fullscreen-btn" aria-label="Modo Tela Cheia"
+                                class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 transition-all group active:scale-95 font-bold text-xs cursor-pointer shadow-2xs">
+                                <i data-lucide="maximize" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+                                <span class="fullscreen-text">Tela Cheia</span>
+                            </button>
                             <button id="favorite-btn" aria-label="Favoritar Câmera"
                                 class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/60 hover:bg-amber-50 dark:hover:bg-amber-900/25 border border-gray-200/80 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-amber-500 hover:border-amber-300 dark:hover:border-amber-700 transition-all group active:scale-95 font-semibold text-xs cursor-pointer shadow-2xs">
                                 <i data-lucide="star" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
@@ -837,13 +968,16 @@
         </div>
     </div>
 
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-20 sm:bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
     <script>
         // Fallback imediato de ícones
         if (typeof lucide !== 'undefined') lucide.createIcons();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gifshot@0.3.2/build/gifshot.min.js"></script>
-    <script type="module" src="/script/camera-script.js?v=18"></script>
+    <script type="module" src="/script/camera-script.js?v=24"></script>
 </body>
 
 </html>

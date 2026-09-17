@@ -44,6 +44,13 @@ class RioAcreService {
     }
 
     /**
+     * Retorna o último dado em cache de forma síncrona/instantânea
+     */
+    getLastCachedNivel() {
+        return this._cache || null;
+    }
+
+    /**
      * Retorna os dados consolidados do nível do Rio Acre
      */
     async getNivelRioAcre() {
@@ -226,16 +233,16 @@ class RioAcreService {
             if (!item || typeof item !== 'object') continue;
 
             // Extrai a cota/nível suportando múltiplas chaves oficiais
-            const rawCota = item.Cota_Adotada ?? item.Cota ?? item.Nivel ?? item.Nivel_Adotado ?? item.Cota_Bruta ?? item.Nivel_Bruto;
-            const rawChuva = item.Chuva_Adotada ?? item.Chuva ?? item.Chuva_Bruta;
-            const rawVazao = item.Vazao_Adotada ?? item.Vazao ?? item.Vazao_Bruta;
+            const rawCota = item.Cota_Adotada ?? item.Cota ?? item.Nivel ?? item.Nivel_Adotado ?? item.Cota_Bruta ?? item.Nivel_Bruto ?? item.cota_adotada ?? item.cota;
+            const rawChuva = item.Chuva_Adotada ?? item.Chuva ?? item.Chuva_Bruta ?? item.chuva_adotada ?? item.chuva;
+            const rawVazao = item.Vazao_Adotada ?? item.Vazao ?? item.Vazao_Bruta ?? item.vazao_adotada ?? item.vazao;
 
-            const statusCota = item.Cota_Adotada_Status ?? item.Status_Cota ?? item.Qualidade_Cota ?? item.StatusCota;
-            const statusChuva = item.Chuva_Adotada_Status ?? item.Status_Chuva ?? item.Qualidade_Chuva ?? item.StatusChuva;
-            const statusVazao = item.Vazao_Adotada_Status ?? item.Status_Vazao ?? item.Qualidade_Vazao ?? item.StatusVazao;
+            const statusCota = item.Cota_Adotada_Status ?? item.Status_Cota ?? item.Qualidade_Cota ?? item.StatusCota ?? item.cota_adotada_status;
+            const statusChuva = item.Chuva_Adotada_Status ?? item.Status_Chuva ?? item.Qualidade_Chuva ?? item.StatusChuva ?? item.chuva_adotada_status;
+            const statusVazao = item.Vazao_Adotada_Status ?? item.Status_Vazao ?? item.Qualidade_Vazao ?? item.StatusVazao ?? item.vazao_adotada_status;
 
-            const dataStr = item.Data_Hora ?? item.DataHora ?? item.Data_Leitura ?? item.DataHoraLeitura ?? item.data_hora;
-            const dataAtualizacaoStr = item.Data_Hora_Atualizacao ?? item.Data_Atualizacao ?? item.DataUltimaAtualizacao ?? item.data_hora_atualizacao;
+            const dataStr = item.Data_Hora_Medicao ?? item.DataHoraMedicao ?? item.Data_Hora ?? item.DataHora ?? item.Data_Leitura ?? item.DataHoraLeitura ?? item.Data_Medicao ?? item.data_hora_medicao ?? item.data_hora;
+            const dataAtualizacaoStr = item.Data_Atualizacao ?? item.Data_Hora_Atualizacao ?? item.DataUltimaAtualizacao ?? item.data_hora_atualizacao ?? item.data_atualizacao;
 
             if (rawCota === null || rawCota === undefined || !dataStr) continue;
 

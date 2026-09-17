@@ -1,7 +1,9 @@
 
+export let cachedWeather = null;
+
 export const fetchWeather = async () => {
     const widget = document.getElementById('weather-widget');
-    if (!widget) return;
+    const fsWeather = document.getElementById('fs-camera-weather');
 
     try {
         // Rio Branco Coordinates: -9.97499, -67.8243
@@ -28,20 +30,37 @@ export const fetchWeather = async () => {
         if (isNight && iconName === 'sun') { iconName = 'moon'; desc = 'Limpo'; }
         if (isNight && iconName === 'cloud-sun') { iconName = 'cloud-moon'; }
 
-        widget.innerHTML = `
-            <i data-lucide="${iconName}" class="w-4 h-4"></i>
-            <span>${temp}°C</span>
-        `;
-        widget.title = `Rio Branco: ${desc}`;
-        
-        // Remove inline display:none to let CSS classes control visibility
-        widget.style.display = '';
+        cachedWeather = { temp, tempText: `${temp}°C`, iconName, desc };
+
+        if (widget) {
+            widget.innerHTML = `
+                <i data-lucide="${iconName}" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span id="weather-temp" class="font-bold">${temp}°C</span>
+            `;
+            widget.title = `Rio Branco: ${desc}`;
+            widget.style.display = 'flex';
+        }
+
+        if (fsWeather) {
+            fsWeather.innerHTML = `
+                <i data-lucide="${iconName}" class="w-3 h-3 text-amber-300"></i>
+                <span class="font-bold text-amber-300">${temp}°C</span>
+            `;
+            fsWeather.title = `Rio Branco: ${desc}`;
+            fsWeather.classList.remove('hidden');
+            fsWeather.classList.add('inline-flex', 'items-center', 'gap-1');
+        }
         
         // Re-init icons for the new weather icon
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide) {
+            try { window.lucide.createIcons(); } catch (_) {}
+        }
 
+        return cachedWeather;
     } catch (error) {
         console.error("Error fetching weather:", error);
-        widget.style.display = 'none';
+        if (widget) widget.style.display = 'none';
+        if (fsWeather) fsWeather.classList.add('hidden');
+        return null;
     }
 };

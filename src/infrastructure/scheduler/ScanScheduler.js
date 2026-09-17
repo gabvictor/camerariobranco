@@ -27,6 +27,14 @@ class ScanScheduler extends EventEmitter {
         this.isScanning = false;
         this.scanTimeoutOccurred = false;
         this.nextScanTimestamp = Date.now();
+        this.lastScanStats = {
+            timestamp: null,
+            durationMs: 0,
+            online: 0,
+            offline: 0,
+            total: 0
+        };
+        this._scheduledTimer = null;
         this._useCase = new ScanCamerasUseCase(scanner);
     }
 
@@ -43,6 +51,14 @@ class ScanScheduler extends EventEmitter {
             const statuses = await this._useCase.execute();
             const durationMs = Date.now() - startTime;
             const online = statuses.filter(c => c.status === 'online').length;
+            const offline = statuses.length - online;
+            this.lastScanStats = {
+                timestamp: new Date().toISOString(),
+                durationMs,
+                online,
+                offline,
+                total: statuses.length
+            };
             console.log(`✔ Varredura concluída em ${(durationMs / 1000).toFixed(2)}s. ${online} câmeras online.`);
             this.emit('scan:complete', { statuses, durationMs });
         } catch (error) {
@@ -59,15 +75,32 @@ class ScanScheduler extends EventEmitter {
         }
     }
 
+    /** Dispara varredura imediata sob demanda */
+    async triggerNow() {
+        if (this._scheduledTimer) {
+            clearTimeout(this._scheduledTimer);
+            this._scheduledTimer = null;
+        }
+        await this.runOnce();
+        const delay = CONFIG.UPDATE_INTERVAL_MS;
+        this.nextScanTimestamp = Date.now() + delay;
+        this._scheduledTimer = setTimeout(() => this.start(), delay);
+        return this.getStatus();
+    }
+
     /** Inicia o loop de varredura agendada */
     start() {
+        if (this._scheduledTimer) {
+            clearTimeout(this._scheduledTimer);
+            this._scheduledTimer = null;
+        }
         this.runOnce().finally(() => {
             const delay = this.scanTimeoutOccurred
                 ? CONFIG.SCAN_RETRY_DELAY_MS
                 : CONFIG.UPDATE_INTERVAL_MS;
             console.log(`Próxima varredura em ${delay / 1000}s.`);
             this.nextScanTimestamp = Date.now() + delay;
-            setTimeout(() => this.start(), delay);
+            this._scheduledTimer = setTimeout(() => this.start(), delay);
         });
         return this;
     }
@@ -76,7 +109,9 @@ class ScanScheduler extends EventEmitter {
         return {
             isScanning: this.isScanning,
             scanTimeoutOccurred: this.scanTimeoutOccurred,
-            nextScanTimestamp: this.nextScanTimestamp
+            nextScanTimestamp: this.nextScanTimestamp,
+            nextScanInSeconds: Math.max(0, Math.round((this.nextScanTimestamp - Date.now()) / 1000)),
+            lastScan: this.lastScanStats
         };
     }
 }

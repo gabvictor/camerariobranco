@@ -102,6 +102,18 @@ export const initGlobalAuthUI = () => {
     onAuthStateChanged(auth, async (user) => {
         localStorage.setItem('camrb_auth_cached', user ? 'logged_in' : 'logged_out');
 
+        // Sincroniza presença global em tempo real com token do usuário
+        if (user) {
+            try {
+                const idToken = await user.getIdToken();
+                window.syncGlobalPresenceAuth?.(idToken);
+            } catch (_) {
+                window.syncGlobalPresenceAuth?.(null);
+            }
+        } else {
+            window.syncGlobalPresenceAuth?.(null);
+        }
+
         // Toggle Admin Elements
         await checkAdminStatus(user);
 
