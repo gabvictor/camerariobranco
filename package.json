@@ -14,6 +14,7 @@
     "express": "^5.2.1",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.6.1",
+    "geoip-lite": "^2.0.3",
     "helmet": "^8.1.0",
     "sharp": "^0.35.4"
   },

@@ -1,9 +1,6 @@
 /**
  * @use-case GetDashboardDataUseCase
- * Agrega dados de usuários, câmeras e métricas para o painel administrativo.
- *
- * SRP: A lógica que antes estava em 55 linhas dentro do handler HTTP
- *      agora é testável de forma independente.
+ * Agrega dados de usuários, câmeras, telemetria de origens e métricas para o painel administrativo.
  */
 class GetDashboardDataUseCase {
     /**
@@ -85,7 +82,30 @@ class GetDashboardDataUseCase {
             categoryData: { labels: Object.keys(categories), values: Object.values(categories) },
             viewsToday: trafficStats.viewsToday,
             totalViews: trafficStats.totalViews,
-            topCameras
+            topCameras,
+
+            // ─── Telemetria de Origem de Usuários & Tráfego ─────────────────────────
+            origins: {
+                sourcesToday: trafficStats.sourcesToday || {},
+                sourcesTotal: trafficStats.sourcesTotal || {},
+                categoriesToday: trafficStats.categoriesToday || {},
+                categoriesTotal: trafficStats.categoriesTotal || {},
+                citiesToday: trafficStats.citiesToday || {},
+                citiesTotal: trafficStats.citiesTotal || {},
+                regionsToday: trafficStats.regionsToday || {},
+                regionsTotal: trafficStats.regionsTotal || {},
+                countriesToday: trafficStats.countriesToday || {},
+                countriesTotal: trafficStats.countriesTotal || {},
+                devicesToday: trafficStats.devicesToday || {},
+                devicesTotal: trafficStats.devicesTotal || {},
+                browsersToday: trafficStats.browsersToday || {},
+                browsersTotal: trafficStats.browsersTotal || {},
+                utmSourcesToday: trafficStats.utmSourcesToday || {},
+                utmSourcesTotal: trafficStats.utmSourcesTotal || {},
+                pathsToday: trafficStats.pathsToday || {},
+                pathsTotal: trafficStats.pathsTotal || {},
+                recentVisits: trafficStats.recentVisits || []
+            }
         };
     }
 }

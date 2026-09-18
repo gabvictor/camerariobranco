@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupControls();
     setupSearchFilter();
+    setupTimelapseShareModal();
     initTimelapseExperience();
 });
 
@@ -400,5 +401,168 @@ function updatePlayBtnUI() {
     if (playIcon) {
         playIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
         if (window.lucide) window.lucide.createIcons();
+    }
+}
+
+/**
+ * Gerencia a abertura e as ações do Modal de Compartilhamento do Timelapse.
+ */
+function setupTimelapseShareModal() {
+    const shareBtn = document.getElementById('btn-share-timelapse');
+    const shareModal = document.getElementById('share-modal');
+    const shareModalBox = document.getElementById('share-modal-box');
+    const closeShareBtn = document.getElementById('close-share-modal-btn');
+    const shareLinkInput = document.getElementById('share-link-input');
+    const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
+    const toggleQrBtn = document.getElementById('toggle-qr-btn');
+    const shareQrSection = document.getElementById('share-qr-section');
+    const shareQrImg = document.getElementById('share-qr-img');
+    const shareNativeBtn = document.getElementById('share-native-btn');
+
+    const getTimelapseTitle = () => {
+        const titleEl = document.getElementById('player-camera-title');
+        return titleEl ? `Timelapse 24h: ${titleEl.textContent.trim()}` : 'Timelapse 24h — Câmeras Rio Branco';
+    };
+
+    const getTimelapseUrl = () => {
+        const cam = currentCameraCode || '001426';
+        return `${location.origin}/timelapses?cam=${encodeURIComponent(cam)}`;
+    };
+
+    const openShareModal = () => {
+        const baseUrl = getTimelapseUrl();
+        const trackedUrl = window.CamRBShare ? window.CamRBShare.buildUrl(baseUrl, { source: 'share_link', medium: 'clipboard', campaign: 'timelapse_live' }) : baseUrl;
+
+        if (shareLinkInput) shareLinkInput.value = trackedUrl;
+
+        if (shareQrImg && window.CamRBShare) {
+            shareQrImg.src = window.CamRBShare.getQrCodeUrl(baseUrl, 320);
+        }
+
+        if (shareModal) {
+            shareModal.classList.remove('hidden');
+            setTimeout(() => {
+                shareModal.classList.remove('opacity-0');
+                shareModalBox?.classList.remove('scale-95');
+                shareModalBox?.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    const closeShareModal = () => {
+        if (!shareModal) return;
+        shareModal.classList.add('opacity-0');
+        shareModalBox?.classList.remove('scale-100');
+        shareModalBox?.classList.add('scale-95');
+        setTimeout(() => {
+            shareModal.classList.add('hidden');
+            if (shareQrSection) shareQrSection.classList.add('hidden');
+        }, 200);
+    };
+
+    if (shareBtn) shareBtn.onclick = openShareModal;
+    if (closeShareBtn) closeShareBtn.onclick = closeShareModal;
+    if (shareModal) {
+        shareModal.onclick = (e) => {
+            if (e.target === shareModal) closeShareModal();
+        };
+    }
+
+    if (toggleQrBtn && shareQrSection) {
+        toggleQrBtn.onclick = () => {
+            const isHidden = shareQrSection.classList.contains('hidden');
+            if (isHidden) {
+                shareQrSection.classList.remove('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ocultar QR Code';
+            } else {
+                shareQrSection.classList.add('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ver QR Code';
+            }
+        };
+    }
+
+    if (shareNativeBtn) {
+        shareNativeBtn.onclick = async () => {
+            const title = getTimelapseTitle();
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                const shared = await window.CamRBShare.nativeShare({
+                    title: `${title} - Câmeras Rio Branco`,
+                    text: 'Assista ao timelapse de 24 horas em alta velocidade:',
+                    url: baseUrl,
+                    campaign: 'timelapse_live'
+                });
+                if (shared) closeShareModal();
+            }
+        };
+    }
+
+    if (copyShareLinkBtn) {
+        copyShareLinkBtn.onclick = async () => {
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                await window.CamRBShare.copyLink(baseUrl, {
+                    campaign: 'timelapse_live',
+                    buttonEl: copyShareLinkBtn,
+                    toastMsg: 'Link do Timelapse copiado!'
+                });
+            } else {
+                try {
+                    await navigator.clipboard.writeText(baseUrl);
+                    window.showToast?.('Link copiado!');
+                } catch (_) {}
+            }
+        };
+    }
+
+    const shareWhatsApp = document.getElementById('share-whatsapp-btn');
+    if (shareWhatsApp) {
+        shareWhatsApp.onclick = () => {
+            const title = getTimelapseTitle();
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toWhatsApp({ title, url: baseUrl, campaign: 'timelapse_live' });
+            } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareTelegram = document.getElementById('share-telegram-btn');
+    if (shareTelegram) {
+        shareTelegram.onclick = () => {
+            const title = getTimelapseTitle();
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toTelegram({ title, url: baseUrl, campaign: 'timelapse_live' });
+            } else {
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareTwitter = document.getElementById('share-twitter-btn');
+    if (shareTwitter) {
+        shareTwitter.onclick = () => {
+            const title = getTimelapseTitle();
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toTwitter({ title, url: baseUrl, campaign: 'timelapse_live' });
+            } else {
+                window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareFacebook = document.getElementById('share-facebook-btn');
+    if (shareFacebook) {
+        shareFacebook.onclick = () => {
+            const baseUrl = getTimelapseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toFacebook({ url: baseUrl, campaign: 'timelapse_live' });
+            } else {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
     }
 }

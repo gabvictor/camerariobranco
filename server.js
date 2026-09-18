@@ -922,10 +922,11 @@ app.get('/embed/:id', (req, res) => {
 // ─── Clean URL Routes Administrativas (Protegidas no Servidor) ────────────────
 const adminPage = (file) => (req, res) => res.sendFile(path.join(ADMIN_VIEWS_FOLDER, file));
 app.get('/admin', verifyAdminPageSession, adminPage('admin.html'));
+app.get('/admin/origens', verifyAdminPageSession, adminPage('origens.html'));
 app.get('/admin/monitor', verifyAdminPageSession, adminPage('monitor.html'));
 app.get('/admin/resources', (req, res) => res.redirect(301, '/admin/monitor'));
 app.get('/admin/logs', verifyAdminPageSession, adminPage('logs.html'));
-app.get('/admin/suggestions', verifyAdminPageSession, adminPage('suggestions.html'));
+app.get('/admin/suggestions', (req, res) => res.redirect(301, '/admin/origens'));
 app.get('/admin/reports', verifyAdminPageSession, adminPage('reports.html'));
 app.get('/admin/comments', verifyAdminPageSession, adminPage('comments.html'));
 app.get('/admin/comments/:cameraId', verifyAdminPageSession, adminPage('comments.html'));

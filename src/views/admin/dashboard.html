@@ -140,6 +140,9 @@
                 <a href="/dashboard" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
+                <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
+                </a>
                 <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
                 </a>
@@ -151,9 +154,6 @@
                 </a>
                 <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
-                </a>
-                <a href="/admin/suggestions" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="inbox" class="w-4 h-4"></i> Sugestões
                 </a>
                 <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
@@ -252,16 +252,16 @@
                 </div>
             </div>
 
-            <!-- Painel de Operações Rápidas & Saúde do Sistema -->
+            <!-- Painel de Módulos Administrativos & Acesso Rápido -->
             <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div class="flex items-center gap-2.5">
                         <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                            <i data-lucide="zap" class="w-4 h-4"></i>
+                            <i data-lucide="layout-grid" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Operações Rápidas & Subsistemas</h2>
-                            <p class="text-xs text-gray-400">Ações imediatas de manutenção, varredura de câmeras e status operacional</p>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Módulos Administrativos do Sistema</h2>
+                            <p class="text-xs text-gray-400">Acesse diretamente qualquer subsistema ou recurso de gestão da plataforma</p>
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-2" id="subsystem-pills">
@@ -276,55 +276,100 @@
                     </div>
                 </div>
 
-                <!-- Botões de Ação Rápida -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <button id="quick-trigger-scan-btn" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-indigo-300 dark:hover:border-indigo-800/80 rounded-2xl transition-all active:scale-95 group cursor-pointer">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                <!-- Grid de Módulos Administrativos -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <!-- 1. Origens de Tráfego -->
+                    <a href="/admin/origens" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-indigo-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="compass" class="w-5 h-5"></i>
                         </div>
-                        <span class="text-xs font-bold">Varredura</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">Forçar agora</span>
-                    </button>
-
-                    <button id="quick-clear-cache-btn" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-emerald-300 dark:hover:border-emerald-800/80 rounded-2xl transition-all active:scale-95 group cursor-pointer">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="database" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Origens de Tráfego</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Fontes, GeoIP & UTMs</p>
                         </div>
-                        <span class="text-xs font-bold">Cache BD</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">Recarregar</span>
-                    </button>
-
-                    <button id="quick-snapshot-btn" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-blue-300 dark:hover:border-blue-800/80 rounded-2xl transition-all active:scale-95 group cursor-pointer">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="camera" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <span class="text-xs font-bold">Snapshot</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">Capturar todas</span>
-                    </button>
-
-                    <a href="/admin/monitor" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-purple-300 dark:hover:border-purple-800/80 rounded-2xl transition-all active:scale-95 group">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="activity" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
-                        </div>
-                        <span class="text-xs font-bold">NOC Realtime</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">CPU, RAM & Streams</span>
                     </a>
 
-                    <a href="/admin" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-amber-300 dark:hover:border-amber-800/80 rounded-2xl transition-all active:scale-95 group">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="video" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                    <!-- 2. Monitoramento NOC -->
+                    <a href="/admin/monitor" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-purple-300 dark:hover:border-purple-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-purple-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
                         </div>
-                        <span class="text-xs font-bold">Câmeras</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">Editar & Config</span>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Monitoramento NOC</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">CPU, RAM & Infraestrutura</p>
+                        </div>
                     </a>
 
-                    <a href="/admin/logs" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-gray-700 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 border border-gray-200/80 dark:border-gray-700/60 hover:border-rose-300 dark:hover:border-rose-800/80 rounded-2xl transition-all active:scale-95 group">
-                        <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs group-hover:scale-110 transition-transform mb-2">
-                            <i data-lucide="terminal" class="w-4 h-4 text-rose-600 dark:text-rose-400"></i>
+                    <!-- 3. Câmeras & Config -->
+                    <a href="/admin" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-amber-300 dark:hover:border-amber-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-amber-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="video" class="w-5 h-5"></i>
                         </div>
-                        <span class="text-xs font-bold">Logs Servidor</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5">Event stream</span>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Câmeras & Config</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Cadastro & Parâmetros</p>
+                        </div>
                     </a>
+
+                    <!-- 4. Análise de Câmeras -->
+                    <a href="/admin/analise-cameras" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-sky-300 dark:hover:border-sky-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-sky-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">Análise de Câmeras</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Transmissões & Qualidade</p>
+                        </div>
+                    </a>
+
+                    <!-- 5. Logs do Servidor -->
+                    <a href="/admin/logs" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-rose-300 dark:hover:border-rose-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-rose-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="terminal" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Logs do Servidor</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Event Stream em Tempo Real</p>
+                        </div>
+                    </a>
+
+                    <!-- 6. Reportes de Usuários -->
+                    <a href="/admin/reports" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-orange-300 dark:hover:border-orange-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-orange-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Reportes</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Chamados de Usuários</p>
+                        </div>
+                    </a>
+
+                    <!-- 7. Moderação de Comentários -->
+                    <a href="/admin/comments" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-emerald-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                            <i data-lucide="message-square" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Comentários</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Moderação & Mensagens</p>
+                        </div>
+                    </a>
+
+                    <!-- 8. Operações Rápidas Inline -->
+                    <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60">
+                        <button id="quick-trigger-scan-btn" title="Forçar Varredura" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span class="text-[10px]">Varredura</span>
+                        </button>
+                        <button id="quick-clear-cache-btn" title="Recarregar Cache" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                            <span class="text-[10px]">Cache BD</span>
+                        </button>
+                        <button id="quick-snapshot-btn" title="Capturar Snapshots" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                            <span class="text-[10px]">Snapshots</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -362,6 +407,184 @@
                     <!-- Gráfico Donut de Categorias -->
                     <div class="relative h-64 flex items-center justify-center">
                         <canvas id="categories-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🛰️ Seção: Monitoramento de Origens & Fontes de Tráfego -->
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
+                <!-- Header com Controles -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-xs">
+                            <i data-lucide="compass" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Origens de Tráfego & Audiência</h2>
+                                <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                                    Telemetria
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Rastreamento de onde cada visitante vem (Redes Sociais, Busca, Portais do Acre, UTMs), cidades e dispositivos.</p>
+                        </div>
+                    </div>
+
+                    <!-- Filtro Hoje vs Total & Refresh -->
+                    <div class="flex items-center gap-2">
+                        <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800/80 rounded-2xl border border-gray-200/80 dark:border-gray-700/60 text-xs font-semibold">
+                            <button id="btn-period-today" class="px-3 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs">
+                                Hoje
+                            </button>
+                            <button id="btn-period-total" class="px-3 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                                Todo o Período
+                            </button>
+                        </div>
+                        <button id="refresh-origins-btn" title="Atualizar dados de tráfego" class="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-all active:scale-95">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI Cards de Origens & Perfil -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- KPI 1: Principal Canal -->
+                    <div class="bg-gray-50/80 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Canal Principal</span>
+                            <h4 id="kpi-top-channel" class="text-lg font-black text-gray-900 dark:text-white mt-0.5 truncate max-w-[170px]">Carregando...</h4>
+                            <p id="kpi-top-channel-sub" class="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">0 visitas</p>
+                        </div>
+                        <div class="p-3 bg-indigo-100/60 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                            <i data-lucide="share-2" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Cidade / Localização Principal -->
+                    <div class="bg-gray-50/80 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Cidade Predominante</span>
+                            <h4 id="kpi-top-city" class="text-lg font-black text-gray-900 dark:text-white mt-0.5 truncate max-w-[170px]">Carregando...</h4>
+                            <p id="kpi-top-city-sub" class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Acre (AC)</p>
+                        </div>
+                        <div class="p-3 bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Mobile vs Desktop -->
+                    <div class="bg-gray-50/80 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Acesso por Celular</span>
+                            <h4 id="kpi-mobile-share" class="text-lg font-black text-gray-900 dark:text-white mt-0.5">--%</h4>
+                            <p id="kpi-mobile-share-sub" class="text-[11px] font-medium text-blue-600 dark:text-blue-400">Mobile vs Desktop</p>
+                        </div>
+                        <div class="p-3 bg-blue-100/60 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-2xl">
+                            <i data-lucide="smartphone" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Tráfego Direto vs Social -->
+                    <div class="bg-gray-50/80 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Acessos Diretos / Apps</span>
+                            <h4 id="kpi-direct-share" class="text-lg font-black text-gray-900 dark:text-white mt-0.5">--%</h4>
+                            <p id="kpi-direct-share-sub" class="text-[11px] font-medium text-amber-600 dark:text-amber-400">Sem intermediários</p>
+                        </div>
+                        <div class="p-3 bg-amber-100/60 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-2xl">
+                            <i data-lucide="globe" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos e Rankings de Origens -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start pt-2">
+                    <!-- Coluna 1: Gráfico Donut de Canais de Aquisição -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Canais de Aquisição (Proporção)</h3>
+                            <span class="text-xs font-mono text-gray-400" id="origins-chart-total-label">0 visitas</span>
+                        </div>
+                        <div class="relative h-64 flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl p-3 border border-gray-100 dark:border-gray-800">
+                            <canvas id="origins-donut-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 2: Lista Top Fontes & Referrers Detalhados -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Top Fontes Detalhadas</h3>
+                            <span class="text-xs text-gray-400">Classificação</span>
+                        </div>
+                        <div id="top-sources-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                            <div class="animate-pulse space-y-2">
+                                <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                                <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                                <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Grid: Cidades/Estados + Dispositivos/Navegadores -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <!-- Localização Geográfica -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500"></i>
+                            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Distribuição por Cidades & Estados</h3>
+                        </div>
+                        <div id="geo-distribution-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                            <div class="animate-pulse space-y-2">
+                                <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                                <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dispositivos & Navegadores -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4 text-blue-500"></i>
+                            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Plataformas, Navegadores & SO</h3>
+                        </div>
+                        <div id="device-distribution-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                            <div class="animate-pulse space-y-2">
+                                <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                                <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed em Tempo Real dos Últimos Visitantes -->
+                <div class="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Feed ao Vivo dos Últimos Visitantes</h3>
+                        </div>
+                        <span class="text-[11px] text-gray-400 font-mono" id="recent-visits-count">Exibindo registros recentes</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <table class="w-full text-xs text-left">
+                            <thead>
+                                <tr class="bg-gray-50/75 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 uppercase font-mono tracking-wider border-b border-gray-100 dark:border-gray-800">
+                                    <th scope="col" class="py-3 px-4">Horário (AC)</th>
+                                    <th scope="col" class="py-3 px-4">Origem / Canal</th>
+                                    <th scope="col" class="py-3 px-4">Localização (GeoIP)</th>
+                                    <th scope="col" class="py-3 px-4">Dispositivo & SO</th>
+                                    <th scope="col" class="py-3 px-4">Página de Entrada</th>
+                                    <th scope="col" class="py-3 px-4">IP (LGPD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-visitors-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-300">
+                                <tr>
+                                    <td colspan="6" class="text-center py-6 text-gray-400">Carregando telemetria em tempo real...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -881,8 +1104,10 @@
                         tableBody.appendChild(row);
                     });
 
+                    cachedOriginsStats = stats;
                     renderChart(stats.signupsByDay);
                     renderCategoryChart(stats.categoryData);
+                    renderOriginsSection(stats.origins, stats.viewsToday, stats.totalViews);
 
                 } catch (error) {
                     console.error("Falha ao carregar estatísticas:", error);
@@ -904,6 +1129,358 @@
                     document.getElementById('views-total-loader').style.display = 'none';
                     document.getElementById('views-total-stat').style.display = 'block';
                 }
+            }
+
+            let currentOriginsPeriod = 'today';
+            let cachedOriginsStats = null;
+
+            function setupOriginsControls() {
+                const btnToday = document.getElementById('btn-period-today');
+                const btnTotal = document.getElementById('btn-period-total');
+                const btnRefresh = document.getElementById('refresh-origins-btn');
+
+                btnToday?.addEventListener('click', () => {
+                    if (currentOriginsPeriod === 'today') return;
+                    currentOriginsPeriod = 'today';
+                    btnToday.className = 'px-3 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs';
+                    btnTotal.className = 'px-3 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                    if (cachedOriginsStats) {
+                        renderOriginsSection(cachedOriginsStats.origins, cachedOriginsStats.viewsToday, cachedOriginsStats.totalViews);
+                    }
+                });
+
+                btnTotal?.addEventListener('click', () => {
+                    if (currentOriginsPeriod === 'total') return;
+                    currentOriginsPeriod = 'total';
+                    btnTotal.className = 'px-3 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs';
+                    btnToday.className = 'px-3 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                    if (cachedOriginsStats) {
+                        renderOriginsSection(cachedOriginsStats.origins, cachedOriginsStats.viewsToday, cachedOriginsStats.totalViews);
+                    }
+                });
+
+                btnRefresh?.addEventListener('click', () => {
+                    const icon = btnRefresh.querySelector('i');
+                    if (icon) icon.classList.add('animate-spin');
+                    loadStats().finally(() => {
+                        if (icon) icon.classList.remove('animate-spin');
+                    });
+                });
+            }
+
+            function renderOriginsSection(origins = {}, viewsToday = 0, viewsTotal = 0) {
+                if (!origins) return;
+
+                const escapeHtml = (value = '') => String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+
+                const isToday = currentOriginsPeriod === 'today';
+                const totalViews = isToday ? (viewsToday || 1) : (viewsTotal || 1);
+
+                const sources = isToday ? (origins.sourcesToday || {}) : (origins.sourcesTotal || {});
+                const categories = isToday ? (origins.categoriesToday || {}) : (origins.categoriesTotal || {});
+                const cities = isToday ? (origins.citiesToday || {}) : (origins.citiesTotal || {});
+                const regions = isToday ? (origins.regionsToday || {}) : (origins.regionsTotal || {});
+                const devices = isToday ? (origins.devicesToday || {}) : (origins.devicesTotal || {});
+                const browsers = isToday ? (origins.browsersToday || {}) : (origins.browsersTotal || {});
+                const recentVisits = origins.recentVisits || [];
+
+                // 1. KPI: Canal Principal
+                const sortedCategories = Object.entries(categories).sort(([, a], [, b]) => b - a);
+                const topCategory = sortedCategories.length > 0 ? sortedCategories[0] : ['Acesso Direto', totalViews];
+                const topCategoryPercent = Math.round((topCategory[1] / totalViews) * 100) || 0;
+                
+                const kpiTopChannel = document.getElementById('kpi-top-channel');
+                const kpiTopChannelSub = document.getElementById('kpi-top-channel-sub');
+                if (kpiTopChannel) kpiTopChannel.textContent = topCategory[0];
+                if (kpiTopChannelSub) kpiTopChannelSub.textContent = `${topCategory[1]} visitas (${topCategoryPercent}%)`;
+
+                // 2. KPI: Cidade Predominante
+                const sortedCities = Object.entries(cities).sort(([, a], [, b]) => b - a);
+                const topCity = sortedCities.length > 0 ? sortedCities[0] : ['Rio Branco', totalViews];
+                const topCityPercent = Math.round((topCity[1] / totalViews) * 100) || 0;
+                
+                const kpiTopCity = document.getElementById('kpi-top-city');
+                const kpiTopCitySub = document.getElementById('kpi-top-city-sub');
+                if (kpiTopCity) kpiTopCity.textContent = topCity[0];
+                if (kpiTopCitySub) kpiTopCitySub.textContent = `${topCity[1]} acessos (${topCityPercent}%)`;
+
+                // 3. KPI: Mobile vs Desktop
+                const mobileCount = (devices['Mobile'] || 0) + (devices['Tablet'] || 0);
+                const desktopCount = devices['Desktop'] || 0;
+                const totalDeviceCount = mobileCount + desktopCount || 1;
+                const mobilePercent = Math.round((mobileCount / totalDeviceCount) * 100) || 0;
+
+                const kpiMobileShare = document.getElementById('kpi-mobile-share');
+                const kpiMobileShareSub = document.getElementById('kpi-mobile-share-sub');
+                if (kpiMobileShare) kpiMobileShare.textContent = `${mobilePercent}%`;
+                if (kpiMobileShareSub) kpiMobileShareSub.textContent = `${mobileCount} celular / ${desktopCount} PC`;
+
+                // 4. KPI: Acessos Diretos / Apps
+                const directCount = sources['Acesso Direto'] || categories['Acesso Direto'] || 0;
+                const directPercent = Math.round((directCount / totalViews) * 100) || 0;
+
+                const kpiDirectShare = document.getElementById('kpi-direct-share');
+                const kpiDirectShareSub = document.getElementById('kpi-direct-share-sub');
+                if (kpiDirectShare) kpiDirectShare.textContent = `${directPercent}%`;
+                if (kpiDirectShareSub) kpiDirectShareSub.textContent = `${directCount} visitas sem referrer`;
+
+                // 5. Gráfico Donut de Canais
+                const originsChartTotalLabel = document.getElementById('origins-chart-total-label');
+                if (originsChartTotalLabel) {
+                    originsChartTotalLabel.textContent = `${isToday ? viewsToday : viewsTotal} visitas computadas`;
+                }
+                renderOriginsDonutChart(categories);
+
+                // 6. Lista de Top Fontes Detalhadas
+                const topSourcesList = document.getElementById('top-sources-list');
+                if (topSourcesList) {
+                    topSourcesList.innerHTML = '';
+                    const sortedSources = Object.entries(sources).sort(([, a], [, b]) => b - a);
+
+                    if (sortedSources.length > 0) {
+                        sortedSources.forEach(([srcName, count], idx) => {
+                            const percent = Math.round((count / totalViews) * 100) || 0;
+                            
+                            let iconName = 'globe';
+                            let iconBg = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
+                            const lower = srcName.toLowerCase();
+                            if (lower.includes('google')) {
+                                iconName = 'search';
+                                iconBg = 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400';
+                            } else if (lower.includes('insta')) {
+                                iconName = 'instagram';
+                                iconBg = 'bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400';
+                            } else if (lower.includes('whats')) {
+                                iconName = 'message-circle';
+                                iconBg = 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400';
+                            } else if (lower.includes('face')) {
+                                iconName = 'facebook';
+                                iconBg = 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400';
+                            } else if (lower.includes('ac24horas') || lower.includes('contilnet') || lower.includes('notícia') || lower.includes('globo') || lower.includes('g1') || lower.includes('gazeta')) {
+                                iconName = 'newspaper';
+                                iconBg = 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400';
+                            }
+
+                            const item = document.createElement('div');
+                            item.className = 'p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex items-center justify-between gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors';
+                            item.innerHTML = `
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="text-xs font-bold text-gray-400 font-mono w-4">#${idx + 1}</span>
+                                    <div class="p-2 rounded-xl ${iconBg} shrink-0">
+                                        <i data-lucide="${iconName}" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div class="truncate">
+                                        <p class="text-xs font-bold text-gray-900 dark:text-white truncate">${escapeHtml(srcName)}</p>
+                                        <p class="text-[10px] text-gray-500 font-medium">${count} acessos</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500 rounded-full" style="width: ${percent}%"></div>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 font-mono w-9 text-right">${percent}%</span>
+                                </div>
+                            `;
+                            topSourcesList.appendChild(item);
+                        });
+                    } else {
+                        topSourcesList.innerHTML = '<p class="text-xs text-gray-400 py-4 text-center">Nenhum registro de fonte ainda para este período.</p>';
+                    }
+                }
+
+                // 7. Lista de Cidades & Estados
+                const geoList = document.getElementById('geo-distribution-list');
+                if (geoList) {
+                    geoList.innerHTML = '';
+                    if (sortedCities.length > 0) {
+                        sortedCities.slice(0, 5).forEach(([city, count]) => {
+                            const percent = Math.round((count / totalViews) * 100) || 0;
+                            const isAcre = city.toLowerCase().includes('rio branco') || city.toLowerCase().includes('acre');
+                            const item = document.createElement('div');
+                            item.className = 'p-2.5 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
+                            item.innerHTML = `
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full ${isAcre ? 'bg-emerald-500' : 'bg-indigo-500'}"></span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-200 truncate">${escapeHtml(city)}</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                    <span>${count} views</span>
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">(${percent}%)</span>
+                                </div>
+                            `;
+                            geoList.appendChild(item);
+                        });
+                    } else {
+                        geoList.innerHTML = '<p class="text-xs text-gray-400 py-2 text-center">Aguardando novos acessos...</p>';
+                    }
+                }
+
+                // 8. Lista de Dispositivos & Navegadores
+                const deviceList = document.getElementById('device-distribution-list');
+                if (deviceList) {
+                    deviceList.innerHTML = '';
+                    const sortedBrowsers = Object.entries(browsers).sort(([, a], [, b]) => b - a);
+                    
+                    const rows = [
+                        { label: 'Celulares / Tablets', count: mobileCount, percent: mobilePercent, icon: 'smartphone', color: 'bg-emerald-500' },
+                        { label: 'Computadores (Desktop)', count: desktopCount, percent: 100 - mobilePercent, icon: 'monitor', color: 'bg-blue-500' }
+                    ];
+
+                    if (sortedBrowsers.length > 0) {
+                        const topBrowser = sortedBrowsers[0];
+                        const bPercent = Math.round((topBrowser[1] / totalViews) * 100) || 0;
+                        rows.push({ label: `Navegador: ${topBrowser[0]}`, count: topBrowser[1], percent: bPercent, icon: 'chrome', color: 'bg-indigo-500' });
+                    }
+
+                    rows.forEach(r => {
+                        const item = document.createElement('div');
+                        item.className = 'p-2.5 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
+                        item.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="${r.icon}" class="w-3.5 h-3.5 text-gray-500"></i>
+                                <span class="font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(r.label)}</span>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                <span>${r.count}</span>
+                                <span class="font-bold text-gray-700 dark:text-gray-300">(${r.percent}%)</span>
+                            </div>
+                        `;
+                        deviceList.appendChild(item);
+                    });
+                }
+
+                // 9. Tabela de Visitantes Recentes
+                const visitorsTableBody = document.getElementById('recent-visitors-table-body');
+                const recentVisitsCount = document.getElementById('recent-visits-count');
+                if (visitorsTableBody) {
+                    visitorsTableBody.innerHTML = '';
+                    if (recentVisits && recentVisits.length > 0) {
+                        if (recentVisitsCount) recentVisitsCount.textContent = `${recentVisits.length} acessos registrados`;
+                        recentVisits.forEach(v => {
+                            const row = document.createElement('tr');
+                            row.className = 'bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 text-xs';
+                            
+                            let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                            const lowerSrc = (v.source || '').toLowerCase();
+                            if (lowerSrc.includes('google')) {
+                                badgeClass = 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60';
+                            } else if (lowerSrc.includes('insta')) {
+                                badgeClass = 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/60 dark:border-pink-800/60';
+                            } else if (lowerSrc.includes('whats')) {
+                                badgeClass = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60';
+                            } else if (lowerSrc.includes('face')) {
+                                badgeClass = 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60';
+                            } else if (lowerSrc.includes('ac24horas') || lowerSrc.includes('notícia') || lowerSrc.includes('contilnet') || lowerSrc.includes('gazeta')) {
+                                badgeClass = 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60';
+                            }
+
+                            const safeTime = escapeHtml(v.timeStr || '--:--');
+                            const safeSource = escapeHtml(v.source || 'Acesso Direto');
+                            const safeLocation = escapeHtml(`${v.city || 'Rio Branco'}, ${v.region || 'AC'}`);
+                            const safeDevice = escapeHtml(`${v.device || 'Mobile'} • ${v.os || 'Android'}`);
+                            const safePath = escapeHtml(v.path || '/');
+                            const safeIp = escapeHtml(v.ipMasked || '***.***.***.***');
+
+                            row.innerHTML = `
+                                <td class="py-3 px-4 font-mono font-medium text-gray-500 whitespace-nowrap">${safeTime}</td>
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${badgeClass}">
+                                        <i data-lucide="${v.icon || 'globe'}" class="w-3 h-3"></i>
+                                        ${safeSource}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>${safeLocation}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="${(v.device === 'Desktop') ? 'monitor' : 'smartphone'}" class="w-3.5 h-3.5 text-gray-400"></i>
+                                        <span>${safeDevice}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-indigo-600 dark:text-indigo-400 max-w-[140px] truncate" title="${safePath}">
+                                    ${safePath}
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap font-mono text-gray-400 text-[11px]">${safeIp}</td>
+                            `;
+                            visitorsTableBody.appendChild(row);
+                        });
+                    } else {
+                        if (recentVisitsCount) recentVisitsCount.textContent = '0 registros';
+                        visitorsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Nenhuma visita recente registrada ainda hoje.</td></tr>';
+                    }
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            function renderOriginsDonutChart(categories = {}) {
+                const ctx = document.getElementById('origins-donut-chart')?.getContext('2d');
+                if (!ctx) return;
+
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                if (window.myOriginsChart) {
+                    window.myOriginsChart.destroy();
+                }
+
+                const labels = Object.keys(categories);
+                const values = Object.values(categories);
+
+                if (labels.length === 0) {
+                    labels.push('Acesso Direto');
+                    values.push(1);
+                }
+
+                const colorMap = {
+                    'Redes Sociais': '#E1306C',
+                    'Busca Orgânica': '#4285F4',
+                    'Acesso Direto': '#10B981',
+                    'Portais de Notícias': '#F59E0B',
+                    'Mensageiros': '#25D366',
+                    'Campanhas / UTM': '#8B5CF6',
+                    'Governo & Institucional': '#06B6D4',
+                    'Outros Sites': '#64748B'
+                };
+
+                const backgroundColors = labels.map(l => colorMap[l] || '#6366F1');
+
+                window.myOriginsChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: textColor,
+                                    boxWidth: 10,
+                                    padding: 10,
+                                    font: { size: 10 }
+                                }
+                            }
+                        },
+                        cutout: '72%'
+                    }
+                });
             }
 
             function renderChart(data) {
@@ -1330,6 +1907,7 @@
             setupQuickOperations();
             setupDashboardStreamSpeedControls();
             setupDashboardTimelapseControls();
+            setupOriginsControls();
             loadStats();
             
             // Auto refresh stats every 30s

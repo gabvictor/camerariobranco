@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Configuração do Modal de Compartilhamento do Nível do Rio
+    setupRioShareModal();
+
     // Smooth Live Cameras Refresh with Preloader (Zero Flicker)
     function refreshCamera(imgId, code, btn) {
         const img = document.getElementById(imgId);
@@ -621,5 +624,164 @@ async function fetchRioTelemetry() {
         if (window.lucide) window.lucide.createIcons();
     } catch (e) {
         console.warn('Erro ao atualizar telemetria do rio:', e);
+    }
+}
+
+/**
+ * Gerencia a abertura e as ações do Modal de Compartilhamento do Nível do Rio.
+ */
+function setupRioShareModal() {
+    const shareBtn = document.getElementById('btn-share-rio');
+    const shareModal = document.getElementById('share-modal');
+    const shareModalBox = document.getElementById('share-modal-box');
+    const closeShareBtn = document.getElementById('close-share-modal-btn');
+    const shareLinkInput = document.getElementById('share-link-input');
+    const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
+    const toggleQrBtn = document.getElementById('toggle-qr-btn');
+    const shareQrSection = document.getElementById('share-qr-section');
+    const shareQrImg = document.getElementById('share-qr-img');
+    const shareNativeBtn = document.getElementById('share-native-btn');
+
+    const getRioTitle = () => {
+        const nivelEl = document.getElementById('rio-nivel-grande');
+        const nivelText = nivelEl && nivelEl.textContent !== '--' ? ` (${nivelEl.textContent})` : '';
+        return `Nível do Rio Acre ao Vivo${nivelText} — Ponte Metálica`;
+    };
+
+    const openShareModal = () => {
+        const baseUrl = `${location.origin}/rio`;
+        const trackedUrl = window.CamRBShare ? window.CamRBShare.buildUrl(baseUrl, { source: 'share_link', medium: 'clipboard', campaign: 'rio_live' }) : baseUrl;
+
+        if (shareLinkInput) shareLinkInput.value = trackedUrl;
+
+        if (shareQrImg && window.CamRBShare) {
+            shareQrImg.src = window.CamRBShare.getQrCodeUrl(baseUrl, 320);
+        }
+
+        if (shareModal) {
+            shareModal.classList.remove('hidden');
+            setTimeout(() => {
+                shareModal.classList.remove('opacity-0');
+                shareModalBox?.classList.remove('scale-95');
+                shareModalBox?.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    const closeShareModal = () => {
+        if (!shareModal) return;
+        shareModal.classList.add('opacity-0');
+        shareModalBox?.classList.remove('scale-100');
+        shareModalBox?.classList.add('scale-95');
+        setTimeout(() => {
+            shareModal.classList.add('hidden');
+            if (shareQrSection) shareQrSection.classList.add('hidden');
+        }, 200);
+    };
+
+    if (shareBtn) shareBtn.onclick = openShareModal;
+    if (closeShareBtn) closeShareBtn.onclick = closeShareModal;
+    if (shareModal) {
+        shareModal.onclick = (e) => {
+            if (e.target === shareModal) closeShareModal();
+        };
+    }
+
+    if (toggleQrBtn && shareQrSection) {
+        toggleQrBtn.onclick = () => {
+            const isHidden = shareQrSection.classList.contains('hidden');
+            if (isHidden) {
+                shareQrSection.classList.remove('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ocultar QR Code';
+            } else {
+                shareQrSection.classList.add('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ver QR Code';
+            }
+        };
+    }
+
+    if (shareNativeBtn) {
+        shareNativeBtn.onclick = async () => {
+            const title = getRioTitle();
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                const shared = await window.CamRBShare.nativeShare({
+                    title: `${title} - Câmeras Rio Branco`,
+                    text: 'Acompanhe a telemetria oficial do Rio Acre em tempo real:',
+                    url: baseUrl,
+                    campaign: 'rio_live'
+                });
+                if (shared) closeShareModal();
+            }
+        };
+    }
+
+    if (copyShareLinkBtn) {
+        copyShareLinkBtn.onclick = async () => {
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                await window.CamRBShare.copyLink(baseUrl, {
+                    campaign: 'rio_live',
+                    buttonEl: copyShareLinkBtn,
+                    toastMsg: 'Link da telemetria do Rio Acre copiado!'
+                });
+            } else {
+                try {
+                    await navigator.clipboard.writeText(baseUrl);
+                    window.showToast?.('Link copiado!');
+                } catch (_) {}
+            }
+        };
+    }
+
+    const shareWhatsApp = document.getElementById('share-whatsapp-btn');
+    if (shareWhatsApp) {
+        shareWhatsApp.onclick = () => {
+            const title = getRioTitle();
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                window.CamRBShare.toWhatsApp({ title, url: baseUrl, campaign: 'rio_live' });
+            } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareTelegram = document.getElementById('share-telegram-btn');
+    if (shareTelegram) {
+        shareTelegram.onclick = () => {
+            const title = getRioTitle();
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                window.CamRBShare.toTelegram({ title, url: baseUrl, campaign: 'rio_live' });
+            } else {
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareTwitter = document.getElementById('share-twitter-btn');
+    if (shareTwitter) {
+        shareTwitter.onclick = () => {
+            const title = getRioTitle();
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                window.CamRBShare.toTwitter({ title, url: baseUrl, campaign: 'rio_live' });
+            } else {
+                window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
+    }
+
+    const shareFacebook = document.getElementById('share-facebook-btn');
+    if (shareFacebook) {
+        shareFacebook.onclick = () => {
+            const baseUrl = `${location.origin}/rio`;
+            if (window.CamRBShare) {
+                window.CamRBShare.toFacebook({ url: baseUrl, campaign: 'rio_live' });
+            } else {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
+        };
     }
 }

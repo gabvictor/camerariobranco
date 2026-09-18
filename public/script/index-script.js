@@ -23,11 +23,7 @@ const showToast = (message, type = 'success', duration = 3200) => {
 fetchWeather();
 initGlobalAuthUI();
 
-// Track Visit (uma vez a cada 24h por visitante para economizar banco)
-if (!document.cookie.includes('camrb_visited_today=1')) {
-    fetch('/api/track-visit', { method: 'POST' })
-        .catch(err => console.error('Error tracking visit:', err));
-}
+// Rastreamento universal de tráfego inicializado automaticamente por theme.js
 
 // Check for login query param
 const params = new URLSearchParams(window.location.search);

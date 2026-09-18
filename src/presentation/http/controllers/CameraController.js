@@ -1,4 +1,5 @@
 const { sanitizeCameraCode, sanitizeString, sanitizeMultiline } = require('../../../utils/validation');
+const { extractClientIp } = require('../../../utils/geoUtils');
 /**
  * @controller CameraController
  * Apenas trata HTTP: valida request, chama use-case, formata response.
@@ -201,13 +202,39 @@ class CameraController {
     async trackVisitRoute(req, res) {
         try {
             const rawCookie = req.headers.cookie || '';
-            if (rawCookie.includes('camrb_visited_today=1')) {
+            const body = req.body || {};
+            const force = body.force === true;
+
+            if (!force && rawCookie.includes('camrb_visited_today=1')) {
                 return res.status(200).json({ status: 'already_tracked' });
             }
-            await this.trackVisit.execute();
+
+            const ip = extractClientIp(req);
+            const userAgent = req.headers['user-agent'] || '';
+            const referrer = body.referrer || req.headers['referer'] || req.headers['referrer'] || '';
+
+            const visitRecord = await this.trackVisit.execute({
+                referrer,
+                utm_source: body.utm_source,
+                utm_medium: body.utm_medium,
+                utm_campaign: body.utm_campaign,
+                path: body.path || req.originalUrl,
+                ip,
+                userAgent,
+                screenWidth: Number(body.screenWidth) || 0,
+                headers: req.headers
+            });
+
             res.setHeader('Set-Cookie', 'camrb_visited_today=1; Path=/; Max-Age=86400; SameSite=Lax');
-            res.status(200).json({ status: 'tracked' });
-        } catch { res.status(500).send(); }
+            res.status(200).json({
+                status: 'tracked',
+                origin: visitRecord.source,
+                location: `${visitRecord.city}, ${visitRecord.region}`
+            });
+        } catch (error) {
+            console.error('[TrackVisit] Erro ao registrar visita:', error);
+            res.status(500).json({ error: 'Erro ao registrar visita' });
+        }
     }
 
     /** GET /api/traffic */

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Monitoramento de Origens & Tráfego - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #content-wrapper { display: none; }
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid;
+            border-color: #4F46E5 transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Access Denied -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-800">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 text-sm">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors text-sm">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+            
+            <!-- Top Header -->
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-md shadow-indigo-600/20">
+                            <i data-lucide="compass" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                Monitoramento de Origens & Tráfego
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Rastreamento de canais de aquisição, fontes de tráfego, geolocalização e telemetria de visitantes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    <button id="toggle-theme" title="Alternar tema"
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site"
+                        class="px-3.5 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm font-semibold text-xs flex items-center gap-1.5">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair"
+                        class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Admin Navigation Tabs -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
+                </a>
+                <a href="/admin/origens" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
+                </a>
+                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
+                </a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
+                </a>
+                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
+                </a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
+                </a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
+                </a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
+                </a>
+            </nav>
+
+            <!-- Controles Superiores: Filtro de Período e Atualização -->
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-900 dark:text-white">Filtro de Telemetria de Origens</h2>
+                        <p class="text-xs text-gray-400" id="data-updated-label">Atualizado agora mesmo</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/60 text-xs font-semibold">
+                        <button id="btn-period-today" class="px-3.5 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs">
+                            Hoje
+                        </button>
+                        <button id="btn-period-total" class="px-3.5 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                            Histórico Total
+                        </button>
+                    </div>
+
+                    <button id="refresh-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refresh-icon"></i>
+                        <span>Atualizar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 6 Key Stats Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+                
+                <!-- Stat 1: Total de Visitas do Período -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Total de Visitas</span>
+                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-total-views" class="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono">--</span>
+                        <p id="stat-total-views-label" class="text-[11px] font-medium text-gray-400 mt-1">Acessos únicos</p>
+                    </div>
+                </div>
+
+                <!-- Stat 2: Principal Canal -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Canal Mais Forte</span>
+                        <div class="p-2.5 bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 rounded-2xl">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-top-channel" class="text-lg font-black text-gray-900 dark:text-white truncate block">--</span>
+                        <p id="stat-top-channel-sub" class="text-[11px] font-medium text-pink-600 dark:text-pink-400 mt-1">0% do tráfego</p>
+                    </div>
+                </div>
+
+                <!-- Stat 3: Localização Dominante -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Cidade Predominante</span>
+                        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-top-city" class="text-lg font-black text-gray-900 dark:text-white truncate block">--</span>
+                        <p id="stat-top-city-sub" class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1">Acre (AC)</p>
+                    </div>
+                </div>
+
+                <!-- Stat 4: Acesso Celular vs PC -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Acessos Celular</span>
+                        <div class="p-2.5 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl">
+                            <i data-lucide="smartphone" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-mobile-share" class="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">--%</span>
+                        <p id="stat-mobile-share-sub" class="text-[11px] font-medium text-blue-600 dark:text-blue-400 mt-1">Mobile vs PC</p>
+                    </div>
+                </div>
+
+                <!-- Stat 5: Tráfego Social & Apps -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Redes & Mensageiros</span>
+                        <div class="p-2.5 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl">
+                            <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-social-share" class="text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">--%</span>
+                        <p id="stat-social-share-sub" class="text-[11px] font-medium text-purple-600 dark:text-purple-400 mt-1">Insta, Whats, Face</p>
+                    </div>
+                </div>
+
+                <!-- Stat 6: Acessos Diretos -->
+                <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Acesso Direto</span>
+                        <div class="p-2.5 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl">
+                            <i data-lucide="globe" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="stat-direct-share" class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">--%</span>
+                        <p id="stat-direct-share-sub" class="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1">URL / Favoritos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos de Canais de Aquisição & Top Fontes Detalhadas -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Gráfico Donut de Canais de Aquisição -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                            </div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Canais de Aquisição</h2>
+                        </div>
+                        <span class="text-xs font-mono text-gray-400" id="donut-total-badge">0 visitas</span>
+                    </div>
+                    <div class="relative h-64 flex items-center justify-center">
+                        <canvas id="channels-donut-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Ranking de Top Fontes & Referrers Detalhados -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                                <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                            </div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Top Fontes & Plataformas</h2>
+                        </div>
+                        <span class="text-xs text-gray-400">Classificação</span>
+                    </div>
+                    <div id="sources-ranking-list" class="space-y-2.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="animate-pulse space-y-2.5">
+                            <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            <div class="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Geolocalização, Dispositivos e Campanhas UTM -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+                
+                <!-- Card 1: Distribuição Geográfica (Cidades & Estados) -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Origem Geográfica</h2>
+                            <p class="text-[11px] text-gray-400">Cidades & Estados de acesso</p>
+                        </div>
+                    </div>
+                    <div id="cities-ranking-list" class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="animate-pulse space-y-2">
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Dispositivos & Navegadores -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div class="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Plataformas & Tecnologias</h2>
+                            <p class="text-[11px] text-gray-400">Celulares, PCs e Navegadores</p>
+                        </div>
+                    </div>
+                    <div id="tech-ranking-list" class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="animate-pulse space-y-2">
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Campanhas UTM & Páginas de Entrada -->
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div class="p-2 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-xl">
+                            <i data-lucide="tag" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Páginas de Entrada & UTMs</h2>
+                            <p class="text-[11px] text-gray-400">Rotas e links de campanhas</p>
+                        </div>
+                    </div>
+                    <div id="pages-ranking-list" class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="animate-pulse space-y-2">
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Feed em Tempo Real dos Últimos Visitantes -->
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i data-lucide="radio" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Feed de Últimos Visitantes</h2>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-black rounded-full border border-red-200 dark:border-red-900/50">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                    AO VIVO
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-400">Registro cronológico detalhado com origem, cidade, tecnologia e conformidade LGPD</p>
+                        </div>
+                    </div>
+
+                    <!-- Campo de Busca / Filtro em Tempo Real -->
+                    <div class="relative min-w-[240px]">
+                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="filter-recent-input" placeholder="Buscar por origem, cidade..."
+                            class="w-full pl-9 pr-3.5 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="bg-gray-50/75 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 uppercase font-mono tracking-wider border-b border-gray-100 dark:border-gray-800">
+                                <th scope="col" class="py-3 px-4">Horário (AC)</th>
+                                <th scope="col" class="py-3 px-4">Origem / Canal</th>
+                                <th scope="col" class="py-3 px-4">Localização (GeoIP)</th>
+                                <th scope="col" class="py-3 px-4">Dispositivo & SO</th>
+                                <th scope="col" class="py-3 px-4">Página de Entrada</th>
+                                <th scope="col" class="py-3 px-4">IP Mascarado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-visitors-tbody" class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-300">
+                            <tr>
+                                <td colspan="6" class="text-center py-8 text-gray-400">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="loader"></div>
+                                        <p class="text-xs">Carregando telemetria ao vivo...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="global-footer"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initFooter } from '/script/footer-component.js';
+        document.addEventListener('DOMContentLoaded', initFooter);
+    </script>
+    <script type="module">
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { auth } from "/script/firebase-config.js";
+        import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
+
+        initAuthModal();
+
+        const accessDeniedEl = document.getElementById('access-denied');
+        const contentWrapperEl = document.getElementById('content-wrapper');
+        const loginTriggerBtn = document.getElementById('login-trigger');
+        const logoutBtn = document.getElementById('nav-logout-btn');
+
+        if (loginTriggerBtn) {
+            loginTriggerBtn.addEventListener('click', () => toggleLoginModal(true));
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                window.location.reload();
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            let isAdmin = false;
+            if (user) {
+                isAdmin = await syncAdminSession(user);
+            }
+
+            if (user && isAdmin) {
+                accessDeniedEl.classList.add('hidden');
+                contentWrapperEl.style.display = 'block';
+                initializeOriginsLogic(user);
+            } else if (user) {
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                accessDeniedEl.querySelector('p').textContent = "Você não tem permissão de administrador.";
+            } else {
+                contentWrapperEl.style.display = 'none';
+                accessDeniedEl.classList.remove('hidden');
+                toggleLoginModal(true);
+            }
+        });
+
+        function initializeOriginsLogic(user) {
+            let currentPeriod = 'today';
+            let cachedData = null;
+            let myDonutChart = null;
+
+            const escapeHtml = (val = '') => String(val ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const btnToday = document.getElementById('btn-period-today');
+            const btnTotal = document.getElementById('btn-period-total');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshIcon = document.getElementById('refresh-icon');
+            const filterInput = document.getElementById('filter-recent-input');
+            const updatedLabel = document.getElementById('data-updated-label');
+
+            btnToday?.addEventListener('click', () => {
+                if (currentPeriod === 'today') return;
+                currentPeriod = 'today';
+                btnToday.className = 'px-3.5 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs';
+                btnTotal.className = 'px-3.5 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                renderAll();
+            });
+
+            btnTotal?.addEventListener('click', () => {
+                if (currentPeriod === 'total') return;
+                currentPeriod = 'total';
+                btnTotal.className = 'px-3.5 py-1.5 rounded-xl transition-all duration-200 font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-xs';
+                btnToday.className = 'px-3.5 py-1.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                renderAll();
+            });
+
+            refreshBtn?.addEventListener('click', () => {
+                loadData();
+            });
+
+            filterInput?.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                renderRecentTable(query);
+            });
+
+            document.getElementById('toggle-theme')?.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                renderAll();
+            });
+
+            async function loadData() {
+                if (refreshIcon) refreshIcon.classList.add('animate-spin');
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch('/api/dashboard-data', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!res.ok) throw new Error('Falha ao carregar telemetria');
+
+                    cachedData = await res.json();
+                    if (updatedLabel) {
+                        const now = new Date();
+                        updatedLabel.textContent = `Atualizado às ${now.toLocaleTimeString('pt-BR')}`;
+                    }
+
+                    renderAll();
+                } catch (err) {
+                    console.error('Erro ao carregar dados de origens:', err);
+                } finally {
+                    if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                }
+            }
+
+            function renderAll() {
+                if (!cachedData || !cachedData.origins) return;
+                const origins = cachedData.origins;
+                const isToday = currentPeriod === 'today';
+
+                const totalViews = isToday ? (cachedData.viewsToday || 1) : (cachedData.totalViews || 1);
+                const sources = isToday ? (origins.sourcesToday || {}) : (origins.sourcesTotal || {});
+                const categories = isToday ? (origins.categoriesToday || {}) : (origins.categoriesTotal || {});
+                const cities = isToday ? (origins.citiesToday || {}) : (origins.citiesTotal || {});
+                const devices = isToday ? (origins.devicesToday || {}) : (origins.devicesTotal || {});
+                const browsers = isToday ? (origins.browsersToday || {}) : (origins.browsersTotal || {});
+                const paths = isToday ? (origins.pathsToday || {}) : (origins.pathsTotal || {});
+                const utmSources = isToday ? (origins.utmSourcesToday || {}) : (origins.utmSourcesTotal || {});
+
+                // ─── 1. KPIs ──────────────────────────────────────────────────
+                document.getElementById('stat-total-views').textContent = (isToday ? cachedData.viewsToday : cachedData.totalViews) || 0;
+                document.getElementById('stat-total-views-label').textContent = isToday ? 'Acessos únicos hoje' : 'Acumulado histórico';
+
+                // Top Channel
+                const sortedCategories = Object.entries(categories).sort(([, a], [, b]) => b - a);
+                const topChannel = sortedCategories.length > 0 ? sortedCategories[0] : ['Acesso Direto', totalViews];
+                const topChannelPct = Math.round((topChannel[1] / totalViews) * 100) || 0;
+                document.getElementById('stat-top-channel').textContent = topChannel[0];
+                document.getElementById('stat-top-channel-sub').textContent = `${topChannel[1]} visitas (${topChannelPct}%)`;
+
+                // Top City
+                const sortedCities = Object.entries(cities).sort(([, a], [, b]) => b - a);
+                const topCity = sortedCities.length > 0 ? sortedCities[0] : ['Rio Branco', totalViews];
+                const topCityPct = Math.round((topCity[1] / totalViews) * 100) || 0;
+                document.getElementById('stat-top-city').textContent = topCity[0];
+                document.getElementById('stat-top-city-sub').textContent = `${topCity[1]} acessos (${topCityPct}%)`;
+
+                // Mobile Share
+                const mobileCount = (devices['Mobile'] || 0) + (devices['Tablet'] || 0);
+                const desktopCount = devices['Desktop'] || 0;
+                const totalDev = mobileCount + desktopCount || 1;
+                const mobilePct = Math.round((mobileCount / totalDev) * 100) || 0;
+                document.getElementById('stat-mobile-share').textContent = `${mobilePct}%`;
+                document.getElementById('stat-mobile-share-sub').textContent = `${mobileCount} mobile / ${desktopCount} PC`;
+
+                // Social Share
+                const socialCount = (categories['Redes Sociais'] || 0) + (categories['Mensageiros'] || 0);
+                const socialPct = Math.round((socialCount / totalViews) * 100) || 0;
+                document.getElementById('stat-social-share').textContent = `${socialPct}%`;
+                document.getElementById('stat-social-share-sub').textContent = `${socialCount} visitas de redes`;
+
+                // Direct Share
+                const directCount = sources['Acesso Direto'] || categories['Acesso Direto'] || 0;
+                const directPct = Math.round((directCount / totalViews) * 100) || 0;
+                document.getElementById('stat-direct-share').textContent = `${directPct}%`;
+                document.getElementById('stat-direct-share-sub').textContent = `${directCount} sem intermediários`;
+
+                // ─── 2. Donut Chart ───────────────────────────────────────────
+                document.getElementById('donut-total-badge').textContent = `${isToday ? cachedData.viewsToday : cachedData.totalViews} visitas`;
+                renderDonutChart(categories);
+
+                // ─── 3. Ranking de Fontes Detalhadas ──────────────────────────
+                const sourcesList = document.getElementById('sources-ranking-list');
+                if (sourcesList) {
+                    sourcesList.innerHTML = '';
+                    const sortedSources = Object.entries(sources).sort(([, a], [, b]) => b - a);
+                    if (sortedSources.length > 0) {
+                        sortedSources.forEach(([name, count], i) => {
+                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            let icon = 'globe';
+                            let bg = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
+                            const lower = name.toLowerCase();
+                            if (lower.includes('google')) { icon = 'search'; bg = 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400'; }
+                            else if (lower.includes('insta')) { icon = 'instagram'; bg = 'bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400'; }
+                            else if (lower.includes('whats')) { icon = 'message-circle'; bg = 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400'; }
+                            else if (lower.includes('face')) { icon = 'facebook'; bg = 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400'; }
+                            else if (lower.includes('ac24horas') || lower.includes('contilnet') || lower.includes('g1') || lower.includes('gazeta') || lower.includes('notícia')) { icon = 'newspaper'; bg = 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400'; }
+
+                            const el = document.createElement('div');
+                            el.className = 'p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl flex items-center justify-between gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all';
+                            el.innerHTML = `
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="text-xs font-bold text-gray-400 font-mono w-4">#${i + 1}</span>
+                                    <div class="p-2 rounded-xl ${bg} shrink-0">
+                                        <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div class="truncate">
+                                        <p class="text-xs font-bold text-gray-900 dark:text-white truncate">${escapeHtml(name)}</p>
+                                        <p class="text-[10px] text-gray-500 font-medium">${count} acessos computados</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <div class="w-20 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500 rounded-full" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 font-mono w-10 text-right">${pct}%</span>
+                                </div>
+                            `;
+                            sourcesList.appendChild(el);
+                        });
+                    } else {
+                        sourcesList.innerHTML = '<p class="text-xs text-gray-400 py-6 text-center">Nenhum registro para este período.</p>';
+                    }
+                }
+
+                // ─── 4. Cidades ───────────────────────────────────────────────
+                const citiesList = document.getElementById('cities-ranking-list');
+                if (citiesList) {
+                    citiesList.innerHTML = '';
+                    if (sortedCities.length > 0) {
+                        sortedCities.slice(0, 6).forEach(([city, count]) => {
+                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            const isAcre = city.toLowerCase().includes('rio branco') || city.toLowerCase().includes('acre');
+                            const el = document.createElement('div');
+                            el.className = 'p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
+                            el.innerHTML = `
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full ${isAcre ? 'bg-emerald-500' : 'bg-indigo-500'} shrink-0"></span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-200 truncate">${escapeHtml(city)}</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                    <span>${count} views</span>
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">(${pct}%)</span>
+                                </div>
+                            `;
+                            citiesList.appendChild(el);
+                        });
+                    } else {
+                        citiesList.innerHTML = '<p class="text-xs text-gray-400 py-4 text-center">Aguardando dados...</p>';
+                    }
+                }
+
+                // ─── 5. Tecnologias / Dispositivos ────────────────────────────
+                const techList = document.getElementById('tech-ranking-list');
+                if (techList) {
+                    techList.innerHTML = '';
+                    const sortedBrowsers = Object.entries(browsers).sort(([, a], [, b]) => b - a);
+                    const techItems = [
+                        { label: 'Celulares / Tablets', count: mobileCount, pct: mobilePct, icon: 'smartphone' },
+                        { label: 'Computadores (Desktop)', count: desktopCount, pct: 100 - mobilePct, icon: 'monitor' }
+                    ];
+                    if (sortedBrowsers.length > 0) {
+                        const topB = sortedBrowsers[0];
+                        const bPct = Math.round((topB[1] / totalViews) * 100) || 0;
+                        techItems.push({ label: `Navegador: ${topB[0]}`, count: topB[1], pct: bPct, icon: 'chrome' });
+                    }
+
+                    techItems.forEach(t => {
+                        const el = document.createElement('div');
+                        el.className = 'p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
+                        el.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="${t.icon}" class="w-3.5 h-3.5 text-gray-500"></i>
+                                <span class="font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(t.label)}</span>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                <span>${t.count}</span>
+                                <span class="font-bold text-gray-700 dark:text-gray-300">(${t.pct}%)</span>
+                            </div>
+                        `;
+                        techList.appendChild(el);
+                    });
+                }
+
+                // ─── 6. Páginas de Entrada & UTMs ─────────────────────────────
+                const pagesList = document.getElementById('pages-ranking-list');
+                if (pagesList) {
+                    pagesList.innerHTML = '';
+                    const sortedPaths = Object.entries(paths).sort(([, a], [, b]) => b - a);
+                    const sortedUtms = Object.entries(utmSources).sort(([, a], [, b]) => b - a);
+
+                    if (sortedPaths.length > 0) {
+                        sortedPaths.slice(0, 4).forEach(([pathName, count]) => {
+                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            const el = document.createElement('div');
+                            el.className = 'p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
+                            el.innerHTML = `
+                                <div class="flex items-center gap-2 truncate">
+                                    <i data-lucide="compass" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
+                                    <span class="font-mono font-medium text-gray-800 dark:text-gray-200 truncate">${escapeHtml(pathName)}</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                    <span>${count}</span>
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">(${pct}%)</span>
+                                </div>
+                            `;
+                            pagesList.appendChild(el);
+                        });
+                    }
+
+                    if (sortedUtms.length > 0) {
+                        sortedUtms.slice(0, 2).forEach(([utm, count]) => {
+                            const el = document.createElement('div');
+                            el.className = 'p-2.5 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl flex items-center justify-between text-xs border border-purple-100 dark:border-purple-900/40';
+                            el.innerHTML = `
+                                <div class="flex items-center gap-2 truncate">
+                                    <i data-lucide="tag" class="w-3.5 h-3.5 text-purple-600 shrink-0"></i>
+                                    <span class="font-medium text-purple-700 dark:text-purple-300 truncate">UTM: ${escapeHtml(utm)}</span>
+                                </div>
+                                <span class="font-mono font-bold text-purple-700 dark:text-purple-300 text-[11px]">${count} cliques</span>
+                            `;
+                            pagesList.appendChild(el);
+                        });
+                    }
+
+                    if (sortedPaths.length === 0 && sortedUtms.length === 0) {
+                        pagesList.innerHTML = '<p class="text-xs text-gray-400 py-4 text-center">Nenhum registro ainda.</p>';
+                    }
+                }
+
+                // ─── 7. Tabela Feed ao Vivo ───────────────────────────────────
+                renderRecentTable('');
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            function renderRecentTable(filterQuery = '') {
+                const tbody = document.getElementById('recent-visitors-tbody');
+                if (!tbody || !cachedData || !cachedData.origins) return;
+
+                const visits = cachedData.origins.recentVisits || [];
+                const filtered = filterQuery
+                    ? visits.filter(v => 
+                        (v.source || '').toLowerCase().includes(filterQuery) ||
+                        (v.city || '').toLowerCase().includes(filterQuery) ||
+                        (v.device || '').toLowerCase().includes(filterQuery) ||
+                        (v.path || '').toLowerCase().includes(filterQuery) ||
+                        (v.category || '').toLowerCase().includes(filterQuery)
+                    )
+                    : visits;
+
+                tbody.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(v => {
+                        const row = document.createElement('tr');
+                        row.className = 'bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 text-xs';
+                        
+                        let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                        const lowerSrc = (v.source || '').toLowerCase();
+                        if (lowerSrc.includes('google')) {
+                            badgeClass = 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60';
+                        } else if (lowerSrc.includes('insta')) {
+                            badgeClass = 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/60 dark:border-pink-800/60';
+                        } else if (lowerSrc.includes('whats')) {
+                            badgeClass = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60';
+                        } else if (lowerSrc.includes('face')) {
+                            badgeClass = 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60';
+                        } else if (lowerSrc.includes('ac24horas') || lowerSrc.includes('notícia') || lowerSrc.includes('contilnet') || lowerSrc.includes('gazeta') || lowerSrc.includes('g1')) {
+                            badgeClass = 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60';
+                        }
+
+                        row.innerHTML = `
+                            <td class="py-3 px-4 font-mono font-medium text-gray-500 whitespace-nowrap">${escapeHtml(v.timeStr || '--:--')}</td>
+                            <td class="py-3 px-4 whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${badgeClass}">
+                                    <i data-lucide="${v.icon || 'globe'}" class="w-3 h-3"></i>
+                                    ${escapeHtml(v.source || 'Acesso Direto')}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                                <div class="flex items-center gap-1.5">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                    <span>${escapeHtml(v.city || 'Rio Branco')}, ${escapeHtml(v.region || 'AC')}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                                <div class="flex items-center gap-1.5">
+                                    <i data-lucide="${(v.device === 'Desktop') ? 'monitor' : 'smartphone'}" class="w-3.5 h-3.5 text-gray-400"></i>
+                                    <span>${escapeHtml(v.device || 'Mobile')} • ${escapeHtml(v.os || 'Android')}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-indigo-600 dark:text-indigo-400 max-w-[150px] truncate" title="${escapeHtml(v.path || '/')}">
+                                ${escapeHtml(v.path || '/')}
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap font-mono text-gray-400 text-[11px]">${escapeHtml(v.ipMasked || '***.***.***.***')}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Nenhum visitante encontrado.</td></tr>';
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            function renderDonutChart(categories = {}) {
+                const ctx = document.getElementById('channels-donut-chart')?.getContext('2d');
+                if (!ctx) return;
+
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+
+                if (myDonutChart) {
+                    myDonutChart.destroy();
+                }
+
+                const labels = Object.keys(categories);
+                const values = Object.values(categories);
+
+                if (labels.length === 0) {
+                    labels.push('Acesso Direto');
+                    values.push(1);
+                }
+
+                const colorMap = {
+                    'Redes Sociais': '#E1306C',
+                    'Busca Orgânica': '#4285F4',
+                    'Acesso Direto': '#10B981',
+                    'Portais de Notícias': '#F59E0B',
+                    'Mensageiros': '#25D366',
+                    'Campanhas / UTM': '#8B5CF6',
+                    'Governo & Institucional': '#06B6D4',
+                    'Outros Sites': '#64748B'
+                };
+
+                const backgroundColors = labels.map(l => colorMap[l] || '#6366F1');
+
+                myDonutChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: textColor,
+                                    boxWidth: 10,
+                                    padding: 12,
+                                    font: { size: 10 }
+                                }
+                            }
+                        },
+                        cutout: '72%'
+                    }
+                });
+            }
+
+            loadData();
+            // Auto refresh a cada 30 segundos
+            setInterval(loadData, 30000);
+        }
+    </script>
+</body>
+
+</html>

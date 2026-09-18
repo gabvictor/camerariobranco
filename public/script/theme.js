@@ -746,4 +746,64 @@
     }
 
     initGlobalPresence();
+
+    // ─── Rastreamento Universal de Origem & Tráfego ──────────────────────────────
+    function initUniversalTrafficTracker() {
+        try {
+            // Ignora páginas administrativas para não computar acessos do próprio admin
+            if (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/dashboard')) {
+                return;
+            }
+
+            const searchParams = new URLSearchParams(window.location.search);
+            const utmSource = searchParams.get('utm_source');
+            const utmMedium = searchParams.get('utm_medium');
+            const utmCampaign = searchParams.get('utm_campaign');
+            const hasUtm = !!(utmSource || utmMedium || utmCampaign);
+
+            const referrer = document.referrer || '';
+            const isExternalReferrer = referrer && !referrer.includes(window.location.hostname);
+
+            const sessionKey = 'camrb_tracked_session';
+            const isSessionTracked = sessionStorage.getItem(sessionKey);
+            const isCookieVisited = document.cookie.includes('camrb_visited_today=1');
+
+            if (isSessionTracked && isCookieVisited && !hasUtm) {
+                return;
+            }
+
+            const payload = {
+                referrer: referrer,
+                utm_source: utmSource || '',
+                utm_medium: utmMedium || '',
+                utm_campaign: utmCampaign || '',
+                path: window.location.pathname,
+                screenWidth: window.screen ? window.screen.width : (window.innerWidth || 0),
+                force: hasUtm || isExternalReferrer
+            };
+
+            try { sessionStorage.setItem(sessionKey, '1'); } catch (_) {}
+
+            const url = '/api/track-visit';
+            const bodyStr = JSON.stringify(payload);
+
+            if (typeof fetch === 'function') {
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: bodyStr,
+                    keepalive: true
+                }).catch(function() {});
+            } else if (navigator.sendBeacon) {
+                const blob = new Blob([bodyStr], { type: 'application/json' });
+                navigator.sendBeacon(url, blob);
+            }
+        } catch (_) {}
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initUniversalTrafficTracker);
+    } else {
+        initUniversalTrafficTracker();
+    }
 })();

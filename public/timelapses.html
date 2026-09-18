@@ -181,9 +181,14 @@
                         <span id="player-camera-code" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
                             Câmera Selecionada
                         </span>
-                        <h2 id="player-camera-title" class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-1">
-                            Ponte Metálica — Rio Acre (001426)
-                        </h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <h2 id="player-camera-title" class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                                Ponte Metálica — Rio Acre (001426)
+                            </h2>
+                            <button id="btn-share-timelapse" title="Compartilhar Timelapse" class="p-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors border border-purple-200 dark:border-purple-800/40 cursor-pointer active:scale-95 shadow-xs">
+                                <i data-lucide="share-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="text-left sm:text-right">
                         <div id="player-frame-time" class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">--:--</div>
@@ -317,7 +322,91 @@
         </nav>
     </div>
 
+    <!-- ─── Share Modal Timelapse ─── -->
+    <div id="share-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md hidden transition-all duration-200 opacity-0" aria-modal="true" role="dialog">
+        <div id="share-modal-box" class="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform scale-95 transition-all duration-200 p-5 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/80 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-xl">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-base text-gray-900 dark:text-white">Compartilhar Timelapse</h3>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">Envie a gravação acelerada das 24 horas</p>
+                    </div>
+                </div>
+                <button id="close-share-modal-btn" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Social Share Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <button id="share-whatsapp-btn" class="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] transition-all cursor-pointer active:scale-95 group">
+                    <div class="w-10 h-10 rounded-xl bg-[#25D366] text-white flex items-center justify-center shadow-sm mb-1.5 group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">WhatsApp</span>
+                </button>
+                <button id="share-telegram-btn" class="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-[#229ED9]/10 hover:bg-[#229ED9]/20 border border-[#229ED9]/30 text-[#229ED9] transition-all cursor-pointer active:scale-95 group">
+                    <div class="w-10 h-10 rounded-xl bg-[#229ED9] text-white flex items-center justify-center shadow-sm mb-1.5 group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.716-.962 4.084-1.362 5.752-.169.706-.43 1.002-.731 1.026-.653.053-1.149-.408-1.782-.823-.991-.65-1.551-1.054-2.512-1.687-1.112-.733-.391-1.136.242-1.794.166-.172 3.048-2.794 3.104-3.033.007-.03.013-.143-.053-.202-.066-.059-.163-.039-.234-.022-.1.023-1.699 1.082-4.796 3.176-.454.312-.865.464-1.233.456-.406-.009-1.187-.23-1.768-.419-.713-.232-1.28-.354-1.231-.748.026-.205.308-.415.847-.63 3.32-1.446 5.536-2.4 6.647-2.862 3.164-1.316 3.823-1.545 4.25-1.553.094-.002.304.022.441.133.116.094.148.22.163.308.016.091.036.297.02.463z"/></svg>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">Telegram</span>
+                </button>
+                <button id="share-twitter-btn" class="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-gray-500/10 hover:bg-gray-500/20 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white transition-all cursor-pointer active:scale-95 group">
+                    <div class="w-10 h-10 rounded-xl bg-black text-white dark:bg-white dark:text-black flex items-center justify-center shadow-sm mb-1.5 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">X / Twitter</span>
+                </button>
+                <button id="share-facebook-btn" class="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-[#1877F2]/10 hover:bg-[#1877F2]/20 border border-[#1877F2]/30 text-[#1877F2] transition-all cursor-pointer active:scale-95 group">
+                    <div class="w-10 h-10 rounded-xl bg-[#1877F2] text-white flex items-center justify-center shadow-sm mb-1.5 group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">Facebook</span>
+                </button>
+            </div>
+
+            <!-- Botões Secundários: QR Code e Compartilhamento Nativo -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button id="toggle-qr-btn" class="px-3 py-2.5 rounded-2xl bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+                    <i data-lucide="qr-code" class="w-4 h-4 text-purple-500"></i>
+                    <span>Ver QR Code</span>
+                </button>
+                <button id="share-native-btn" class="px-3 py-2.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 border border-purple-200 dark:border-purple-800/40">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-purple-500"></i>
+                    <span>Outros Apps</span>
+                </button>
+            </div>
+
+            <!-- Seção Expansível de QR Code -->
+            <div id="share-qr-section" class="hidden p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-center space-y-3">
+                <div class="text-xs font-bold text-gray-700 dark:text-gray-300">Escaneie para ver o Timelapse no Celular:</div>
+                <div class="flex justify-center">
+                    <div class="p-2 bg-white rounded-2xl shadow-md border border-gray-200 inline-block">
+                        <img id="share-qr-img" src="" alt="QR Code do Timelapse" class="w-40 h-40 object-contain rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Direct URL Copy -->
+            <div class="space-y-1.5 pt-2">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Link direto do timelapse:</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="share-link-input" readonly
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono text-gray-700 dark:text-gray-300 outline-none">
+                    <button id="copy-share-link-btn" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-95 shadow-xs">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>Copiar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <script src="/script/share-utils.js"></script>
     <script type="module" src="/script/timelapses-script.js?v=2"></script>
 </body>
 

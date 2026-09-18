@@ -1767,19 +1767,28 @@ function setupModals(cameraCode) {
     const shareLinkInput = document.getElementById('share-link-input');
     const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
 
-    const getShareUrl = () => `${location.origin}/camera/${activeCameraCode || cameraCode}`;
+    const getShareBaseUrl = () => `${location.origin}/camera/${activeCameraCode || cameraCode}`;
+    const getCameraTitle = () => {
+        const titleEl = document.getElementById('camera-title');
+        return titleEl ? titleEl.textContent.trim() : 'Câmera Ao Vivo em Rio Branco - AC';
+    };
+
+    const toggleQrBtn = document.getElementById('toggle-qr-btn');
+    const shareQrSection = document.getElementById('share-qr-section');
+    const shareQrImg = document.getElementById('share-qr-img');
+    const shareNativeBtn = document.getElementById('share-native-btn');
 
     const openShareModal = () => {
-        const shareUrl = getShareUrl();
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && navigator.share;
-        if (isMobile) {
-            navigator.share({
-                url: shareUrl
-            }).catch(() => {});
-            return;
+        const baseUrl = getShareBaseUrl();
+        const cleanUrl = window.CamRBShare ? window.CamRBShare.buildUrl(baseUrl, { source: 'share_link', medium: 'clipboard', campaign: 'camera_live' }) : baseUrl;
+
+        if (shareLinkInput) shareLinkInput.value = cleanUrl;
+
+        // Atualiza QR Code dinâmico
+        if (shareQrImg && window.CamRBShare) {
+            shareQrImg.src = window.CamRBShare.getQrCodeUrl(baseUrl, 320);
         }
 
-        if (shareLinkInput) shareLinkInput.value = shareUrl;
         if (shareModal) {
             shareModal.classList.remove('hidden');
             setTimeout(() => {
@@ -1795,7 +1804,10 @@ function setupModals(cameraCode) {
         shareModal.classList.add('opacity-0');
         shareModalBox?.classList.remove('scale-100');
         shareModalBox?.classList.add('scale-95');
-        setTimeout(() => shareModal.classList.add('hidden'), 200);
+        setTimeout(() => {
+            shareModal.classList.add('hidden');
+            if (shareQrSection) shareQrSection.classList.add('hidden');
+        }, 200);
     };
 
     if (shareBtn) shareBtn.onclick = openShareModal;
@@ -1807,39 +1819,105 @@ function setupModals(cameraCode) {
         };
     }
 
-    if (copyShareLinkBtn) {
-        copyShareLinkBtn.onclick = async () => {
-            const shareUrl = getShareUrl();
-            try {
-                await navigator.clipboard.writeText(shareUrl);
-                window.showToast?.('Link da câmera copiado!');
-            } catch (_) {}
+    // Toggle QR Code
+    if (toggleQrBtn && shareQrSection) {
+        toggleQrBtn.onclick = () => {
+            const isHidden = shareQrSection.classList.contains('hidden');
+            if (isHidden) {
+                shareQrSection.classList.remove('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ocultar QR Code';
+            } else {
+                shareQrSection.classList.add('hidden');
+                toggleQrBtn.querySelector('span').textContent = 'Ver QR Code';
+            }
         };
     }
 
-    // Direct social share buttons (passes clean URL so WhatsApp/Telegram/Facebook/X preview meta tags)
+    // Native Mobile Share
+    if (shareNativeBtn) {
+        shareNativeBtn.onclick = async () => {
+            const title = getCameraTitle();
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                const shared = await window.CamRBShare.nativeShare({
+                    title: `${title} - Câmeras Rio Branco`,
+                    text: 'Assista à transmissão ao vivo em Rio Branco - AC:',
+                    url: baseUrl,
+                    campaign: 'camera_live'
+                });
+                if (shared) closeShareModal();
+            }
+        };
+    }
+
+    // Copy Link with Feedback
+    if (copyShareLinkBtn) {
+        copyShareLinkBtn.onclick = async () => {
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                await window.CamRBShare.copyLink(baseUrl, {
+                    campaign: 'camera_live',
+                    buttonEl: copyShareLinkBtn,
+                    toastMsg: 'Link da câmera copiado com sucesso!'
+                });
+            } else {
+                try {
+                    await navigator.clipboard.writeText(baseUrl);
+                    window.showToast?.('Link da câmera copiado!');
+                } catch (_) {}
+            }
+        };
+    }
+
+    // Redes Sociais com Rastreamento de Origem e Mensagens Atraentes
     const shareWhatsApp = document.getElementById('share-whatsapp-btn');
     if (shareWhatsApp) {
         shareWhatsApp.onclick = () => {
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(getShareUrl())}`, '_blank');
+            const title = getCameraTitle();
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toWhatsApp({ title, url: baseUrl, campaign: 'camera_live' });
+            } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
         };
     }
+
     const shareTelegram = document.getElementById('share-telegram-btn');
     if (shareTelegram) {
         shareTelegram.onclick = () => {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(getShareUrl())}`, '_blank');
+            const title = getCameraTitle();
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toTelegram({ title, url: baseUrl, campaign: 'camera_live' });
+            } else {
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
         };
     }
+
     const shareTwitter = document.getElementById('share-twitter-btn');
     if (shareTwitter) {
         shareTwitter.onclick = () => {
-            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(getShareUrl())}`, '_blank');
+            const title = getCameraTitle();
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toTwitter({ title, url: baseUrl, campaign: 'camera_live' });
+            } else {
+                window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
         };
     }
+
     const shareFacebook = document.getElementById('share-facebook-btn');
     if (shareFacebook) {
         shareFacebook.onclick = () => {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`, '_blank');
+            const baseUrl = getShareBaseUrl();
+            if (window.CamRBShare) {
+                window.CamRBShare.toFacebook({ url: baseUrl, campaign: 'camera_live' });
+            } else {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(baseUrl)}`, '_blank');
+            }
         };
     }
 
