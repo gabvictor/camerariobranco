@@ -101,7 +101,7 @@ const manageSponsorUC = new ManageSponsorUseCase(sponsorRepo);
 const getSponsorPublicDataUC = new GetSponsorPublicDataUseCase(sponsorRepo, cameraRepo);
 
 const scanner = ScannerFactory.create();
-const scheduler = new ScanScheduler(scanner);
+const scheduler = new ScanScheduler(scanner, cameraRepo);
 
 const createReport = new CreateReportUseCase(reportRepo);
 const trackVisit = new TrackVisitUseCase(db);

@@ -1,4 +1,5 @@
 const CONFIG = require('../../config/appConfig');
+const { setMaxListeners } = require('events');
 
 /**
  * @use-case ScanCamerasUseCase
@@ -17,16 +18,19 @@ class ScanCamerasUseCase {
     }
 
     /**
-     * Executa a varredura completa de câmeras no intervalo de códigos configurado.
+     * Executa a varredura completa de câmeras no intervalo de códigos configurado
+     * e inclui também quaisquer códigos adicionais fornecidos.
+     * @param {string[]} [extraCodes=[]]
      * @returns {Promise<Array<{codigo: string, status: 'online'|'offline'}>>}
      */
-    async execute() {
-        const codes = Array.from(
+    async execute(extraCodes = []) {
+        const rangeCodes = Array.from(
             { length: CONFIG.CAMERA_CODE_END - CONFIG.CAMERA_CODE_START + 1 },
             (_, i) => (CONFIG.CAMERA_CODE_START + i).toString().padStart(6, '0')
         );
 
-const { setMaxListeners } = require('events');
+        const codeSet = new Set([...rangeCodes, ...(Array.isArray(extraCodes) ? extraCodes : [])]);
+        const codes = Array.from(codeSet).sort();
 
         const controller = new AbortController();
         try { setMaxListeners(CONFIG.CONCURRENCY_LIMIT + 10, controller.signal); } catch (_) {}

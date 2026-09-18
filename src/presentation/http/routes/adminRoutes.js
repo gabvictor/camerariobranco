@@ -106,7 +106,7 @@ function adminRoutes(reportController, dashboardController, deps = {}) {
             }
             if (cameraCache && cameraRepo) {
                 const all = await cameraRepo.findAll();
-                cameraCache.update({}, all);
+                cameraCache.update([], all);
             }
             res.json({ success: true, message: 'Cache de câmeras recarregado com sucesso a partir do banco de dados!' });
         } catch (error) {

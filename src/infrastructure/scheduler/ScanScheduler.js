@@ -20,10 +20,12 @@ const ScanCamerasUseCase = require('../../application/use-cases/ScanCamerasUseCa
 class ScanScheduler extends EventEmitter {
     /**
      * @param {import('../../domain/contracts/IScannerService')} scanner
+     * @param {import('../../domain/contracts/ICameraRepository')} [cameraRepo]
      */
-    constructor(scanner) {
+    constructor(scanner, cameraRepo = null) {
         super();
         this.scanner = scanner;
+        this.cameraRepo = cameraRepo;
         this.isScanning = false;
         this.scanTimeoutOccurred = false;
         this.nextScanTimestamp = Date.now();
@@ -48,7 +50,14 @@ class ScanScheduler extends EventEmitter {
         console.log(`[${new Date().toLocaleTimeString()}] Iniciando varredura...`);
 
         try {
-            const statuses = await this._useCase.execute();
+            let extraCodes = [];
+            if (this.cameraRepo && typeof this.cameraRepo.findAll === 'function') {
+                try {
+                    const repoCams = await this.cameraRepo.findAll();
+                    extraCodes = (repoCams || []).map(c => c && c.codigo).filter(Boolean);
+                } catch (_) {}
+            }
+            const statuses = await this._useCase.execute(extraCodes);
             const durationMs = Date.now() - startTime;
             const online = statuses.filter(c => c.status === 'online').length;
             const offline = statuses.length - online;
@@ -59,7 +68,7 @@ class ScanScheduler extends EventEmitter {
                 offline,
                 total: statuses.length
             };
-            console.log(`✔ Varredura concluída em ${(durationMs / 1000).toFixed(2)}s. ${online} câmeras online.`);
+            console.log(`✔ Varredura concluída em ${(durationMs / 1000).toFixed(2)}s. ${online} câmeras online de ${statuses.length} varridas.`);
             this.emit('scan:complete', { statuses, durationMs });
         } catch (error) {
             if (error.message === 'SCAN_TIMEOUT') {

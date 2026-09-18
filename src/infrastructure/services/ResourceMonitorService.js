@@ -118,18 +118,7 @@ class ResourceMonitorService {
         const cachedCams = cameraCache && cameraCache.getAll ? cameraCache.getAll() : [];
 
         if (cachedCams.length > 0) {
-            const cachedMap = new Map(cachedCams.map(c => [c.codigo, c]));
-            if (repoCams.length > 0) {
-                allCameras = repoCams.map(r => {
-                    const c = cachedMap.get(r.codigo);
-                    return {
-                        ...r,
-                        status: c ? c.status : (r.status || 'offline')
-                    };
-                });
-            } else {
-                allCameras = cachedCams;
-            }
+            allCameras = cachedCams;
         } else if (repoCams.length > 0) {
             allCameras = repoCams.map(r => ({
                 ...r,
