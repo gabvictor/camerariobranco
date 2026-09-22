@@ -222,6 +222,13 @@ class CameraController {
                 ip,
                 userAgent,
                 screenWidth: Number(body.screenWidth) || 0,
+                screen: body.screen || '',
+                pixelRatio: Number(body.pixelRatio) || 1,
+                timezone: body.timezone || '',
+                language: body.language || '',
+                gpu: body.gpu || '',
+                cores: Number(body.cores) || 0,
+                connection: body.connection || '',
                 headers: req.headers
             });
 

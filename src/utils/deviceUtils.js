@@ -5,7 +5,7 @@
  */
 
 /**
- * Detecta dispositivo, SO e navegador.
+ * Detecta dispositivo, SO e navegador com suporte refinado.
  * 
  * @param {string} [userAgent='']
  * @param {number} [screenWidth=0]
@@ -38,40 +38,58 @@ function resolveDevice(userAgent = '', screenWidth = 0) {
     let os = 'Outro';
     if (/android/i.test(ua)) {
         os = 'Android';
-    } else if (/iphone|ipad|ipod/i.test(ua)) {
+    } else if (/ipad/i.test(ua)) {
+        os = 'iPadOS';
+    } else if (/iphone|ipod/i.test(ua)) {
         os = 'iOS';
     } else if (/windows nt 10/i.test(ua)) {
         os = 'Windows 10/11';
+    } else if (/windows nt 6\.3/i.test(ua)) {
+        os = 'Windows 8.1';
+    } else if (/windows nt 6\.2/i.test(ua)) {
+        os = 'Windows 8';
+    } else if (/windows nt 6\.1/i.test(ua)) {
+        os = 'Windows 7';
     } else if (/windows/i.test(ua)) {
         os = 'Windows';
     } else if (/mac os x|macintosh/i.test(ua)) {
         os = 'macOS';
-    } else if (/linux/i.test(ua)) {
-        os = 'Linux';
     } else if (/cros/i.test(ua)) {
         os = 'ChromeOS';
+    } else if (/ubuntu/i.test(ua)) {
+        os = 'Ubuntu';
+    } else if (/linux/i.test(ua)) {
+        os = 'Linux';
     }
 
     // ─── 3. Navegador ────────────────────────────────────────────────────────────
     let browser = 'Outro';
-    if (/samsungbrowser/i.test(ua)) {
+    if (/brave/i.test(ua)) {
+        browser = 'Brave';
+    } else if (/samsungbrowser/i.test(ua)) {
         browser = 'Samsung Internet';
-    } else if (/edg\//i.test(ua)) {
-        browser = 'Edge';
+    } else if (/edg\//i.test(ua) || /edge\//i.test(ua)) {
+        browser = 'Microsoft Edge';
     } else if (/opr\/|opera/i.test(ua)) {
         browser = 'Opera';
-    } else if (/chrome|crios/i.test(ua) && !/edg\//i.test(ua) && !/opr\//i.test(ua)) {
-        browser = 'Chrome';
-    } else if (/firefox|fxios/i.test(ua)) {
-        browser = 'Firefox';
-    } else if (/safari/i.test(ua) && !/chrome|crios|android/i.test(ua)) {
-        browser = 'Safari';
+    } else if (/vivaldi/i.test(ua)) {
+        browser = 'Vivaldi';
+    } else if (/yabrowser/i.test(ua)) {
+        browser = 'Yandex';
+    } else if (/ucbrowser/i.test(ua)) {
+        browser = 'UC Browser';
     } else if (/instagram/i.test(ua)) {
         browser = 'Instagram In-App';
     } else if (/fbav|fban/i.test(ua)) {
         browser = 'Facebook In-App';
     } else if (/whatsapp/i.test(ua)) {
         browser = 'WhatsApp In-App';
+    } else if (/firefox|fxios/i.test(ua)) {
+        browser = 'Firefox';
+    } else if (/chrome|crios|chromium/i.test(ua) && !/edg\//i.test(ua) && !/opr\//i.test(ua)) {
+        browser = 'Chrome';
+    } else if (/safari/i.test(ua) && !/chrome|crios|android/i.test(ua)) {
+        browser = 'Safari';
     }
 
     return {

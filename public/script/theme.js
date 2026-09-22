@@ -772,6 +772,26 @@
                 return;
             }
 
+            function getGpuRenderer() {
+                try {
+                    var canvas = document.createElement('canvas');
+                    var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (!gl) return '';
+                    var debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (!debugInfo) return '';
+                    var renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '';
+                    return String(renderer).replace(/ANGLE \((.*)\)/, '$1').substring(0, 60).trim();
+                } catch (_) {
+                    return '';
+                }
+            }
+
+            var screenRes = window.screen ? (window.screen.width + 'x' + window.screen.height) : '';
+            var tz = '';
+            try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
+            var lang = navigator.language || (navigator.languages && navigator.languages[0]) || '';
+            var conn = (navigator.connection && navigator.connection.effectiveType) || '';
+
             const payload = {
                 referrer: referrer,
                 utm_source: utmSource || '',
@@ -779,6 +799,13 @@
                 utm_campaign: utmCampaign || '',
                 path: window.location.pathname,
                 screenWidth: window.screen ? window.screen.width : (window.innerWidth || 0),
+                screen: screenRes,
+                pixelRatio: window.devicePixelRatio || 1,
+                timezone: tz,
+                language: lang,
+                gpu: getGpuRenderer(),
+                cores: navigator.hardwareConcurrency || 0,
+                connection: conn,
                 force: hasUtm || isExternalReferrer
             };
 

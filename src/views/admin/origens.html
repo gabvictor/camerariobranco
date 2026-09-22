@@ -529,7 +529,8 @@
                 const origins = cachedData.origins;
                 const isToday = currentPeriod === 'today';
 
-                const totalViews = isToday ? (cachedData.viewsToday || 1) : (cachedData.totalViews || 1);
+                const totalViews = isToday ? (cachedData.viewsToday || 0) : (cachedData.totalViews || 0);
+                const safeViewsTotal = totalViews > 0 ? totalViews : 1;
                 const sources = isToday ? (origins.sourcesToday || {}) : (origins.sourcesTotal || {});
                 const categories = isToday ? (origins.categoriesToday || {}) : (origins.categoriesTotal || {});
                 const cities = isToday ? (origins.citiesToday || {}) : (origins.citiesTotal || {});
@@ -539,45 +540,50 @@
                 const utmSources = isToday ? (origins.utmSourcesToday || {}) : (origins.utmSourcesTotal || {});
 
                 // ─── 1. KPIs ──────────────────────────────────────────────────
-                document.getElementById('stat-total-views').textContent = (isToday ? cachedData.viewsToday : cachedData.totalViews) || 0;
+                document.getElementById('stat-total-views').textContent = totalViews;
                 document.getElementById('stat-total-views-label').textContent = isToday ? 'Acessos únicos hoje' : 'Acumulado histórico';
 
                 // Top Channel
                 const sortedCategories = Object.entries(categories).sort(([, a], [, b]) => b - a);
+                const totalCatCount = sortedCategories.reduce((acc, [, v]) => acc + v, 0);
+                const denomCat = totalCatCount > 0 ? totalCatCount : safeViewsTotal;
                 const topChannel = sortedCategories.length > 0 ? sortedCategories[0] : ['Acesso Direto', totalViews];
-                const topChannelPct = Math.round((topChannel[1] / totalViews) * 100) || 0;
+                const topChannelPct = totalViews > 0 ? Math.min(100, Math.round((topChannel[1] / denomCat) * 100)) : 0;
                 document.getElementById('stat-top-channel').textContent = topChannel[0];
                 document.getElementById('stat-top-channel-sub').textContent = `${topChannel[1]} visitas (${topChannelPct}%)`;
 
                 // Top City
                 const sortedCities = Object.entries(cities).sort(([, a], [, b]) => b - a);
+                const totalCityCount = sortedCities.reduce((acc, [, v]) => acc + v, 0);
+                const denomCity = totalCityCount > 0 ? totalCityCount : safeViewsTotal;
                 const topCity = sortedCities.length > 0 ? sortedCities[0] : ['Rio Branco', totalViews];
-                const topCityPct = Math.round((topCity[1] / totalViews) * 100) || 0;
+                const topCityPct = totalViews > 0 ? Math.min(100, Math.round((topCity[1] / denomCity) * 100)) : 0;
                 document.getElementById('stat-top-city').textContent = topCity[0];
                 document.getElementById('stat-top-city-sub').textContent = `${topCity[1]} acessos (${topCityPct}%)`;
 
                 // Mobile Share
                 const mobileCount = (devices['Mobile'] || 0) + (devices['Tablet'] || 0);
                 const desktopCount = devices['Desktop'] || 0;
-                const totalDev = mobileCount + desktopCount || 1;
-                const mobilePct = Math.round((mobileCount / totalDev) * 100) || 0;
+                const totalDev = mobileCount + desktopCount;
+                const mobilePct = totalDev > 0 ? Math.round((mobileCount / totalDev) * 100) : 0;
+                const desktopPct = totalDev > 0 ? Math.round((desktopCount / totalDev) * 100) : 0;
                 document.getElementById('stat-mobile-share').textContent = `${mobilePct}%`;
                 document.getElementById('stat-mobile-share-sub').textContent = `${mobileCount} mobile / ${desktopCount} PC`;
 
                 // Social Share
                 const socialCount = (categories['Redes Sociais'] || 0) + (categories['Mensageiros'] || 0);
-                const socialPct = Math.round((socialCount / totalViews) * 100) || 0;
+                const socialPct = totalViews > 0 ? Math.min(100, Math.round((socialCount / safeViewsTotal) * 100)) : 0;
                 document.getElementById('stat-social-share').textContent = `${socialPct}%`;
                 document.getElementById('stat-social-share-sub').textContent = `${socialCount} visitas de redes`;
 
                 // Direct Share
                 const directCount = sources['Acesso Direto'] || categories['Acesso Direto'] || 0;
-                const directPct = Math.round((directCount / totalViews) * 100) || 0;
+                const directPct = totalViews > 0 ? Math.min(100, Math.round((directCount / safeViewsTotal) * 100)) : 0;
                 document.getElementById('stat-direct-share').textContent = `${directPct}%`;
                 document.getElementById('stat-direct-share-sub').textContent = `${directCount} sem intermediários`;
 
                 // ─── 2. Donut Chart ───────────────────────────────────────────
-                document.getElementById('donut-total-badge').textContent = `${isToday ? cachedData.viewsToday : cachedData.totalViews} visitas`;
+                document.getElementById('donut-total-badge').textContent = `${totalViews} visitas`;
                 renderDonutChart(categories);
 
                 // ─── 3. Ranking de Fontes Detalhadas ──────────────────────────
@@ -587,7 +593,7 @@
                     const sortedSources = Object.entries(sources).sort(([, a], [, b]) => b - a);
                     if (sortedSources.length > 0) {
                         sortedSources.forEach(([name, count], i) => {
-                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            const pct = totalViews > 0 ? Math.min(100, Math.round((count / safeViewsTotal) * 100)) : 0;
                             let icon = 'globe';
                             let bg = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
                             const lower = name.toLowerCase();
@@ -630,7 +636,7 @@
                     citiesList.innerHTML = '';
                     if (sortedCities.length > 0) {
                         sortedCities.slice(0, 6).forEach(([city, count]) => {
-                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            const pct = totalViews > 0 ? Math.min(100, Math.round((count / safeViewsTotal) * 100)) : 0;
                             const isAcre = city.toLowerCase().includes('rio branco') || city.toLowerCase().includes('acre');
                             const el = document.createElement('div');
                             el.className = 'p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
@@ -658,11 +664,11 @@
                     const sortedBrowsers = Object.entries(browsers).sort(([, a], [, b]) => b - a);
                     const techItems = [
                         { label: 'Celulares / Tablets', count: mobileCount, pct: mobilePct, icon: 'smartphone' },
-                        { label: 'Computadores (Desktop)', count: desktopCount, pct: 100 - mobilePct, icon: 'monitor' }
+                        { label: 'Computadores (Desktop)', count: desktopCount, pct: desktopPct, icon: 'monitor' }
                     ];
                     if (sortedBrowsers.length > 0) {
                         const topB = sortedBrowsers[0];
-                        const bPct = Math.round((topB[1] / totalViews) * 100) || 0;
+                        const bPct = totalViews > 0 ? Math.min(100, Math.round((topB[1] / safeViewsTotal) * 100)) : 0;
                         techItems.push({ label: `Navegador: ${topB[0]}`, count: topB[1], pct: bPct, icon: 'chrome' });
                     }
 
@@ -692,13 +698,14 @@
 
                     if (sortedPaths.length > 0) {
                         sortedPaths.slice(0, 4).forEach(([pathName, count]) => {
-                            const pct = Math.round((count / totalViews) * 100) || 0;
+                            const pct = totalViews > 0 ? Math.min(100, Math.round((count / safeViewsTotal) * 100)) : 0;
+                            const displayPath = (pathName === '_' || pathName === '') ? '/' : pathName;
                             const el = document.createElement('div');
                             el.className = 'p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
                             el.innerHTML = `
                                 <div class="flex items-center gap-2 truncate">
                                     <i data-lucide="compass" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
-                                    <span class="font-mono font-medium text-gray-800 dark:text-gray-200 truncate">${escapeHtml(pathName)}</span>
+                                    <span class="font-mono font-medium text-gray-800 dark:text-gray-200 truncate">${escapeHtml(displayPath)}</span>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 font-mono text-gray-500 dark:text-gray-400 text-[11px]">
                                     <span>${count}</span>
@@ -770,6 +777,16 @@
                             badgeClass = 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60';
                         }
 
+                        const hardwareDetails = [];
+                        if (v.screen) hardwareDetails.push(v.screen + (v.pixelRatio > 1 ? ` @${v.pixelRatio}x` : ''));
+                        if (v.gpu) hardwareDetails.push(v.gpu);
+                        const hwSub = hardwareDetails.join(' • ');
+
+                        const locDetails = [];
+                        if (v.timezone) locDetails.push(v.timezone);
+                        if (v.language) locDetails.push(v.language);
+                        const locSub = locDetails.join(' • ');
+
                         row.innerHTML = `
                             <td class="py-3 px-4 font-mono font-medium text-gray-500 whitespace-nowrap">${escapeHtml(v.timeStr || '--:--')}</td>
                             <td class="py-3 px-4 whitespace-nowrap">
@@ -783,17 +800,24 @@
                                     <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
                                     <span>${escapeHtml(v.city || 'Rio Branco')}, ${escapeHtml(v.region || 'AC')}</span>
                                 </div>
+                                ${locSub ? `<div class="text-[10px] text-gray-400 font-normal mt-0.5 truncate max-w-[170px]" title="${escapeHtml(locSub)}">${escapeHtml(locSub)}</div>` : ''}
                             </td>
                             <td class="py-3 px-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="${(v.device === 'Desktop') ? 'monitor' : 'smartphone'}" class="w-3.5 h-3.5 text-gray-400"></i>
-                                    <span>${escapeHtml(v.device || 'Mobile')} • ${escapeHtml(v.os || 'Android')}</span>
+                                    <span>${escapeHtml(v.device || 'Mobile')} • ${escapeHtml(v.browser || 'Navegador')}</span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]" title="${escapeHtml((v.os || '') + (hwSub ? ' • ' + hwSub : ''))}">
+                                    ${escapeHtml((v.os || '') + (hwSub ? ' • ' + hwSub : ''))}
                                 </div>
                             </td>
                             <td class="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-indigo-600 dark:text-indigo-400 max-w-[150px] truncate" title="${escapeHtml(v.path || '/')}">
                                 ${escapeHtml(v.path || '/')}
                             </td>
-                            <td class="py-3 px-4 whitespace-nowrap font-mono text-gray-400 text-[11px]">${escapeHtml(v.ipMasked || '***.***.***.***')}</td>
+                            <td class="py-3 px-4 whitespace-nowrap font-mono text-gray-400 text-[11px]">
+                                <div>${escapeHtml(v.ipMasked || '***.***.***.***')}</div>
+                                ${v.connection ? `<div class="text-[9px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold">${escapeHtml(v.connection)}</div>` : ''}
+                            </td>
                         `;
                         tbody.appendChild(row);
                     });

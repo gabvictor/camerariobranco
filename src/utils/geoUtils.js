@@ -157,7 +157,7 @@ function resolveLocation(ip, headers = {}) {
             countryCode: 'BR',
             region: 'Acre (AC)',
             regionCode: 'AC',
-            city: 'Rio Branco (Local)',
+            city: 'Rio Branco',
             isLocal: true
         };
     }

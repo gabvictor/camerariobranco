@@ -1179,7 +1179,8 @@
                     .replace(/'/g, '&#39;');
 
                 const isToday = currentOriginsPeriod === 'today';
-                const totalViews = isToday ? (viewsToday || 1) : (viewsTotal || 1);
+                const totalViews = isToday ? (viewsToday || 0) : (viewsTotal || 0);
+                const safeViewsTotal = totalViews > 0 ? totalViews : 1;
 
                 const sources = isToday ? (origins.sourcesToday || {}) : (origins.sourcesTotal || {});
                 const categories = isToday ? (origins.categoriesToday || {}) : (origins.categoriesTotal || {});
@@ -1191,8 +1192,10 @@
 
                 // 1. KPI: Canal Principal
                 const sortedCategories = Object.entries(categories).sort(([, a], [, b]) => b - a);
+                const totalCatCount = sortedCategories.reduce((acc, [, v]) => acc + v, 0);
+                const denomCat = totalCatCount > 0 ? totalCatCount : safeViewsTotal;
                 const topCategory = sortedCategories.length > 0 ? sortedCategories[0] : ['Acesso Direto', totalViews];
-                const topCategoryPercent = Math.round((topCategory[1] / totalViews) * 100) || 0;
+                const topCategoryPercent = totalViews > 0 ? Math.min(100, Math.round((topCategory[1] / denomCat) * 100)) : 0;
                 
                 const kpiTopChannel = document.getElementById('kpi-top-channel');
                 const kpiTopChannelSub = document.getElementById('kpi-top-channel-sub');
@@ -1201,8 +1204,10 @@
 
                 // 2. KPI: Cidade Predominante
                 const sortedCities = Object.entries(cities).sort(([, a], [, b]) => b - a);
+                const totalCityCount = sortedCities.reduce((acc, [, v]) => acc + v, 0);
+                const denomCity = totalCityCount > 0 ? totalCityCount : safeViewsTotal;
                 const topCity = sortedCities.length > 0 ? sortedCities[0] : ['Rio Branco', totalViews];
-                const topCityPercent = Math.round((topCity[1] / totalViews) * 100) || 0;
+                const topCityPercent = totalViews > 0 ? Math.min(100, Math.round((topCity[1] / denomCity) * 100)) : 0;
                 
                 const kpiTopCity = document.getElementById('kpi-top-city');
                 const kpiTopCitySub = document.getElementById('kpi-top-city-sub');
@@ -1212,8 +1217,9 @@
                 // 3. KPI: Mobile vs Desktop
                 const mobileCount = (devices['Mobile'] || 0) + (devices['Tablet'] || 0);
                 const desktopCount = devices['Desktop'] || 0;
-                const totalDeviceCount = mobileCount + desktopCount || 1;
-                const mobilePercent = Math.round((mobileCount / totalDeviceCount) * 100) || 0;
+                const totalDeviceCount = mobileCount + desktopCount;
+                const mobilePercent = totalDeviceCount > 0 ? Math.round((mobileCount / totalDeviceCount) * 100) : 0;
+                const desktopPercent = totalDeviceCount > 0 ? Math.round((desktopCount / totalDeviceCount) * 100) : 0;
 
                 const kpiMobileShare = document.getElementById('kpi-mobile-share');
                 const kpiMobileShareSub = document.getElementById('kpi-mobile-share-sub');
@@ -1222,7 +1228,7 @@
 
                 // 4. KPI: Acessos Diretos / Apps
                 const directCount = sources['Acesso Direto'] || categories['Acesso Direto'] || 0;
-                const directPercent = Math.round((directCount / totalViews) * 100) || 0;
+                const directPercent = totalViews > 0 ? Math.min(100, Math.round((directCount / safeViewsTotal) * 100)) : 0;
 
                 const kpiDirectShare = document.getElementById('kpi-direct-share');
                 const kpiDirectShareSub = document.getElementById('kpi-direct-share-sub');
@@ -1232,7 +1238,7 @@
                 // 5. Gráfico Donut de Canais
                 const originsChartTotalLabel = document.getElementById('origins-chart-total-label');
                 if (originsChartTotalLabel) {
-                    originsChartTotalLabel.textContent = `${isToday ? viewsToday : viewsTotal} visitas computadas`;
+                    originsChartTotalLabel.textContent = `${totalViews} visitas computadas`;
                 }
                 renderOriginsDonutChart(categories);
 
@@ -1244,7 +1250,7 @@
 
                     if (sortedSources.length > 0) {
                         sortedSources.forEach(([srcName, count], idx) => {
-                            const percent = Math.round((count / totalViews) * 100) || 0;
+                            const percent = totalViews > 0 ? Math.min(100, Math.round((count / safeViewsTotal) * 100)) : 0;
                             
                             let iconName = 'globe';
                             let iconBg = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
@@ -1299,7 +1305,7 @@
                     geoList.innerHTML = '';
                     if (sortedCities.length > 0) {
                         sortedCities.slice(0, 5).forEach(([city, count]) => {
-                            const percent = Math.round((count / totalViews) * 100) || 0;
+                            const percent = totalViews > 0 ? Math.min(100, Math.round((count / safeViewsTotal) * 100)) : 0;
                             const isAcre = city.toLowerCase().includes('rio branco') || city.toLowerCase().includes('acre');
                             const item = document.createElement('div');
                             item.className = 'p-2.5 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl flex items-center justify-between text-xs';
@@ -1328,12 +1334,12 @@
                     
                     const rows = [
                         { label: 'Celulares / Tablets', count: mobileCount, percent: mobilePercent, icon: 'smartphone', color: 'bg-emerald-500' },
-                        { label: 'Computadores (Desktop)', count: desktopCount, percent: 100 - mobilePercent, icon: 'monitor', color: 'bg-blue-500' }
+                        { label: 'Computadores (Desktop)', count: desktopCount, percent: desktopPercent, icon: 'monitor', color: 'bg-blue-500' }
                     ];
 
                     if (sortedBrowsers.length > 0) {
                         const topBrowser = sortedBrowsers[0];
-                        const bPercent = Math.round((topBrowser[1] / totalViews) * 100) || 0;
+                        const bPercent = totalViews > 0 ? Math.min(100, Math.round((topBrowser[1] / safeViewsTotal) * 100)) : 0;
                         rows.push({ label: `Navegador: ${topBrowser[0]}`, count: topBrowser[1], percent: bPercent, icon: 'chrome', color: 'bg-indigo-500' });
                     }
 

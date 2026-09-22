@@ -64,40 +64,40 @@ class TrackVisitUseCase {
 
         const inc = admin.firestore.FieldValue.increment(1);
 
-        // 3. Montagem dos updates atômicos
+        // 3. Montagem dos updates atômicos com mapas aninhados reais no Firestore
         const statsUpdate = {
             totalViews: inc,
-            [`sources.${sourceKey}`]: inc,
-            [`categories.${categoryKey}`]: inc,
-            [`cities.${cityKey}`]: inc,
-            [`regions.${regionKey}`]: inc,
-            [`countries.${countryKey}`]: inc,
-            [`devices.${deviceKey}`]: inc,
-            [`browsers.${browserKey}`]: inc,
-            [`operatingSystems.${osKey}`]: inc,
-            [`paths.${pathKey}`]: inc,
+            sources: { [sourceKey]: inc },
+            categories: { [categoryKey]: inc },
+            cities: { [cityKey]: inc },
+            regions: { [regionKey]: inc },
+            countries: { [countryKey]: inc },
+            devices: { [deviceKey]: inc },
+            browsers: { [browserKey]: inc },
+            operatingSystems: { [osKey]: inc },
+            paths: { [pathKey]: inc },
             lastVisitAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
         const dailyUpdate = {
             views: inc,
-            [`sources.${sourceKey}`]: inc,
-            [`categories.${categoryKey}`]: inc,
-            [`cities.${cityKey}`]: inc,
-            [`regions.${regionKey}`]: inc,
-            [`countries.${countryKey}`]: inc,
-            [`devices.${deviceKey}`]: inc,
-            [`browsers.${browserKey}`]: inc,
-            [`operatingSystems.${osKey}`]: inc,
-            [`paths.${pathKey}`]: inc,
+            sources: { [sourceKey]: inc },
+            categories: { [categoryKey]: inc },
+            cities: { [cityKey]: inc },
+            regions: { [regionKey]: inc },
+            countries: { [countryKey]: inc },
+            devices: { [deviceKey]: inc },
+            browsers: { [browserKey]: inc },
+            operatingSystems: { [osKey]: inc },
+            paths: { [pathKey]: inc },
             date: today,
             lastVisitAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        if (origin.utm.source) {
+        if (origin.utm && origin.utm.source) {
             const utmKey = sanitizeKey(origin.utm.source);
-            statsUpdate[`utmSources.${utmKey}`] = inc;
-            dailyUpdate[`utmSources.${utmKey}`] = inc;
+            statsUpdate.utmSources = { [utmKey]: inc };
+            dailyUpdate.utmSources = { [utmKey]: inc };
         }
 
         const statsRef = this.db.collection('stats').doc('traffic');
@@ -122,7 +122,14 @@ class TrackVisitUseCase {
             os: device.os,
             browser: device.browser,
             path: cleanPath,
-            ipMasked
+            ipMasked,
+            screen: (typeof visitData.screen === 'string') ? visitData.screen.slice(0, 30) : '',
+            pixelRatio: Number(visitData.pixelRatio) || 1,
+            timezone: (typeof visitData.timezone === 'string') ? visitData.timezone.slice(0, 50) : '',
+            language: (typeof visitData.language === 'string') ? visitData.language.slice(0, 20) : '',
+            gpu: (typeof visitData.gpu === 'string') ? visitData.gpu.slice(0, 80) : '',
+            cores: Number(visitData.cores) || 0,
+            connection: (typeof visitData.connection === 'string') ? visitData.connection.slice(0, 20) : ''
         };
 
         // 4. Executa gravações em paralelo
@@ -143,28 +150,27 @@ class TrackVisitUseCase {
      * @private
      */
     _pruneRecentVisitsAsync(recentVisitsRef) {
-        // Executa em segundo plano sem bloquear a resposta da requisição
         setImmediate(async () => {
             try {
                 const snapshot = await recentVisitsRef
                     .orderBy('createdAtMs', 'desc')
-                    .offset(100)
-                    .limit(20)
+                    .limit(120)
                     .get();
 
-                if (!snapshot.empty) {
+                if (snapshot.docs.length > 100) {
+                    const toDelete = snapshot.docs.slice(100);
                     const batch = this.db.batch();
-                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    toDelete.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
                 }
-            } catch (_) {
-                // Silencioso para não poluir logs com rotação de telemetria
-            }
+            } catch (_) {}
         });
     }
 
     /**
      * Obtém todas as estatísticas consolidadas e detalhadas de tráfego e origens.
+     * Suporta nativamente leitura de mapas aninhados e compatibilidade retroativa
+     * com chaves planas legadas gravadas em formato de ponto.
      * 
      * @returns {Promise<object>}
      */
@@ -174,68 +180,134 @@ class TrackVisitUseCase {
         const dailyRef = statsRef.collection('daily').doc(today);
         const recentVisitsRef = statsRef.collection('recent_visits');
 
-        const [statsDoc, dailyDoc, recentSnapshot] = await Promise.all([
-            statsRef.get(),
-            dailyRef.get(),
-            recentVisitsRef.orderBy('createdAtMs', 'desc').limit(50).get().catch(() => ({ docs: [] }))
-        ]);
+        let statsDoc = { exists: false, data: () => ({}) };
+        let dailyDoc = { exists: false, data: () => ({}) };
+        let recentSnapshot = { docs: [] };
 
-        const statsData = statsDoc.exists ? statsDoc.data() : {};
-        const dailyData = dailyDoc.exists ? dailyDoc.data() : {};
+        try {
+            const [sDoc, dDoc] = await Promise.all([
+                statsRef.get().catch(() => ({ exists: false, data: () => ({}) })),
+                dailyRef.get().catch(() => ({ exists: false, data: () => ({}) }))
+            ]);
+            statsDoc = sDoc;
+            dailyDoc = dDoc;
+        } catch (e) {
+            console.error('[TrackVisit] Erro ao buscar stats/daily:', e.message);
+        }
 
-        const recentVisits = (recentSnapshot.docs || []).map(doc => {
-            const d = doc.data();
-            return {
-                id: doc.id,
-                timeStr: d.timeStr || '--:--',
-                dateStr: d.dateStr || '',
-                source: d.source || 'Acesso Direto',
-                category: d.category || 'Acesso Direto',
-                icon: d.icon || 'globe',
-                city: d.city || 'Rio Branco',
-                region: d.region || 'Acre (AC)',
-                country: d.country || 'Brasil',
-                device: d.device || 'Mobile',
-                os: d.os || 'Android',
-                browser: d.browser || 'Chrome',
-                path: d.path || '/',
-                ipMasked: d.ipMasked || '***.***.***.***',
-                utm: d.utm || null,
-                isCampaign: !!d.isCampaign
-            };
-        });
+        try {
+            recentSnapshot = await recentVisitsRef.orderBy('createdAtMs', 'desc').limit(50).get();
+        } catch (err) {
+            console.warn('[TrackVisit] Falha ao ordenar recent_visits por createdAtMs, buscando sem ordenação:', err.message);
+            try {
+                recentSnapshot = await recentVisitsRef.limit(50).get();
+            } catch (err2) {
+                console.error('[TrackVisit] Falha ao buscar recent_visits:', err2.message);
+                recentSnapshot = { docs: [] };
+            }
+        }
+
+        const statsData = statsDoc.exists ? (statsDoc.data() || {}) : {};
+        const dailyData = dailyDoc.exists ? (dailyDoc.data() || {}) : {};
+
+        const totalViews = statsData.totalViews || dailyData.views || 0;
+        const viewsToday = dailyData.views || 0;
+
+        /**
+         * Helper que extrai valores tanto de mapas aninhados quanto de chaves legadas com notação de ponto
+         * Ex: data.sources = { 'Acesso Direto': 5 } OU data['sources.Acesso Direto'] = 18
+         */
+        const extractMap = (data, key) => {
+            const result = {};
+            if (!data || typeof data !== 'object') return result;
+
+            // 1. Mapa aninhado
+            if (data[key] && typeof data[key] === 'object' && !Array.isArray(data[key])) {
+                for (const [subKey, val] of Object.entries(data[key])) {
+                    if (typeof val === 'number') {
+                        result[subKey] = (result[subKey] || 0) + val;
+                    }
+                }
+            }
+
+            // 2. Chaves legadas com notação de ponto (ex: 'sources.Acesso Direto')
+            const prefix = key + '.';
+            for (const [k, v] of Object.entries(data)) {
+                if (k.startsWith(prefix)) {
+                    const subKey = k.slice(prefix.length);
+                    if (typeof v === 'number') {
+                        result[subKey] = (result[subKey] || 0) + v;
+                    }
+                }
+            }
+
+            return result;
+        };
+
+        const recentVisits = (recentSnapshot.docs || [])
+            .map(doc => {
+                const d = doc.data() || {};
+                const createdMs = d.createdAtMs || (d.timestamp?.toMillis ? d.timestamp.toMillis() : 0);
+                return {
+                    id: doc.id,
+                    createdAtMs: createdMs,
+                    timeStr: d.timeStr || '--:--',
+                    dateStr: d.dateStr || '',
+                    source: d.source || 'Acesso Direto',
+                    category: d.category || 'Acesso Direto',
+                    icon: d.icon || 'globe',
+                    city: d.city || 'Rio Branco',
+                    region: d.region || 'Acre (AC)',
+                    country: d.country || 'Brasil',
+                    device: d.device || 'Desktop',
+                    os: d.os || 'Windows',
+                    browser: d.browser || 'Chrome',
+                    path: d.path || '/',
+                    ipMasked: d.ipMasked || '***.***.***.***',
+                    utm: d.utm || null,
+                    isCampaign: !!d.isCampaign,
+                    screen: d.screen || '',
+                    pixelRatio: d.pixelRatio || 1,
+                    timezone: d.timezone || '',
+                    language: d.language || '',
+                    gpu: d.gpu || '',
+                    cores: d.cores || 0,
+                    connection: d.connection || ''
+                };
+            })
+            .sort((a, b) => b.createdAtMs - a.createdAtMs);
 
         return {
-            totalViews: statsData.totalViews || 0,
-            viewsToday: dailyData.views || 0,
+            totalViews,
+            viewsToday,
 
             // Origens & Canais
-            sourcesToday: dailyData.sources || {},
-            sourcesTotal: statsData.sources || {},
-            categoriesToday: dailyData.categories || {},
-            categoriesTotal: statsData.categories || {},
+            sourcesToday: extractMap(dailyData, 'sources'),
+            sourcesTotal: extractMap(statsData, 'sources'),
+            categoriesToday: extractMap(dailyData, 'categories'),
+            categoriesTotal: extractMap(statsData, 'categories'),
 
             // Geolocalização
-            citiesToday: dailyData.cities || {},
-            citiesTotal: statsData.cities || {},
-            regionsToday: dailyData.regions || {},
-            regionsTotal: statsData.regions || {},
-            countriesToday: dailyData.countries || {},
-            countriesTotal: statsData.countries || {},
+            citiesToday: extractMap(dailyData, 'cities'),
+            citiesTotal: extractMap(statsData, 'cities'),
+            regionsToday: extractMap(dailyData, 'regions'),
+            regionsTotal: extractMap(statsData, 'regions'),
+            countriesToday: extractMap(dailyData, 'countries'),
+            countriesTotal: extractMap(statsData, 'countries'),
 
             // Dispositivos & Navegadores
-            devicesToday: dailyData.devices || {},
-            devicesTotal: statsData.devices || {},
-            browsersToday: dailyData.browsers || {},
-            browsersTotal: statsData.browsers || {},
-            operatingSystemsToday: dailyData.operatingSystems || {},
-            operatingSystemsTotal: statsData.operatingSystems || {},
+            devicesToday: extractMap(dailyData, 'devices'),
+            devicesTotal: extractMap(statsData, 'devices'),
+            browsersToday: extractMap(dailyData, 'browsers'),
+            browsersTotal: extractMap(statsData, 'browsers'),
+            operatingSystemsToday: extractMap(dailyData, 'operatingSystems'),
+            operatingSystemsTotal: extractMap(statsData, 'operatingSystems'),
 
             // Campanhas & Páginas
-            utmSourcesToday: dailyData.utmSources || {},
-            utmSourcesTotal: statsData.utmSources || {},
-            pathsToday: dailyData.paths || {},
-            pathsTotal: statsData.paths || {},
+            utmSourcesToday: extractMap(dailyData, 'utmSources'),
+            utmSourcesTotal: extractMap(statsData, 'utmSources'),
+            pathsToday: extractMap(dailyData, 'paths'),
+            pathsTotal: extractMap(statsData, 'paths'),
 
             // Últimos Visitantes
             recentVisits
