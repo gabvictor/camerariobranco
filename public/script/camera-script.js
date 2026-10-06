@@ -1767,7 +1767,8 @@ function setupModals(cameraCode) {
     const shareLinkInput = document.getElementById('share-link-input');
     const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
 
-    const getShareBaseUrl = () => `${location.origin}/camera/${activeCameraCode || cameraCode}`;
+    const getCamId = () => String(cameraCode || '').trim();
+    const getShareBaseUrl = () => `${location.origin}/camera/${getCamId()}`;
     const getCameraTitle = () => {
         const titleEl = document.getElementById('camera-title');
         return titleEl ? titleEl.textContent.trim() : 'Câmera Ao Vivo em Rio Branco - AC';
@@ -1810,8 +1811,31 @@ function setupModals(cameraCode) {
         }, 200);
     };
 
-    if (shareBtn) shareBtn.onclick = openShareModal;
-    if (headerShareBtn) headerShareBtn.onclick = openShareModal;
+    const handleMainShareClick = async () => {
+        const title = getCameraTitle();
+        const baseUrl = getShareBaseUrl();
+        const camId = getCamId();
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        // Em dispositivos móveis com suporte nativo, dispara diretamente o menu de aplicativos (WhatsApp, etc)
+        if (isMobile && navigator.share && window.CamRBShare) {
+            try {
+                const shared = await window.CamRBShare.nativeShare({
+                    title: `${title} - Câmeras Rio Branco`,
+                    url: baseUrl,
+                    campaign: 'camera_live',
+                    content: camId
+                });
+                if (shared) return;
+            } catch (_) {}
+        }
+
+        // Caso seja desktop, usuário feche o menu, ou o navegador não suporte: abre o modal de compartilhamento
+        openShareModal();
+    };
+
+    if (shareBtn) shareBtn.onclick = handleMainShareClick;
+    if (headerShareBtn) headerShareBtn.onclick = handleMainShareClick;
     if (closeShareBtn) closeShareBtn.onclick = closeShareModal;
     if (shareModal) {
         shareModal.onclick = (e) => {
@@ -1833,17 +1857,18 @@ function setupModals(cameraCode) {
         };
     }
 
-    // Native Mobile Share
+    // Native Mobile Share (Botão 'Outros Apps' dentro do modal)
     if (shareNativeBtn) {
         shareNativeBtn.onclick = async () => {
             const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
                 const shared = await window.CamRBShare.nativeShare({
                     title: `${title} - Câmeras Rio Branco`,
-                    text: 'Assista à transmissão ao vivo em Rio Branco - AC:',
                     url: baseUrl,
-                    campaign: 'camera_live'
+                    campaign: 'camera_live',
+                    content: camId
                 });
                 if (shared) closeShareModal();
             }
@@ -1853,10 +1878,14 @@ function setupModals(cameraCode) {
     // Copy Link with Feedback
     if (copyShareLinkBtn) {
         copyShareLinkBtn.onclick = async () => {
+            const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
                 await window.CamRBShare.copyLink(baseUrl, {
+                    title,
                     campaign: 'camera_live',
+                    content: camId,
                     buttonEl: copyShareLinkBtn,
                     toastMsg: 'Link da câmera copiado com sucesso!'
                 });
@@ -1869,14 +1898,15 @@ function setupModals(cameraCode) {
         };
     }
 
-    // Redes Sociais com Rastreamento de Origem e Mensagens Atraentes
+    // Redes Sociais com Rastreamento de Origem e Pré-visualização Limpa
     const shareWhatsApp = document.getElementById('share-whatsapp-btn');
     if (shareWhatsApp) {
         shareWhatsApp.onclick = () => {
             const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
-                window.CamRBShare.toWhatsApp({ title, url: baseUrl, campaign: 'camera_live' });
+                window.CamRBShare.toWhatsApp({ title, url: baseUrl, campaign: 'camera_live', content: camId });
             } else {
                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(baseUrl)}`, '_blank');
             }
@@ -1888,8 +1918,9 @@ function setupModals(cameraCode) {
         shareTelegram.onclick = () => {
             const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
-                window.CamRBShare.toTelegram({ title, url: baseUrl, campaign: 'camera_live' });
+                window.CamRBShare.toTelegram({ title, url: baseUrl, campaign: 'camera_live', content: camId });
             } else {
                 window.open(`https://t.me/share/url?url=${encodeURIComponent(baseUrl)}`, '_blank');
             }
@@ -1901,8 +1932,9 @@ function setupModals(cameraCode) {
         shareTwitter.onclick = () => {
             const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
-                window.CamRBShare.toTwitter({ title, url: baseUrl, campaign: 'camera_live' });
+                window.CamRBShare.toTwitter({ title, url: baseUrl, campaign: 'camera_live', content: camId });
             } else {
                 window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(baseUrl)}`, '_blank');
             }
@@ -1912,9 +1944,11 @@ function setupModals(cameraCode) {
     const shareFacebook = document.getElementById('share-facebook-btn');
     if (shareFacebook) {
         shareFacebook.onclick = () => {
+            const title = getCameraTitle();
             const baseUrl = getShareBaseUrl();
+            const camId = getCamId();
             if (window.CamRBShare) {
-                window.CamRBShare.toFacebook({ url: baseUrl, campaign: 'camera_live' });
+                window.CamRBShare.toFacebook({ title, url: baseUrl, campaign: 'camera_live', content: camId });
             } else {
                 window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(baseUrl)}`, '_blank');
             }

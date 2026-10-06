@@ -460,7 +460,26 @@ function setupTimelapseShareModal() {
         }, 200);
     };
 
-    if (shareBtn) shareBtn.onclick = openShareModal;
+    const handleMainShareClick = async () => {
+        const title = getTimelapseTitle();
+        const baseUrl = getTimelapseUrl();
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (isMobile && navigator.share && window.CamRBShare) {
+            try {
+                const shared = await window.CamRBShare.nativeShare({
+                    title: `${title} - Câmeras Rio Branco`,
+                    url: baseUrl,
+                    campaign: 'timelapse_live'
+                });
+                if (shared) return;
+            } catch (_) {}
+        }
+
+        openShareModal();
+    };
+
+    if (shareBtn) shareBtn.onclick = handleMainShareClick;
     if (closeShareBtn) closeShareBtn.onclick = closeShareModal;
     if (shareModal) {
         shareModal.onclick = (e) => {
@@ -488,7 +507,6 @@ function setupTimelapseShareModal() {
             if (window.CamRBShare) {
                 const shared = await window.CamRBShare.nativeShare({
                     title: `${title} - Câmeras Rio Branco`,
-                    text: 'Assista ao timelapse de 24 horas em alta velocidade:',
                     url: baseUrl,
                     campaign: 'timelapse_live'
                 });
@@ -499,9 +517,11 @@ function setupTimelapseShareModal() {
 
     if (copyShareLinkBtn) {
         copyShareLinkBtn.onclick = async () => {
+            const title = getTimelapseTitle();
             const baseUrl = getTimelapseUrl();
             if (window.CamRBShare) {
                 await window.CamRBShare.copyLink(baseUrl, {
+                    title,
                     campaign: 'timelapse_live',
                     buttonEl: copyShareLinkBtn,
                     toastMsg: 'Link do Timelapse copiado!'
@@ -557,9 +577,10 @@ function setupTimelapseShareModal() {
     const shareFacebook = document.getElementById('share-facebook-btn');
     if (shareFacebook) {
         shareFacebook.onclick = () => {
+            const title = getTimelapseTitle();
             const baseUrl = getTimelapseUrl();
             if (window.CamRBShare) {
-                window.CamRBShare.toFacebook({ url: baseUrl, campaign: 'timelapse_live' });
+                window.CamRBShare.toFacebook({ title, url: baseUrl, campaign: 'timelapse_live' });
             } else {
                 window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(baseUrl)}`, '_blank');
             }

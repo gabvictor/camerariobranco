@@ -24,6 +24,7 @@ function cameraRoutes(cameraController) {
 
     router.get('/status-cameras',          verifyOptionalAdmin, cameraController.getStatuses);
     router.post('/api/track-visit',        trackVisitLimiter,   cameraController.trackVisitRoute);
+    router.post('/api/track-share',        trackVisitLimiter,   cameraController.trackShareRoute.bind(cameraController));
     router.get('/api/traffic',                                  cameraController.getTraffic);
     router.get('/api/simple-metrics',                           cameraController.getSimpleMetrics);
     router.get('/api/site-config',                              cameraController.getSiteConfig);
@@ -31,6 +32,7 @@ function cameraRoutes(cameraController) {
     router.post('/api/update-camera-info', verifyAdmin,         cameraController.updateCameraInfo);
     router.get('/api/rio-acre',                                 cameraController.getRioAcre);
     router.get('/api/rio-acre/historico',                       cameraController.getRioAcreHistorico);
+    router.get('/api/rio-acre/previsao',                        cameraController.getRioAcrePrevisao);
     router.get('/api/timelapse/:code',                          cameraController.getTimelapse);
     router.get('/api/timelapses-available',                     cameraController.getAvailableTimelapses);
     router.post('/api/contact',            contactLimiter,      cameraController.submitContactSuggestion);

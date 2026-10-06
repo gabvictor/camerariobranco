@@ -18,8 +18,8 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Instala tzdata e fontes do sistema para renderização gráfica perfeita com Sharp/librsvg
-RUN apk add --no-cache tzdata fontconfig ttf-dejavu font-noto font-liberation && fc-cache -f
+# Instala tzdata, fontes do sistema e python3 com requests para telemetria hidrológica
+RUN apk add --no-cache tzdata fontconfig ttf-dejavu font-noto font-liberation python3 py3-requests && fc-cache -f
 ENV TZ=America/Rio_Branco \
     NODE_ENV=production \
     PORT=3001
@@ -35,6 +35,7 @@ RUN mkdir -p /app/public/timelapse /app/public/uploads/sponsors && chown -R node
 COPY --chown=node:node --from=builder /app/src ./src
 COPY --chown=node:node --from=builder /app/public ./public
 COPY --chown=node:node --from=builder /app/server.js ./server.js
+COPY --chown=node:node rio_service.py ./rio_service.py
 
 # Executa com usuário não-root por segurança
 USER node

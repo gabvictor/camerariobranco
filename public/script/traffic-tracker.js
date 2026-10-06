@@ -17,10 +17,34 @@
             const utmSource = searchParams.get('utm_source');
             const utmMedium = searchParams.get('utm_medium');
             const utmCampaign = searchParams.get('utm_campaign');
-            const hasUtm = !!(utmSource || utmMedium || utmCampaign);
+            const utmContent = searchParams.get('utm_content');
+            const utmTerm = searchParams.get('utm_term');
+            const hasUtm = !!(utmSource || utmMedium || utmCampaign || utmContent || utmTerm);
 
             const referrer = document.referrer || '';
-            const isExternalReferrer = referrer && !referrer.includes(window.location.hostname);
+            const isExternalReferrer = !!(referrer && !referrer.includes(window.location.hostname));
+
+            // Atribuição de Entrada (Landing Page & Canal Original da Sessão)
+            const entryPathKey = 'camrb_entry_path';
+            const entrySourceKey = 'camrb_entry_source';
+            let storedEntryPath = '';
+            let storedEntrySource = '';
+            try {
+                if (!sessionStorage.getItem(entryPathKey)) {
+                    sessionStorage.setItem(entryPathKey, window.location.pathname);
+                }
+                storedEntryPath = sessionStorage.getItem(entryPathKey) || window.location.pathname;
+
+                if (hasUtm) {
+                    storedEntrySource = utmSource || '';
+                    sessionStorage.setItem(entrySourceKey, storedEntrySource);
+                } else if (isExternalReferrer) {
+                    storedEntrySource = referrer;
+                    sessionStorage.setItem(entrySourceKey, storedEntrySource);
+                } else {
+                    storedEntrySource = sessionStorage.getItem(entrySourceKey) || '';
+                }
+            } catch (_) {}
 
             // Verifica se a sessão atual já foi registrada
             const sessionKey = 'camrb_tracked_session';
@@ -57,6 +81,10 @@
                 utm_source: utmSource || '',
                 utm_medium: utmMedium || '',
                 utm_campaign: utmCampaign || '',
+                utm_content: utmContent || '',
+                utm_term: utmTerm || '',
+                entryPath: storedEntryPath || window.location.pathname,
+                entrySource: storedEntrySource || '',
                 path: window.location.pathname,
                 screenWidth: window.screen ? window.screen.width : (window.innerWidth || 0),
                 screen: screenRes,

@@ -86,6 +86,20 @@ class GetDashboardDataUseCase {
 
             // ─── Telemetria de Origem de Usuários & Tráfego ─────────────────────────
             origins: {
+                totalShares: trafficStats.totalShares || 0,
+                sharesToday: trafficStats.sharesToday || 0,
+                referralsFromSharesTotal: trafficStats.referralsFromSharesTotal || 0,
+                referralsFromSharesToday: trafficStats.referralsFromSharesToday || 0,
+                sharesByPlatformToday: trafficStats.sharesByPlatformToday || {},
+                sharesByPlatformTotal: trafficStats.sharesByPlatformTotal || {},
+                sharesByPathToday: trafficStats.sharesByPathToday || {},
+                sharesByPathTotal: trafficStats.sharesByPathTotal || {},
+                referralsBySharePlatformToday: trafficStats.referralsBySharePlatformToday || {},
+                referralsBySharePlatformTotal: trafficStats.referralsBySharePlatformTotal || {},
+                entryPathsToday: trafficStats.entryPathsToday || {},
+                entryPathsTotal: trafficStats.entryPathsTotal || {},
+                utmContentsToday: trafficStats.utmContentsToday || {},
+                utmContentsTotal: trafficStats.utmContentsTotal || {},
                 sourcesToday: trafficStats.sourcesToday || {},
                 sourcesTotal: trafficStats.sourcesTotal || {},
                 categoriesToday: trafficStats.categoriesToday || {},
@@ -104,7 +118,8 @@ class GetDashboardDataUseCase {
                 utmSourcesTotal: trafficStats.utmSourcesTotal || {},
                 pathsToday: trafficStats.pathsToday || {},
                 pathsTotal: trafficStats.pathsTotal || {},
-                recentVisits: trafficStats.recentVisits || []
+                recentVisits: trafficStats.recentVisits || [],
+                recentShares: trafficStats.recentShares || []
             }
         };
     }

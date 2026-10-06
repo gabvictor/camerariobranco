@@ -51,7 +51,13 @@ const qrShareOrigin = parseOrigin({ utm_source: 'qr_code', utm_medium: 'offline_
 assert('QR Code detectado como Offline / QR Code', qrShareOrigin.category === 'Offline / QR Code' && qrShareOrigin.icon === 'qr-code');
 
 const directShareOrigin = parseOrigin({ utm_source: 'share_link', utm_medium: 'clipboard', campaign: 'direct_share' });
-assert('Link Copiado detectado como Compartilhamento Direto', directShareOrigin.category === 'Compartilhamento' && directShareOrigin.icon === 'share-2');
+assert('Link Copiado detectado como Compartilhamento Direto', directShareOrigin.category === 'Compartilhamento' && directShareOrigin.icon === 'share-2' && directShareOrigin.isShared === true);
+
+const androidWaOrigin = parseOrigin({ referrer: 'android-app://com.whatsapp/' });
+assert('App Android WhatsApp detectado corretamente via android-app://', androidWaOrigin.source === 'WhatsApp (App Android)' && androidWaOrigin.category === 'Mensageiros' && androidWaOrigin.isShared === true);
+
+const androidInstaOrigin = parseOrigin({ referrer: 'android-app://com.instagram.android/' });
+assert('App Android Instagram detectado corretamente via android-app://', androidInstaOrigin.source === 'Instagram (App Android)' && androidInstaOrigin.category === 'Redes Sociais');
 
 // ─── 2. Testes de GeoUtils & IP Masking ───────────────────────────────────────
 console.log('\n🌍 2. Testando geoUtils:');

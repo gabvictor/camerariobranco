@@ -28,6 +28,7 @@ class CameraController {
         this.updateCameraInfo  = this.updateCameraInfo.bind(this);
         this.getRioAcre               = this.getRioAcre.bind(this);
         this.getRioAcreHistorico      = this.getRioAcreHistorico.bind(this);
+        this.getRioAcrePrevisao       = this.getRioAcrePrevisao.bind(this);
         this.getTimelapse             = this.getTimelapse.bind(this);
         this.getAvailableTimelapses   = this.getAvailableTimelapses.bind(this);
         this.submitContactSuggestion  = this.submitContactSuggestion.bind(this);
@@ -65,13 +66,29 @@ class CameraController {
                 const RioAcreService = require('../../../infrastructure/services/RioAcreService');
                 this._rioAcreService = new RioAcreService();
             }
-            const dias = Math.max(1, Math.min(60, parseInt(req.query.dias, 10) || 30));
+            const dias = Math.max(1, Math.min(365, parseInt(req.query.dias, 10) || 30));
             const data = await this._rioAcreService.getHistoricoRioAcre(dias);
             res.setHeader('Cache-Control', 'public, max-age=1800');
             res.json(data);
         } catch (error) {
             console.error('[RIO_ACRE_HISTORICO_ERROR]', error.message);
             res.status(500).json({ error: 'Erro ao consultar histórico do Rio Acre' });
+        }
+    }
+
+    /** GET /api/rio-acre/previsao */
+    async getRioAcrePrevisao(req, res) {
+        try {
+            if (!this._rioAcreService) {
+                const RioAcreService = require('../../../infrastructure/services/RioAcreService');
+                this._rioAcreService = new RioAcreService();
+            }
+            const data = await this._rioAcreService.getPrevisaoRioAcre();
+            res.setHeader('Cache-Control', 'public, max-age=1800');
+            res.json(data);
+        } catch (error) {
+            console.error('[RIO_ACRE_PREVISAO_ERROR]', error.message);
+            res.status(500).json({ error: 'Erro ao consultar previsão do Rio Acre' });
         }
     }
 
@@ -218,6 +235,10 @@ class CameraController {
                 utm_source: body.utm_source,
                 utm_medium: body.utm_medium,
                 utm_campaign: body.utm_campaign,
+                utm_content: body.utm_content,
+                utm_term: body.utm_term,
+                entryPath: body.entryPath || body.path || req.originalUrl,
+                entrySource: body.entrySource || '',
                 path: body.path || req.originalUrl,
                 ip,
                 userAgent,
@@ -236,11 +257,43 @@ class CameraController {
             res.status(200).json({
                 status: 'tracked',
                 origin: visitRecord.source,
+                isShared: visitRecord.isShared,
                 location: `${visitRecord.city}, ${visitRecord.region}`
             });
         } catch (error) {
             console.error('[TrackVisit] Erro ao registrar visita:', error);
             res.status(500).json({ error: 'Erro ao registrar visita' });
+        }
+    }
+
+    /** POST /api/track-share */
+    async trackShareRoute(req, res) {
+        try {
+            const body = req.body || {};
+            const ip = extractClientIp(req);
+            const userAgent = req.headers['user-agent'] || '';
+
+            const shareRecord = await this.trackVisit.recordShare({
+                platform: body.platform,
+                title: body.title,
+                url: body.url,
+                campaign: body.campaign,
+                path: body.path || req.originalUrl,
+                ip,
+                userAgent,
+                headers: req.headers
+            });
+
+            res.status(200).json({
+                status: 'tracked',
+                share: {
+                    platform: shareRecord.platformLabel,
+                    path: shareRecord.path
+                }
+            });
+        } catch (error) {
+            console.error('[TrackShare] Erro ao registrar compartilhamento:', error);
+            res.status(500).json({ error: 'Erro ao registrar compartilhamento' });
         }
     }
 
