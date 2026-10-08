@@ -7,7 +7,7 @@
 const EventEmitter = require('events');
 
 class SystemLogger extends EventEmitter {
-    constructor(maxEntries = 1000) {
+    constructor(maxEntries = 300) {
         super();
         this.maxEntries = maxEntries;
         this.logs = [];
@@ -124,9 +124,10 @@ class SystemLogger extends EventEmitter {
             return;
         }
 
-        // Ignora endpoints de polling interno e arquivos estáticos para manter logs limpos
+        // Ignora endpoints de polling interno, stream contínuo e arquivos estáticos para manter logs limpos e economizar RAM
         if (first.includes('/health') || first.includes('GET /api/sync-info') || first.includes('GET /api/site-config') || 
             first.includes('GET /api/admin/system-resources') || first.includes('GET /api/admin/logs') ||
+            first.includes('/stream/camera') || first.includes('/proxy/camera') || first.includes('/api/presence/') ||
             first.includes('/css/') || first.includes('/script/') || first.includes('/assets/') || first.includes('/favicon.ico')) {
             return;
         }

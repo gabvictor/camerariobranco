@@ -150,6 +150,10 @@
 
                 <!-- Quick Action Buttons -->
                 <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btn-quick-optimize-ram" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-bold text-xs transition-all active:scale-95 shadow-sm">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>Otimizar RAM</span>
+                    </button>
                     <button id="btn-trigger-scan" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-xs transition-all active:scale-95 shadow-sm">
                         <i data-lucide="scan" class="w-4 h-4"></i>
                         <span>Varredura Agora</span>
@@ -285,7 +289,7 @@
 
                 <!-- Chart 2: RAM Memory Timeline -->
                 <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-2">
                             <div class="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl">
                                 <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
@@ -295,9 +299,15 @@
                                 <p class="text-xs text-gray-400 font-mono">Distribuição em Megabytes do processo Node.js</p>
                             </div>
                         </div>
-                        <span id="chart-mem-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
-                            0 MB
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-optimize-ram" title="Liberar memória e forçar coleta de lixo" class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>Otimizar RAM</span>
+                            </button>
+                            <span id="chart-mem-badge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                                0 MB
+                            </span>
+                        </div>
                     </div>
                     <div class="h-56 w-full">
                         <canvas id="memChart"></canvas>
@@ -949,6 +959,38 @@
                     if (window.lucide) window.lucide.createIcons();
                 }
             });
+
+            // Botões Otimizar RAM (Garbage Collection + Flush Cache Sharp)
+            const handleOptimizeRam = async (btn) => {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div> <span>Compactando...</span>`;
+                }
+                try {
+                    const token = await currentUser.getIdToken();
+                    const res = await fetch('/api/admin/ops/optimize-memory', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`✔ ${data.message}\n\n• Memória Liberada: ${data.freedRssFormatted || '0 Bytes'}\n• Novo RSS: ${data.currentRss}\n• Novo Heap: ${data.currentHeap}`);
+                    } else {
+                        alert('Falha ao otimizar: ' + (data.error || 'Erro desconhecido'));
+                    }
+                } catch (e) {
+                    alert('Erro ao otimizar memória RAM: ' + e.message);
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i> <span>Otimizar RAM</span>`;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                }
+            };
+
+            document.getElementById('btn-optimize-ram')?.addEventListener('click', (e) => handleOptimizeRam(e.currentTarget));
+            document.getElementById('btn-quick-optimize-ram')?.addEventListener('click', (e) => handleOptimizeRam(e.currentTarget));
 
             // Botão Testar Conexões
             document.getElementById('btn-refresh-dependencies')?.addEventListener('click', () => {

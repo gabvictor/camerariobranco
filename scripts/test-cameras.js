@@ -23,8 +23,8 @@ async function checkCameraImage(code) {
         });
         const duration = Date.now() - start;
         const sizeBytes = Buffer.byteLength(response.data);
-        const minSizeBytes = (CONFIG.MIN_IMAGE_SIZE_KB || 5) * 1024;
-        const isOnline = sizeBytes > minSizeBytes;
+        const minSizeBytes = (CONFIG.MIN_IMAGE_SIZE_KB || 25) * 1024;
+        const isOnline = sizeBytes >= minSizeBytes && sizeBytes !== 20500;
         return {
             ok: true,
             status: response.status,

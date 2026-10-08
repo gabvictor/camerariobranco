@@ -14,6 +14,14 @@ const helmet = require('helmet');
 const axios = require('axios');
 const os = require('os');
 
+// Configura limites estritos de cache e memória nativa do Sharp (libvips)
+try {
+    const sharp = require('sharp');
+    sharp.cache({ memory: 16, files: 0, items: 10 });
+    sharp.concurrency(1);
+    sharp.simd(true);
+} catch (_) {}
+
 const PUBLIC_FOLDER = path.join(__dirname, 'public');
 const ADMIN_VIEWS_FOLDER = path.join(__dirname, 'src', 'views', 'admin');
 const ERROR_IMAGE_PATH = path.join(PUBLIC_FOLDER, 'assets', 'offline.png');
@@ -188,7 +196,10 @@ app.use((req, res, next) => {
     res.on('finish', () => {
         const duration = Date.now() - start;
         metrics.recordRequest(duration, res.statusCode >= 500);
-        console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`);
+        // Evita poluir console e buffer de logs com transmissões contínuas e healthchecks
+        if (!req.originalUrl.startsWith('/stream/camera') && !req.originalUrl.startsWith('/proxy/camera') && !req.originalUrl.startsWith('/api/presence') && req.originalUrl !== '/health') {
+            console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`);
+        }
     });
     next();
 });
@@ -250,6 +261,80 @@ app.get(['/apple-app-site-association', '/.well-known/apple-app-site-association
 });
 
 // ─── SSR: Homepage com Injeção Instantânea de Câmeras e Tema ──────────────────
+const escapeHtml = (value = '') => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+function renderSsrCameraCard(camera) {
+    const isOnline = camera.status === 'online';
+    const imageUrl = isOnline ? `/proxy/camera/${escapeHtml(camera.codigo)}` : `/assets/offline.png`;
+    const viewsBadge = camera.views > 0
+        ? `<span class="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded" title="${camera.views} visualizações"><i data-lucide="eye" class="w-3 h-3 mr-1 opacity-70"></i>${camera.views}</span>`
+        : '';
+    const isRio = ['001426', '001334'].includes(camera.codigo);
+
+    return `
+        <div class="camera-card group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200 overflow-hidden cursor-pointer" data-codigo="${escapeHtml(camera.codigo)}" data-status="${escapeHtml(camera.status)}">
+            <div class="relative w-full aspect-video bg-gray-900 overflow-hidden">
+                <div class="w-full h-full">
+                    <img src="${imageUrl}" alt="Câmera ${escapeHtml(camera.nome)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out" loading="lazy" onerror="this.src='/assets/offline.png'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <span class="bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow flex items-center gap-1.5">
+                            <i data-lucide="play" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            Ver câmera
+                        </span>
+                    </div>
+                </div>
+                <div class="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20 flex-wrap">
+                    ${isOnline ? `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded bg-black/75 text-emerald-400 border border-emerald-500/40 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Ao Vivo
+                        </span>
+                    ` : `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded bg-black/75 text-red-400 border border-red-500/40 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                            Offline
+                        </span>
+                    `}
+                    ${isRio ? `
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-extrabold rounded bg-blue-900/80 text-cyan-300 border border-cyan-400/40 shadow-sm">
+                            <i data-lucide="waves" class="w-3 h-3 text-cyan-300"></i>
+                            Rio Acre
+                        </span>
+                    ` : ''}
+                </div>
+                <div class="absolute top-2 right-2 z-20">
+                    <button title="Favoritar câmera" class="favorite-btn p-2.5 rounded-lg bg-black/60 hover:bg-black/80 text-white shadow transition-all active:scale-95 cursor-pointer">
+                        <i data-lucide="star" class="w-4 h-4 pointer-events-none text-white"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-3.5 flex-grow flex flex-col justify-between gap-2.5 bg-white dark:bg-gray-800">
+                <span class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title="${escapeHtml(camera.nome)}">
+                    ${escapeHtml(camera.nome)}
+                </span>
+                <div class="flex justify-between items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/80 px-2 py-1 rounded truncate max-w-[140px]" title="${escapeHtml(camera.categoria)}">
+                        ${escapeHtml(camera.categoria)}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        ${viewsBadge}
+                        <span class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 dark:group-hover:text-white text-indigo-600 dark:text-indigo-400 text-xs font-medium transition-colors" title="Abrir câmera">
+                            <span class="hidden sm:inline">Ver</span>
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 const serveIndexPage = (req, res) => {
     let html;
     try {
@@ -266,17 +351,38 @@ const serveIndexPage = (req, res) => {
     }));
 
     const totalCount = allPublicCameras.length;
-    const onlineCount = allPublicCameras.filter(c => c.status === 'online').length;
+    const onlineCameras = allPublicCameras.filter(c => c.status === 'online');
+    const onlineCount = onlineCameras.length;
     const offlineCount = totalCount - onlineCount;
 
     // Preenche os contadores reais diretamente no HTML antes do envio
     html = html
-        .replace('id="count-online" class="ml-1.5 opacity-60 text-xs font-bold">0<', `id="count-online" class="ml-1.5 opacity-60 text-xs font-bold">${onlineCount}<`)
-        .replace('id="count-all" class="ml-1.5 opacity-60 text-xs">0<', `id="count-all" class="ml-1.5 opacity-60 text-xs">${totalCount}<`)
-        .replace('id="count-offline" class="ml-1.5 opacity-60 text-xs">0<', `id="count-offline" class="ml-1.5 opacity-60 text-xs">${offlineCount}<`)
-        .replace('id="content-wrapper" class="min-h-screen flex flex-col" style="display: none;"', 'id="content-wrapper" class="min-h-screen flex flex-col" style="display: flex;"');
+        .replace(/(<span id="count-online"[^>]*>)[^<]*(<\/span>)/, `$1${onlineCount}$2`)
+        .replace(/(<span id="count-all"[^>]*>)[^<]*(<\/span>)/, `$1${totalCount}$2`)
+        .replace(/(<span id="count-offline"[^>]*>)[^<]*(<\/span>)/, `$1${offlineCount}$2`)
+        .replace(/(<span id="count-online-header"[^>]*>)[^<]*(<\/span>)/, `$1${onlineCount}$2`)
+        .replace(/(<span id="count-all-header"[^>]*>)[^<]*(<\/span>)/, `$1${totalCount}$2`);
 
-    // Injeta dados de câmeras no script do head para renderização em 0ms
+    // Renderização SSR dos cards iniciais (primeiras 18 câmeras online) para renderização instantânea em 0ms
+    const initialList = onlineCameras.length > 0 ? onlineCameras : allPublicCameras;
+    const initialCards = initialList.slice(0, 18);
+    const initialCardsHtml = initialCards.map(cam => renderSsrCameraCard(cam)).join('\n');
+    html = html.replace(/(<main id="camera-grid"[^>]*>)([\s\S]*?)(<\/main>)/, `$1\n${initialCardsHtml}\n$3`);
+
+    // Pré-renderiza categorias
+    const categories = [...new Set(onlineCameras.map(c => (c.categoria || '').trim()))]
+        .filter(c => c.length > 0)
+        .sort();
+    const categoryButtonsHtml = [
+        '<button data-filter-group="category" data-filter="all" class="filter-chip active-chip">Todas</button>',
+        ...categories.map(cat => {
+            const count = onlineCameras.filter(c => (c.categoria || '').trim() === cat).length;
+            return `<button data-filter-group="category" data-filter="${escapeHtml(cat)}" class="filter-chip">${escapeHtml(cat)} (${count})</button>`;
+        })
+    ].join('\n');
+    html = html.replace(/(<div id="category-filters"[^>]*>)([\s\S]*?)(<\/div>)/, `$1\n${categoryButtonsHtml}\n$3`);
+
+    // Injeta dados de câmeras no script do head para hidratação no cliente
     const injectedScript = `<script>window.INITIAL_CAMERAS = ${JSON.stringify(allPublicCameras)};</script>`;
     html = html.replace('</head>', `${injectedScript}\n</head>`);
 
@@ -407,6 +513,15 @@ const serveCameraPage = async (req, res) => {
     res.send(html);
 };
 
+// Gerenciador central de transmissão MJPEG contínua de alta velocidade (Multipart/x-mixed-replace)
+const mjpegStreams = new Map();
+
+// Cache em memória de snapshots estáticos de curtíssima duração (TTL 3s) para resposta instantânea (0ms)
+const snapshotCache = new Map();
+
+// Gerenciador de presença em tempo real de todas as páginas do site
+const sitePresence = new Map(); // chave: res (Response), valor: viewerInfo object
+
 // ─── Camera Proxy ─────────────────────────────────────────────────────────────
 const proxyCameraHandler = async (req, res) => {
     const code = req.params.code || req.query.code;
@@ -425,24 +540,56 @@ const proxyCameraHandler = async (req, res) => {
         if (!isAdminUser) return res.status(403).send('Acesso negado.');
     }
 
+    // 1. Se houver stream MJPEG ativo para esta câmera, usa o frame mais recente em memória (0ms)
+    const activeStream = mjpegStreams.get(code);
+    if (activeStream && activeStream.lastFrame) {
+        res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=5');
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.send(activeStream.lastFrame);
+    }
+
+    // 2. Se houver snapshot recente em cache (< 3 segundos), responde instantaneamente (0ms)
+    const cached = snapshotCache.get(code);
+    if (cached && (Date.now() - cached.timestamp < 3500)) {
+        res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=5');
+        res.setHeader('Content-Type', cached.contentType || 'image/jpeg');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.send(cached.buffer);
+    }
+
     const url = `https://cameras.riobranco.ac.gov.br/api/camera?code=${code}&timestamp=${Date.now()}`;
     try {
         const response = await axios.get(url, {
             responseType: 'arraybuffer',
-            timeout: 15000,
+            timeout: 6000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Referer': 'https://deolhonotransito.riobranco.ac.gov.br',
                 'Origin': 'https://deolhonotransito.riobranco.ac.gov.br',
-                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                'Sec-Fetch-Dest': 'image', 'Sec-Fetch-Mode': 'no-cors', 'Sec-Fetch-Site': 'same-site'
+                'Accept': 'image/jpeg,image/webp,image/*,*/*'
             }
         });
-        if (Buffer.byteLength(response.data) / 1024 < CONFIG.MIN_IMAGE_SIZE_KB) {
+        const dataLength = response.data ? Buffer.byteLength(response.data) : 0;
+        if (dataLength / 1024 < CONFIG.MIN_IMAGE_SIZE_KB || dataLength === 20500) {
             return res.status(404).sendFile(ERROR_IMAGE_PATH);
         }
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        snapshotCache.set(code, {
+            buffer: response.data,
+            contentType,
+            timestamp: Date.now()
+        });
+
+        // Limita tamanho do snapshotCache para economizar RAM
+        if (snapshotCache.size > 80) {
+            const oldestKey = snapshotCache.keys().next().value;
+            snapshotCache.delete(oldestKey);
+        }
+
+        res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=5');
+        res.setHeader('Content-Type', contentType);
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.send(response.data);
         metrics.recordProxySuccess();
@@ -451,12 +598,6 @@ const proxyCameraHandler = async (req, res) => {
         res.status(502).sendFile(ERROR_IMAGE_PATH);
     }
 };
-
-// Gerenciador central de transmissão MJPEG contínua de alta velocidade (Multipart/x-mixed-replace)
-const mjpegStreams = new Map();
-
-// Gerenciador de presença em tempo real de todas as páginas do site
-const sitePresence = new Map(); // chave: res (Response), valor: viewerInfo object
 
 function getOrCreateCameraStream(code) {
     if (mjpegStreams.has(code)) {
@@ -473,11 +614,12 @@ function getOrCreateCameraStream(code) {
     const fetchAndBroadcast = async () => {
         if (streamInfo.subscribers.size === 0) {
             if (streamInfo.timer) clearTimeout(streamInfo.timer);
+            streamInfo.lastFrame = null;
             mjpegStreams.delete(code);
             return;
         }
 
-        let nextDelay = 0;
+        let nextDelay = 600;
         if (!streamInfo.isFetching) {
             streamInfo.isFetching = true;
             try {
@@ -492,36 +634,63 @@ function getOrCreateCameraStream(code) {
                     }
                 });
 
-                if (Buffer.byteLength(response.data) / 1024 >= CONFIG.MIN_IMAGE_SIZE_KB) {
+                const frameLength = response.data ? Buffer.byteLength(response.data) : 0;
+                if (frameLength / 1024 >= CONFIG.MIN_IMAGE_SIZE_KB && frameLength !== 20500) {
                     const frameData = Buffer.from(response.data);
                     streamInfo.lastFrame = frameData;
+
+                    // Alimenta o cache de snapshots para que qualquer requisição /proxy/camera receba 0ms
+                    snapshotCache.set(code, {
+                        buffer: frameData,
+                        contentType: 'image/jpeg',
+                        timestamp: Date.now()
+                    });
 
                     const header = `--myboundary\r\nContent-Type: image/jpeg\r\nContent-Length: ${frameData.length}\r\n\r\n`;
                     for (const [clientRes] of streamInfo.subscribers.entries()) {
                         try {
-                            if (!clientRes.writableEnded && !clientRes.closed) {
+                            if (!clientRes.writableEnded && !clientRes.closed && !clientRes.destroyed) {
+                                // Controle de Backpressure: se o cliente tiver mais de 256KB enfileirados, pula o frame para evitar acúmulo na RAM
+                                if (clientRes.writableLength > 256 * 1024) {
+                                    continue;
+                                }
                                 clientRes.write(header);
                                 clientRes.write(frameData);
                                 clientRes.write('\r\n');
+                            } else {
+                                streamInfo.subscribers.delete(clientRes);
                             }
                         } catch (_) {
                             streamInfo.subscribers.delete(clientRes);
                         }
                     }
                 }
-                const configuredInterval = (cameraCtrl && cameraCtrl.getStreamIntervalMs) ? cameraCtrl.getStreamIntervalMs() : 0;
-                nextDelay = configuredInterval; // Intervalo dinâmico configurado no painel administrativo
+
+                let configuredInterval = 0;
+                if (cameraCtrl && typeof cameraCtrl.getStreamIntervalMs === 'function') {
+                    const rawVal = cameraCtrl.getStreamIntervalMs();
+                    if (typeof rawVal === 'number' && Number.isFinite(rawVal)) {
+                        configuredInterval = Math.max(0, rawVal);
+                    }
+                }
+                nextDelay = configuredInterval;
             } catch (_) {
-                // Se a prefeitura demorar ou oscilar, aguarda 2.5s antes de tentar novamente (sem floodar)
-                nextDelay = 2500;
+                // Se a prefeitura demorar ou oscilar, aguarda 1.5s antes de tentar novamente
+                nextDelay = 1500;
             } finally {
                 streamInfo.isFetching = false;
             }
         }
 
         if (streamInfo.subscribers.size > 0) {
-            streamInfo.timer = setTimeout(fetchAndBroadcast, nextDelay);
+            if (nextDelay === 0) {
+                setImmediate(fetchAndBroadcast);
+            } else {
+                streamInfo.timer = setTimeout(fetchAndBroadcast, nextDelay);
+            }
         } else {
+            if (streamInfo.timer) clearTimeout(streamInfo.timer);
+            streamInfo.lastFrame = null;
             mjpegStreams.delete(code);
         }
     };
@@ -596,13 +765,21 @@ const streamCameraHandler = async (req, res) => {
 
     stream.subscribers.set(res, viewerInfo);
 
-    req.on('close', () => {
+    const cleanupSubscriber = () => {
         stream.subscribers.delete(res);
         if (stream.subscribers.size === 0) {
             if (stream.timer) clearTimeout(stream.timer);
+            stream.lastFrame = null;
             mjpegStreams.delete(code);
         }
-    });
+    };
+
+    req.on('close', cleanupSubscriber);
+    req.on('error', cleanupSubscriber);
+    req.on('aborted', cleanupSubscriber);
+    res.on('close', cleanupSubscriber);
+    res.on('finish', cleanupSubscriber);
+    res.on('error', cleanupSubscriber);
 };
 
 // ─── Rotas Especiais (SSR + Proxy + Stream) ──────────────────────────────────
@@ -708,12 +885,23 @@ const handlePresenceConnection = async (req, res) => {
         }
     }, 10000);
 
-    res._presencePingTimer = pingInterval;
-
-    req.on('close', () => {
-        clearInterval(pingInterval);
+    const cleanupPresence = () => {
+        if (pingInterval) {
+            clearInterval(pingInterval);
+        }
+        if (res._presencePingTimer) {
+            clearInterval(res._presencePingTimer);
+            res._presencePingTimer = null;
+        }
         sitePresence.delete(res);
-    });
+    };
+
+    req.on('close', cleanupPresence);
+    req.on('error', cleanupPresence);
+    req.on('aborted', cleanupPresence);
+    res.on('close', cleanupPresence);
+    res.on('finish', cleanupPresence);
+    res.on('error', cleanupPresence);
 };
 
 app.get('/api/presence/stream', handlePresenceConnection);

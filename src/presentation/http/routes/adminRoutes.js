@@ -115,6 +115,20 @@ function adminRoutes(reportController, dashboardController, deps = {}) {
         }
     });
 
+    // Otimizar e compactar memória RAM (Garbage Collection + Flush de cache libvips/sharp)
+    router.post('/admin/ops/optimize-memory', verifyAdmin, async (req, res) => {
+        try {
+            if (!resourceMonitor || typeof resourceMonitor.optimizeMemory !== 'function') {
+                return res.status(500).json({ error: 'Módulo de gerenciamento de recursos não disponível.' });
+            }
+            const result = resourceMonitor.optimizeMemory();
+            res.json({ success: true, message: 'Memória RAM otimizada com sucesso!', ...result });
+        } catch (error) {
+            console.error('[OPTIMIZE_MEMORY_ERROR]', error);
+            res.status(500).json({ error: error.message || 'Erro ao otimizar memória RAM' });
+        }
+    });
+
     // Logs & Resource Monitor (SSE Stream e REST)
     router.get('/admin/logs/stream', verifyAdmin, (req, res) => {
         const logger = require('../../../infrastructure/logging/SystemLogger');

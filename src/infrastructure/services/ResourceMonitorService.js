@@ -20,6 +20,17 @@ class ResourceMonitorService {
             this._recordSample();
         }, 2000);
         this._sampleTimer.unref();
+
+        // Auto-guard de memória a cada 5 minutos: se RSS ultrapassar 380MB, compacta a RAM
+        this._memoryGuardTimer = setInterval(() => {
+            try {
+                const mem = process.memoryUsage();
+                if (mem.rss > 380 * 1024 * 1024) {
+                    this.optimizeMemory();
+                }
+            } catch (_) {}
+        }, 5 * 60 * 1000);
+        this._memoryGuardTimer.unref();
     }
 
     _formatBytes(bytes, decimals = 2) {
@@ -104,6 +115,46 @@ class ResourceMonitorService {
                 usedFormatted: this._formatBytes(usedSysMem),
                 usedPercent: Math.round((usedSysMem / totalSysMem) * 100)
             }
+        };
+    }
+
+    /**
+     * Otimização ativa de memória RAM:
+     * - Dispara Garbage Collection manual (V8) se flag --expose-gc estiver ativa
+     * - Esvazia caches nativos de imagem do libvips/sharp
+     * - Retorna métricas de bytes liberados
+     */
+    optimizeMemory() {
+        const beforeMem = process.memoryUsage();
+        const beforeRss = beforeMem.rss;
+        const beforeHeap = beforeMem.heapUsed;
+
+        // 1. Limpa cache nativo do Sharp/libvips
+        try {
+            const sharp = require('sharp');
+            sharp.cache(false);
+            sharp.cache({ memory: 16, files: 0, items: 10 });
+        } catch (_) {}
+
+        // 2. Dispara Coletor de Lixo V8
+        if (typeof global.gc === 'function') {
+            try {
+                global.gc();
+            } catch (_) {}
+        }
+
+        const afterMem = process.memoryUsage();
+        const freedRss = Math.max(0, beforeRss - afterMem.rss);
+        const freedHeap = Math.max(0, beforeHeap - afterMem.heapUsed);
+
+        return {
+            freedRssBytes: freedRss,
+            freedRssFormatted: this._formatBytes(freedRss),
+            freedHeapBytes: freedHeap,
+            freedHeapFormatted: this._formatBytes(freedHeap),
+            currentRss: this._formatBytes(afterMem.rss),
+            currentHeap: this._formatBytes(afterMem.heapUsed),
+            timestamp: new Date().toISOString()
         };
     }
 

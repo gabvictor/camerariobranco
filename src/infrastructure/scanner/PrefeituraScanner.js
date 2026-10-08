@@ -5,15 +5,12 @@ const CONFIG = require('../../config/appConfig');
 /**
  * @strategy PrefeituraScanner
  * Implementação concreta de IScannerService para a API da Prefeitura de Rio Branco.
- *
- * Strategy Pattern: Toda a lógica específica desta fonte está isolada aqui.
- * Para adicionar uma segunda fonte, basta criar outro arquivo implementando IScannerService.
  */
 class PrefeituraScanner extends IScannerService {
     constructor() {
         super();
         this._headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Referer':    'https://deolhonotransito.riobranco.ac.gov.br',
             'Origin':     'https://deolhonotransito.riobranco.ac.gov.br',
             'Accept':     'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
@@ -34,11 +31,15 @@ class PrefeituraScanner extends IScannerService {
         try {
             const response = await axios.get(url, {
                 responseType: 'arraybuffer',
-                timeout: CONFIG.REQUEST_TIMEOUT,
+                timeout: CONFIG.REQUEST_TIMEOUT || 6000,
                 signal,
                 headers: this._headers
             });
-            const isOnline = Buffer.byteLength(response.data) > CONFIG.MIN_IMAGE_SIZE_KB * 1024;
+
+            const minBytes = (CONFIG.MIN_IMAGE_SIZE_KB || 25) * 1024;
+            const sizeBytes = response.data ? response.data.length : 0;
+            const isOnline = response.status === 200 && sizeBytes >= minBytes && sizeBytes !== 20500;
+
             return { codigo: code, status: isOnline ? 'online' : 'offline' };
         } catch {
             return { codigo: code, status: 'offline' };

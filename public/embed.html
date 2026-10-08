@@ -335,73 +335,25 @@
             watermark.href = `https://camerasriobranco.com.br/camera/${cameraId}`;
 
 
-            // ── 5. Double-buffer live feed ──────────────────────────────────
-            let useBuffer        = true;   // which img loads next frame
-            let consecutiveErrors = 0;
-            let hasShownImage    = false;
-            let lastSuccessAt    = 0;
-            let intervalId       = null;
-            let countdownId      = null;
-            let countdownVal     = REFRESH_INTERVAL / 1000;
+            // ── 5. Live MJPEG Stream ─────────────────────────────────────────
+            function startFeed() {
+                loader.style.display = 'flex';
+                errorOverlay.classList.remove('visible');
+                refreshBadge.classList.add('visible');
+                if (refreshTimer) refreshTimer.textContent = 'Ao Vivo';
 
-            function startCountdown() {
-                countdownVal = REFRESH_INTERVAL / 1000;
-                refreshTimer.textContent = countdownVal + 's';
-                clearInterval(countdownId);
-                countdownId = setInterval(() => {
-                    countdownVal = Math.max(0, countdownVal - 1);
-                    refreshTimer.textContent = countdownVal + 's';
-                }, 1000);
-            }
-
-            function loadFrame() {
-                const url      = `/proxy/camera/${cameraId}?t=${Date.now()}`;
-                const next     = useBuffer ? buffer : feed;
-                const current  = useBuffer ? feed   : buffer;
-
-                next.onload = () => {
-                    consecutiveErrors = 0;
-                    hasShownImage     = true;
-                    lastSuccessAt     = Date.now();
-
-                    // Hide loader & error
-                    loader.style.display        = 'none';
+                feed.onload = () => {
+                    loader.style.display = 'none';
                     errorOverlay.classList.remove('visible');
-                    refreshBadge.classList.add('visible');
-
-                    // Crossfade: show next, hide current
-                    next.style.opacity    = '1';
-                    setTimeout(() => { current.style.opacity = '0'; }, 300);
-
-                    useBuffer = !useBuffer;
-                    startCountdown();
+                    feed.style.opacity = '1';
                 };
 
-                next.onerror = () => {
-                    consecutiveErrors++;
-                    const recentlyOk = hasShownImage && (Date.now() - lastSuccessAt < 60000);
-
-                    // Tolerate a few errors silently
-                    if (recentlyOk || consecutiveErrors < 3) return;
-
-                    // Show error state
+                feed.onerror = () => {
                     loader.style.display = 'none';
-                    refreshBadge.classList.remove('visible');
                     errorOverlay.classList.add('visible');
                 };
 
-                next.src = url;
-            }
-
-            function startFeed() {
-                clearInterval(intervalId);
-                clearInterval(countdownId);
-                consecutiveErrors = 0;
-                loader.style.display = 'flex';
-                errorOverlay.classList.remove('visible');
-
-                loadFrame();
-                intervalId = setInterval(loadFrame, REFRESH_INTERVAL);
+                feed.src = `/stream/camera/${cameraId}?t=${Date.now()}`;
             }
 
             // ── 6. Retry button ─────────────────────────────────────────────

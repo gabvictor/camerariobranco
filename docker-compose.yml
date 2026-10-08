@@ -13,11 +13,16 @@ services:
     environment:
       - TZ=America/Rio_Branco
       - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=512 --expose-gc
       - PORT=3001
       - SITE_DOMAIN=${SITE_DOMAIN:-camerasriobranco.com.br}
       - SITE_BASE_URL=${SITE_BASE_URL:-https://camerasriobranco.com.br}
       - SCANNER_SOURCE=${SCANNER_SOURCE:-prefeitura}
       - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET:-camerasriobranco.firebasestorage.app}
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
     volumes:
       # Persiste as fotos do timelapse gravadas no disco do host
       - ./public/timelapse:/app/public/timelapse

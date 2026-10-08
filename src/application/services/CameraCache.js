@@ -37,9 +37,9 @@ class CameraCache {
             const existingInfo = existingMap.get(code);
 
             // Determina o status: nova varredura > cache anterior > offline padrão
-            const status = statusMap.get(code)
-                || existingInfo?.status
-                || 'offline';
+            const status = statusMap.has(code)
+                ? statusMap.get(code)
+                : (existingInfo?.status || 'offline');
 
             // Dados enriquecidos do Firebase têm prioridade, senão do cache anterior, senão fallback
             const nome = firestoreInfo?.nome

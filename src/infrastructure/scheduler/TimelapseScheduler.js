@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const CONFIG = require('../../config/appConfig');
 const { formatRioBrancoTime, formatRioBrancoDate } = require('../../utils/dateUtils');
 
 /**
@@ -84,7 +85,9 @@ class TimelapseScheduler {
                 }
             });
 
-            if (Buffer.byteLength(response.data) > 10 * 1024) {
+            const sizeBytes = response.data ? Buffer.byteLength(response.data) : 0;
+            const minBytes = (CONFIG.MIN_IMAGE_SIZE_KB || 25) * 1024;
+            if (sizeBytes >= minBytes && sizeBytes !== 20500) {
                 const filePath = path.join(camDir, `${timestamp}.jpg`);
                 fs.writeFileSync(filePath, response.data);
             }

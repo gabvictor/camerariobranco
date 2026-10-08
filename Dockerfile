@@ -22,6 +22,7 @@ WORKDIR /app
 RUN apk add --no-cache tzdata fontconfig ttf-dejavu font-noto font-liberation python3 py3-requests && fc-cache -f
 ENV TZ=America/Rio_Branco \
     NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=512 --expose-gc" \
     PORT=3001
 
 # Instala apenas dependências de produção
@@ -46,4 +47,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "--max-old-space-size=512", "--expose-gc", "server.js"]

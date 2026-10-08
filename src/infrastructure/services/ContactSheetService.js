@@ -1,5 +1,13 @@
 const axios = require('axios');
 const sharp = require('sharp');
+const CONFIG = require('../../config/appConfig');
+
+// Limita o cache e concorrência nativa do libvips para não reter buffers gigantes em RAM/RSS
+try {
+    sharp.cache({ memory: 16, files: 0, items: 10 });
+    sharp.concurrency(1);
+    sharp.simd(true);
+} catch (_) {}
 
 /**
  * @service ContactSheetService
@@ -24,7 +32,7 @@ class ContactSheetService {
         this.COLS = 4;
         this.GAP = 12;
         this.PADDING = 24;
-        this.MIN_IMAGE_SIZE_KB = 10;
+        this.MIN_IMAGE_SIZE_KB = CONFIG.MIN_IMAGE_SIZE_KB || 25;
 
         // Cache em memória
         this._cachedBuffer = null;
@@ -91,8 +99,9 @@ class ContactSheetService {
                 }
             });
 
-            if (Buffer.byteLength(response.data) / 1024 < this.MIN_IMAGE_SIZE_KB) {
-                return this._generateOfflineFrame(camera, 'Imagem com tamanho insuficiente');
+            const sizeBytes = response.data ? Buffer.byteLength(response.data) : 0;
+            if (sizeBytes / 1024 < this.MIN_IMAGE_SIZE_KB || sizeBytes === 20500) {
+                return this._generateOfflineFrame(camera, 'Sem sinal da câmera');
             }
 
             // Redimensiona imediatamente para economizar memória
@@ -310,6 +319,9 @@ class ContactSheetService {
 
             } finally {
                 this._generatingPromise = null;
+                try {
+                    if (global.gc) global.gc();
+                } catch (_) {}
             }
         })();
 

@@ -207,7 +207,7 @@ function setupHeroCameraSwitcher() {
             if (current.status === 'offline') {
                 heroFeed.src = '/assets/offline.png';
             } else {
-                heroFeed.src = `/proxy/camera/${code}?t=${Date.now()}`;
+                heroFeed.src = `/stream/camera/${code}?t=${Date.now()}`;
             }
         }
 

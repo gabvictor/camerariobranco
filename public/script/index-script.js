@@ -281,27 +281,6 @@ function initializeAppLogic() {
             </div>
         `;
 
-        card.addEventListener('click', (e) => {
-            if (e.target.closest('.favorite-btn')) return;
-            if (window.gtag) {
-                gtag('event', 'select_content', {
-                    'content_type': 'camera',
-                    'item_id': camera.codigo,
-                    'item_name': camera.nome
-                });
-            }
-            if (e.ctrlKey || e.metaKey || e.button === 1) {
-                window.open(`/camera/${encodeURIComponent(camera.codigo)}`, '_blank');
-            } else {
-                window.location.href = `/camera/${encodeURIComponent(camera.codigo)}`;
-            }
-        });
-
-        card.querySelector('.favorite-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleFavorite(camera.codigo, e.currentTarget);
-        });
-
         return card;
     };
 
@@ -503,7 +482,7 @@ function initializeAppLogic() {
         renderCurrentPage();
     };
 
-    const processDataUpdate = (data) => {
+    const processDataUpdate = (data, isInitialHydration = false) => {
         state.allCameras = data;
         if (elements.skeletonGrid) elements.skeletonGrid.classList.add('hidden');
         elements.cameraGrid.classList.remove('min-h-[500px]');
@@ -523,8 +502,16 @@ function initializeAppLogic() {
 
         updateCounts();
         updateCategoryFilters();
-        applyFilters(false);
-        refreshCardImages();
+
+        const hasSsrCards = elements.cameraGrid && elements.cameraGrid.querySelectorAll('.camera-card').length > 0;
+        if (!isInitialHydration || !hasSsrCards) {
+            applyFilters(false);
+            refreshCardImages();
+        } else {
+            let filtered = state.allCameras.filter(cam => cam.status === 'online');
+            state.filteredCameras = filtered.length > 0 ? filtered : state.allCameras;
+        }
+
         if (elements.lastUpdatedSpan) elements.lastUpdatedSpan.textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
     };
 
@@ -756,6 +743,35 @@ function initializeAppLogic() {
                 }
 
                 applyFilters();
+                return;
+            }
+
+            // Handle Camera Card and Favorite Clicks (instant delegation for SSR & Dynamic cards)
+            const card = e.target.closest('.camera-card');
+            if (card && elements.cameraGrid && elements.cameraGrid.contains(card)) {
+                const favoriteBtn = e.target.closest('.favorite-btn');
+                const code = card.dataset.codigo;
+                if (favoriteBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (code) toggleFavorite(code, favoriteBtn);
+                    return;
+                }
+                if (code) {
+                    if (window.gtag) {
+                        gtag('event', 'select_content', {
+                            'content_type': 'camera',
+                            'item_id': code,
+                            'item_name': card.querySelector('span[title]')?.getAttribute('title') || code
+                        });
+                    }
+                    if (e.ctrlKey || e.metaKey || e.button === 1) {
+                        window.open(`/camera/${encodeURIComponent(code)}`, '_blank');
+                    } else {
+                        window.location.href = `/camera/${encodeURIComponent(code)}`;
+                    }
+                    return;
+                }
             }
         });
 
@@ -895,13 +911,15 @@ function initializeAppLogic() {
         
         // Immediate 0ms render from SSR if available
         if (Array.isArray(window.INITIAL_CAMERAS) && window.INITIAL_CAMERAS.length > 0) {
-            processDataUpdate(window.INITIAL_CAMERAS);
+            processDataUpdate(window.INITIAL_CAMERAS, true);
+            syncTimeoutId = setTimeout(syncLoop, state.updateInterval);
+        } else {
+            syncLoop();
         }
 
         fetchFavorites();
         fetchPublicSponsors();
         startCountdownTimer();
-        syncLoop();
         initTour();
     };
 
