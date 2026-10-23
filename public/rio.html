@@ -191,6 +191,9 @@
                 </div>
             </div>
 
+            <!-- Aviso de dados desatualizados ou indisponíveis (preenchido por rio-script.js) -->
+            <div id="rio-aviso-dados" role="alert" class="hidden mb-4 p-3 rounded-lg border text-xs sm:text-sm font-medium"></div>
+
             <!-- ─── 1. Monitoramento Principal: Telemetria e Câmeras Ao Vivo ─── -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8">
                 
@@ -275,7 +278,7 @@
                             <span id="stat-hero-vazao" class="font-mono-num font-bold text-slate-900 dark:text-white text-sm">--</span>
                         </div>
                         <div>
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400 block">Chuva Acumulada 24h</span>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 block">Chuva (última leitura)</span>
                             <span id="stat-hero-chuva" class="font-mono-num font-bold text-slate-900 dark:text-white text-sm">--</span>
                         </div>
                         <div>
@@ -450,13 +453,13 @@
                             </span>
                         </div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Estimativa probabilística calculada a partir da inércia horária recente e da climatologia histórica multianual (1971–2025)
+                            Extrapolação simples da tendência das últimas 24 h. Não é previsão oficial: não considera chuva prevista nem o nível a montante
                         </p>
                     </div>
 
                     <div class="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                         <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
-                        <span id="prev-risco-texto">Risco Enchente: Nulo</span>
+                        <span id="prev-risco-texto">Situação: --</span>
                     </div>
                 </div>
 
@@ -514,17 +517,17 @@
                 <!-- Parecer Técnico Hidrológico Oficial -->
                 <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border-l-4 border-indigo-600 border border-slate-200 dark:border-slate-800 mb-6">
                     <span class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block mb-1">
-                        Parecer Técnico Hidrológico
+                        Leitura automática da tendência
                     </span>
                     <p id="prev-diagnostico" class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        Processando leitura das réguas e cálculo de vazão acumulada...
+                        Calculando a tendência a partir das leituras recentes da estação...
                     </p>
                 </div>
 
                 <!-- Comparativo Multianual & Climatologia Sazonal -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                        Comparativo Histórico de Níveis (CPRM / SGB 1971–2025)
+                        Comparativo com valores de referência
                     </h3>
 
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -548,8 +551,8 @@
 
                         <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                             <span class="text-[11px] text-slate-500 dark:text-slate-400 block">Cheia Recorde</span>
-                            <div class="text-base sm:text-lg font-bold font-mono-num text-blue-600 dark:text-blue-400 mt-0.5">17,89 m</div>
-                            <span class="text-[10px] text-slate-400">06/03/2024 (Maior enchente)</span>
+                            <div class="text-base sm:text-lg font-bold font-mono-num text-blue-600 dark:text-blue-400 mt-0.5">18,40 m</div>
+                            <span class="text-[10px] text-slate-400">04/03/2015 (Maior enchente)</span>
                         </div>
                     </div>
 
@@ -557,7 +560,7 @@
                     <div class="bg-slate-50 dark:bg-slate-950 rounded-lg p-3.5 border border-slate-200 dark:border-slate-800">
                         <div class="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 font-semibold mb-2.5">
                             <span>Ciclo Hidrológico Médio Mensal em Rio Branco</span>
-                            <span class="text-[10px] text-slate-400 font-normal">Série Histórica Oficial</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Médias aproximadas (referência)</span>
                         </div>
                         <div id="prev-climatologia-grid" class="grid grid-cols-6 sm:grid-cols-12 gap-1.5 text-center">
                             <!-- Inserido dinamicamente via JS -->
@@ -607,7 +610,7 @@
                 </div>
 
                 <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                    <strong>Registros Históricos Extremos:</strong> Maior cheia: <strong>17,89 m</strong> (março/2024) • Menor nível histórico: <strong>1,23 m</strong> (setembro/2024).
+                    <strong>Registros Históricos Extremos:</strong> Maior cheia: <strong>18,40 m</strong> (março/2015) • Menor nível registrado: <strong>1,23 m</strong> (setembro/2024).
                 </div>
             </div>
 

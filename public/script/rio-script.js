@@ -331,7 +331,11 @@ async function loadUnifiedPeriod(period, forceRefresh = false) {
     }
 
     try {
-        if (loader) loader.style.display = 'flex';
+        if (loader) {
+            if (loader.dataset.orig) loader.innerHTML = loader.dataset.orig; else loader.dataset.orig = loader.innerHTML;
+            delete loader.dataset.erro;
+            loader.style.display = 'flex';
+        }
 
         if (forceRefresh) {
             delete unifiedDataCache[period];
@@ -344,7 +348,14 @@ async function loadUnifiedPeriod(period, forceRefresh = false) {
                 : period;
             
             const res = await fetch(`/api/rio-acre/historico?dias=${queryDias}`);
-            if (!res.ok) throw new Error('Falha ao carregar dados do gráfico');
+            if (!res.ok) {
+                if (loader) {
+                    loader.dataset.erro = '1';
+                    loader.style.display = 'flex';
+                    loader.innerHTML = '<span class="text-xs text-slate-600 dark:text-slate-400 font-medium">Histórico indisponível no momento.</span>';
+                }
+                return;
+            }
             const json = await res.json();
             
             if (period === '24h') {
@@ -374,7 +385,7 @@ async function loadUnifiedPeriod(period, forceRefresh = false) {
     } catch (err) {
         console.warn('Erro ao carregar dados para o período:', period, err);
     } finally {
-        if (loader) loader.style.display = 'none';
+        if (loader && !loader.dataset.erro) loader.style.display = 'none';
     }
 }
 
@@ -566,7 +577,10 @@ function renderUnifiedChart(period, data) {
 async function fetchRioPrevisao() {
     try {
         const res = await fetch('/api/rio-acre/previsao');
-        if (!res.ok) throw new Error('Falha ao obter previsão hidrológica');
+        if (!res.ok) {
+            limparPrevisao('Estimativa indisponível: sem leitura recente da estação.');
+            return;
+        }
         const data = await res.json();
 
         // 1. Badge Direção Geral & Status de Risco
@@ -591,10 +605,16 @@ async function fetchRioPrevisao() {
 
         const elRiscoTexto = document.getElementById('prev-risco-texto');
         if (elRiscoTexto) {
-            elRiscoTexto.textContent = `Risco Enchente: ${data.riscoInundacao || 'Nulo (< 0,1%)'}`;
+            elRiscoTexto.textContent = `Situação: ${data.riscoInundacao || '--'}`;
         }
 
-        // 2. Projeções 24h, 48h, 7d
+        // 2. Projeções 24h, 48h, 7d (vazias quando a estimativa está indisponível)
+        if (data.disponivel === false) {
+            ['24h', '48h', '7d'].forEach((h) => {
+                const set = (suf, txt) => { const el = document.getElementById(`prev-${h}-${suf}`); if (el) el.textContent = txt; };
+                set('nivel', '-- m'); set('delta', '--'); set('margem', 'Faixa: --'); set('tendencia', 'Indisponível');
+            });
+        }
         const p24 = data.projecoes?.['24h'];
         if (p24) {
             const elNivel = document.getElementById('prev-24h-nivel');
@@ -675,6 +695,19 @@ async function fetchRioPrevisao() {
     }
 }
 
+function limparPrevisao(motivo) {
+    ['24h', '48h', '7d'].forEach((h) => {
+        const set = (suf, txt) => { const el = document.getElementById(`prev-${h}-${suf}`); if (el) el.textContent = txt; };
+        set('nivel', '-- m'); set('delta', '--'); set('margem', 'Faixa: --'); set('tendencia', 'Indisponível');
+    });
+    const diag = document.getElementById('prev-diagnostico');
+    if (diag) diag.textContent = motivo;
+    const dir = document.getElementById('prev-direcao-badge');
+    if (dir) dir.textContent = 'Indisponível';
+    const risco = document.getElementById('prev-risco-texto');
+    if (risco) risco.textContent = 'Situação: --';
+}
+
 function renderClimatologiaGrid(climaList, mesAtualNome) {
     const grid = document.getElementById('prev-climatologia-grid');
     if (!grid || !Array.isArray(climaList)) return;
@@ -700,10 +733,51 @@ function renderClimatologiaGrid(climaList, mesAtualNome) {
 }
 
 
+function mostrarAvisoDados(texto, cor) {
+    const el = document.getElementById('rio-aviso-dados');
+    if (!el) return;
+    if (!texto) {
+        el.classList.add('hidden');
+        el.textContent = '';
+        return;
+    }
+    const cores = cor === 'rose'
+        ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200'
+        : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200';
+    el.className = `mb-4 p-3 rounded-lg border text-xs sm:text-sm font-medium ${cores}`;
+    el.textContent = texto;
+}
+
+/** Sem leitura real: limpa os números e avisa, em vez de mostrar um valor padrão. */
+function mostrarTelemetriaIndisponivel() {
+    const ids = ['rio-nivel-grande', 'stat-hero-vazao', 'stat-hero-chuva', 'stat-hero-distancia',
+        'rio-cam-1426-nivel', 'rio-cam-1334-nivel', 'hero-camera-nivel-overlay', 'rio-gauge-needle-val'];
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = '--'; });
+    const leitura = document.getElementById('rio-ultima-leitura');
+    if (leitura) leitura.textContent = 'Telemetria indisponível no momento';
+    const msg = document.getElementById('rio-mensagem-cidadao');
+    if (msg) msg.textContent = 'Não foi possível obter a leitura da estação da ANA agora. Nenhum valor é exibido para evitar informação falsa. Em caso de emergência, ligue 199 (Defesa Civil).';
+    const badge = document.getElementById('rio-status-badge');
+    if (badge) badge.textContent = 'Sem dados';
+    const pct = document.getElementById('rio-percentual-cota');
+    if (pct) pct.textContent = 'Sem leitura disponível';
+    // Sem leitura, a régua não pode apontar nenhum nível
+    const agulha = document.getElementById('rio-gauge-needle');
+    if (agulha) agulha.style.display = 'none';
+    const barra = document.getElementById('rio-barra-progresso');
+    if (barra) barra.style.width = '0%';
+    const tend = document.getElementById('rio-tendencia-badge');
+    if (tend) tend.textContent = '--';
+    mostrarAvisoDados('Telemetria da estação 13600002 indisponível no momento. Tentaremos novamente automaticamente.', 'rose');
+}
+
 async function fetchRioTelemetry() {
     try {
         const res = await fetch('/api/rio-acre');
-        if (!res.ok) throw new Error('Falha ao carregar telemetria');
+        if (!res.ok) {
+            mostrarTelemetriaIndisponivel();
+            return;
+        }
         const data = await res.json();
 
         const nivelGrande = document.getElementById('rio-nivel-grande');
@@ -713,12 +787,23 @@ async function fetchRioTelemetry() {
         const barraRotulo = document.getElementById('rio-barra-rotulo');
         const percentualCota = document.getElementById('rio-percentual-cota');
 
-        const nivelM = data.nivel?.metros || 1.76;
-        const formatado = data.nivel?.formatado || '1,76 m';
-        const dataStr = data.nivel?.dataLeitura || 'Hoje';
+        const nivelM = data.nivel?.metros;
+        if (typeof nivelM !== 'number') {
+            mostrarTelemetriaIndisponivel();
+            return;
+        }
+        const formatado = data.nivel.formatado || `${nivelM.toFixed(2).replace('.', ',')} m`;
+        const dataStr = data.nivel.dataLeitura || '--';
+        const frescor = data.frescor || {};
+        const desatualizado = data.estado === 'desatualizado' || frescor.desatualizado === true;
 
         if (nivelGrande) nivelGrande.textContent = formatado;
-        if (ultimaLeitura) ultimaLeitura.textContent = `Medição oficial: ${dataStr}`;
+        if (ultimaLeitura) {
+            ultimaLeitura.textContent = `Medição oficial: ${dataStr}${desatualizado ? ' • DESATUALIZADA' : ''}`;
+            ultimaLeitura.classList.toggle('text-amber-600', desatualizado);
+            ultimaLeitura.classList.toggle('dark:text-amber-400', desatualizado);
+        }
+        mostrarAvisoDados(desatualizado ? (frescor.mensagem || 'A última leitura da estação está desatualizada.') : null, 'amber');
 
         const cam1426Nivel = document.getElementById('rio-cam-1426-nivel');
         const cam1334Nivel = document.getElementById('rio-cam-1334-nivel');
@@ -733,17 +818,23 @@ async function fetchRioTelemetry() {
             statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> ${data.status?.tipo || 'Normal'}`;
         }
 
-        // Mensagem tranquilizadora para a população
+        // Mensagem para a população (só afirma o que os dados mostram)
         const elMensagem = document.getElementById('rio-mensagem-cidadao');
         if (elMensagem) {
             const diffAlerta = 13.50 - nivelM;
-            if (diffAlerta > 2) {
-                elMensagem.textContent = `Situação tranquila em Rio Branco: o rio está a ${diffAlerta.toFixed(2).replace('.', ',')} m da cota de alerta (13,50 m). Sem risco de enchente no momento.`;
-            } else if (diffAlerta > 0) {
-                elMensagem.textContent = `Atenção: o rio está a apenas ${diffAlerta.toFixed(2).replace('.', ',')} m da cota de alerta. Acompanhe as orientações da Defesa Civil.`;
+            const fmtM = (v) => v.toFixed(2).replace('.', ',');
+            let msg;
+            if (nivelM >= 14.00) {
+                msg = 'ALERTA MÁXIMO: cota de transbordamento (14,00 m) atingida. Procure locais seguros e ligue 199.';
+            } else if (nivelM >= 13.50) {
+                msg = 'ALERTA: o rio passou da cota de alerta (13,50 m). Acompanhe as orientações da Defesa Civil (199).';
+            } else if (diffAlerta <= 2) {
+                msg = `Atenção: o rio está a apenas ${fmtM(diffAlerta)} m da cota de alerta (13,50 m). Acompanhe as orientações da Defesa Civil.`;
             } else {
-                elMensagem.textContent = `ALERTA MÁXIMO: Cota de transbordamento atingida. Procure locais seguros e ligue 199.`;
+                msg = `Na última leitura, o rio estava ${fmtM(diffAlerta)} m abaixo da cota de alerta (13,50 m).`;
             }
+            if (desatualizado) msg += ' Atenção: esta leitura está desatualizada; confirme com a Defesa Civil (199).';
+            elMensagem.textContent = msg;
         }
 
         const elTendBadge = document.getElementById('rio-tendencia-badge');
@@ -755,12 +846,12 @@ async function fetchRioTelemetry() {
 
         const elHeroVazao = document.getElementById('stat-hero-vazao');
         if (elHeroVazao) {
-            elHeroVazao.textContent = data.vazao || '45,0 m³/s';
+            elHeroVazao.textContent = data.vazao || '--';
         }
 
         const elHeroChuva = document.getElementById('stat-hero-chuva');
         if (elHeroChuva) {
-            elHeroChuva.textContent = data.chuva || '0,0 mm';
+            elHeroChuva.textContent = data.chuva || '--';
         }
 
         const elHeroDistancia = document.getElementById('stat-hero-distancia');
@@ -786,7 +877,7 @@ async function fetchRioTelemetry() {
         let infoExtra = document.getElementById('rio-info-extra');
         if (infoExtra) {
             const vazaoStr = data.vazao ? `Vazão: ${data.vazao}` : '';
-            const chuvaStr = data.chuva ? `Chuva 24h: ${data.chuva}` : '';
+            const chuvaStr = data.chuva ? `Chuva (última leitura): ${data.chuva}` : '';
             infoExtra.textContent = [vazaoStr, chuvaStr].filter(Boolean).join(' • ');
         }
 
@@ -800,6 +891,7 @@ async function fetchRioTelemetry() {
         const gaugeNeedle = document.getElementById('rio-gauge-needle');
         const gaugeNeedleVal = document.getElementById('rio-gauge-needle-val');
         if (gaugeNeedle) {
+            gaugeNeedle.style.display = '';
             gaugeNeedle.style.left = `${pct.toFixed(1)}%`;
         }
         if (gaugeNeedleVal) {

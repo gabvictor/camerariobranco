@@ -43,6 +43,21 @@ class CameraController {
     setRioAcreService(service) { this._rioAcreService = service; return this; }
     setTimelapseScheduler(scheduler) { this._timelapseScheduler = scheduler; return this; }
 
+    /** Responde erro da telemetria do Rio Acre: 503 quando não há leitura real (nunca valor inventado). */
+    _rioErro(res, error, tag) {
+        res.setHeader('Cache-Control', 'no-store');
+        if (error && error.name === 'DadosIndisponiveisError') {
+            console.error(`[${tag}] telemetria indisponível:`, error.message);
+            res.setHeader('Retry-After', '60');
+            return res.status(503).json({
+                estado: 'indisponivel',
+                mensagem: 'Não foi possível obter a leitura da estação da ANA agora. Nenhum valor é exibido para evitar informação falsa.'
+            });
+        }
+        console.error(`[${tag}]`, error && error.message);
+        return res.status(500).json({ estado: 'erro', mensagem: 'Erro interno ao consultar a telemetria.' });
+    }
+
     /** GET /api/rio-acre */
     async getRioAcre(req, res) {
         try {
@@ -51,11 +66,10 @@ class CameraController {
                 this._rioAcreService = new RioAcreService();
             }
             const data = await this._rioAcreService.getNivelRioAcre();
-            res.setHeader('Cache-Control', 'public, max-age=300');
+            res.setHeader('Cache-Control', 'public, max-age=60');
             res.json(data);
         } catch (error) {
-            console.error('[RIO_ACRE_ERROR]', error.message);
-            res.status(500).json({ error: 'Erro ao consultar nível do Rio Acre' });
+            this._rioErro(res, error, 'RIO_ACRE_ERROR');
         }
     }
 
@@ -68,11 +82,10 @@ class CameraController {
             }
             const dias = Math.max(1, Math.min(365, parseInt(req.query.dias, 10) || 30));
             const data = await this._rioAcreService.getHistoricoRioAcre(dias);
-            res.setHeader('Cache-Control', 'public, max-age=1800');
+            res.setHeader('Cache-Control', 'public, max-age=300');
             res.json(data);
         } catch (error) {
-            console.error('[RIO_ACRE_HISTORICO_ERROR]', error.message);
-            res.status(500).json({ error: 'Erro ao consultar histórico do Rio Acre' });
+            this._rioErro(res, error, 'RIO_ACRE_HISTORICO_ERROR');
         }
     }
 
@@ -84,11 +97,10 @@ class CameraController {
                 this._rioAcreService = new RioAcreService();
             }
             const data = await this._rioAcreService.getPrevisaoRioAcre();
-            res.setHeader('Cache-Control', 'public, max-age=1800');
+            res.setHeader('Cache-Control', 'public, max-age=300');
             res.json(data);
         } catch (error) {
-            console.error('[RIO_ACRE_PREVISAO_ERROR]', error.message);
-            res.status(500).json({ error: 'Erro ao consultar previsão do Rio Acre' });
+            this._rioErro(res, error, 'RIO_ACRE_PREVISAO_ERROR');
         }
     }
 

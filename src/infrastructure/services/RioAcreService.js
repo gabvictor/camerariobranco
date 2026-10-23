@@ -5,7 +5,7 @@ const HidroWebService = require('./HidroWebService');
 const { formatRioBrancoDateTime, getRioBrancoDateStr } = require('../../utils/dateUtils');
 
 /**
- * Configuração centralizada da Estação Telemétrica Principal de Rio Branco
+ * Configuração da estação telemétrica de Rio Branco (ANA / SGB-CPRM).
  */
 const RIO_ACRE_STATION = {
     codigo: '13600002',
@@ -18,907 +18,584 @@ const RIO_ACRE_STATION = {
     operadora: 'SGB-CPRM'
 };
 
+// Valores de REFERÊNCIA (não alimentam a estimativa de tendência). Mesmas fontes/avisos do rio_service.py:
+// cheia recorde 18,40 m em 04/03/2015 (Portal Amazônia); seca 1,23 m em 21/09/2024 (conferir com o SGB);
+// médias mensais aproximadas, sem fonte oficial citada.
+const RECORDE_CHEIA = { nivel: 18.40, data: '04/03/2015' };
+const RECORDE_SECA = { nivel: 1.23, data: '21/09/2024' };
+const CLIMATOLOGIA = {
+    1: [9.50, 'Início da Cheia'], 2: [11.80, 'Pico de Cheias'], 3: [12.20, 'Pico de Cheias'],
+    4: [9.80, 'Início da Descida'], 5: [6.50, 'Transição p/ Seca'], 6: [3.80, 'Estiagem'],
+    7: [2.50, 'Seca Típica'], 8: [1.80, 'Seca Severa'], 9: [1.60, 'Mínima do Ano'],
+    10: [1.95, 'Transição p/ Chuvas'], 11: [4.20, 'Elevação das Águas'], 12: [7.10, 'Inverno Amazônico']
+};
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const RB_OFFSET_MS = 5 * 3600 * 1000; // Acre = UTC-5 o ano todo
+const AMORTECIMENTO = { 24: 0.8, 48: 0.6, 168: 0.3 }; // empíricos, sem calibração estatística
+
+/** Nenhuma fonte respondeu e não há cache: não existe leitura real para mostrar. */
+class DadosIndisponiveisError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DadosIndisponiveisError';
+    }
+}
+
+const toNum = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+    return Number.isFinite(n) ? n : null;
+};
+const fmt = (n, d = 2) => Number(n).toFixed(d).replace('.', ',');
+
 /**
  * @service RioAcreService
- * Serviço de monitoramento telemétrico do Rio Acre com suporte a execução direta em Python.
+ * Telemetria do Rio Acre. Ordem das fontes: HidroWebService (com qualidade) → WebService legado XML →
+ * cache antigo (sempre marcado como desatualizado) → erro DadosIndisponiveisError.
+ * NUNCA inventa leitura.
  */
 class RioAcreService {
     constructor(options = {}) {
         this.station = RIO_ACRE_STATION;
         this.stationCode = this.station.codigo;
         this.estCodigo = this.station.estcodigo;
-        this.cotaAlerta = 13.50; // Metros
-        this.cotaTransbordamento = 14.00; // Metros
-        this.cotaSecaHistorica = 1.23; // Metros (Recorde histórico)
+        this.cotaAtencao = 12.50;       // m (relatório SAH/SGB)
+        this.cotaAlerta = 13.50;        // m
+        this.cotaTransbordamento = 14.00; // m
+        this.cotaSecaHistorica = RECORDE_SECA.nivel;
 
         this.hidroWebService = options.hidroWebService || new HidroWebService();
         this.enableLegacyFallback = process.env.HIDROWEB_LEGACY_FALLBACK !== 'false';
-        this.enablePythonEngine = process.env.RIO_PYTHON_ENGINE !== 'false';
+        // O motor Python deixou de ser o caminho principal: agora é opt-in (RIO_PYTHON_ENGINE=true).
+        this.enablePythonEngine = process.env.RIO_PYTHON_ENGINE === 'true';
+
+        // Fuso em que a ANA publica as datas sem indicação de fuso (padrão: hora local de Rio Branco).
+        const off = process.env.ANA_DATA_UTC_OFFSET;
+        this.dataUtcOffset = /^[+-]\d{2}:\d{2}$/.test(off || '') ? off : '-05:00';
+        this.staleMinutes = Number(process.env.RIO_STALE_MINUTES) || 120;
 
         this._cache = null;
         this._lastFetchTime = 0;
-        this._cacheTtlMs = 10 * 60 * 1000; // 10 minutos de cache para nível atual
+        this._cacheTtlMs = 10 * 60 * 1000;
 
-        this._historicoCache = null;
-        this._lastHistoricoFetchTime = 0;
-        this._historicoCacheTtlMs = 30 * 60 * 1000; // 30 minutos de cache para histórico
-
+        this._historicoCache = {};
         this._previsaoCache = null;
         this._lastPrevisaoFetchTime = 0;
     }
 
-    /**
-     * Executa o serviço Python diretamente via child_process
-     */
+    // ─── Motor Python (opcional) ────────────────────────────────────────────────────
     _fetchFromPython(action = 'nivel', dias = 30) {
         return new Promise((resolve, reject) => {
             const scriptPath = path.resolve(process.cwd(), 'rio_service.py');
             const args = [scriptPath, '--action', action, '--dias', String(dias)];
             const pythonBin = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
-
-            execFile(pythonBin, args, { timeout: 20000 }, (error, stdout, stderr) => {
-                if (error) {
-                    // Se falhar e estivermos no Linux tentando 'python3', tenta 'python' como fallback rápido
-                    if (pythonBin === 'python3') {
-                        return execFile('python', args, { timeout: 20000 }, (err2, stdout2, stderr2) => {
-                            if (err2) return reject(new Error(`Erro Python: ${error.message} (stderr: ${stderr})`));
-                            try {
-                                resolve(JSON.parse(stdout2.trim()));
-                            } catch (e2) {
-                                reject(new Error(`Falha ao fazer parse do JSON do Python: ${stdout2}`));
-                            }
-                        });
-                    }
-                    return reject(new Error(`Erro Python: ${error.message} (stderr: ${stderr})`));
-                }
-                try {
-                    const parsed = JSON.parse(stdout.trim());
-                    resolve(parsed);
-                } catch (err) {
-                    reject(new Error(`Falha ao fazer parse do JSON do Python: ${stdout}`));
-                }
+            execFile(pythonBin, args, { timeout: 25000 }, (error, stdout, stderr) => {
+                if (error) return reject(new Error(`Erro Python: ${error.message} ${stdout || stderr || ''}`.trim()));
+                try { resolve(JSON.parse(stdout.trim())); } catch { reject(new Error('Saída do Python não é JSON válido')); }
             });
         });
     }
 
-    /**
-     * Retorna o último dado em cache de forma síncrona/instantânea
-     */
     getLastCachedNivel() {
-        return this._cache || null;
+        return this._cache ? this._comFrescor(this._cache, false) : null;
     }
 
-    /**
-     * Retorna os dados consolidados do nível do Rio Acre
-     */
+    // ─── Frescor ────────────────────────────────────────────────────────────────────
+    _comFrescor(data, falhaAoAtualizar) {
+        const ts = data?.nivel?.timestamp ?? data?.ultimaLeituraTimestamp ?? null;
+        let idade = ts ? (Date.now() - ts) / 60000 : Infinity;
+        const fusoSuspeito = idade < -5; // leitura "no futuro" → fuso da ANA provavelmente errado
+        idade = Math.max(idade, 0);
+        const desatualizado = Boolean(falhaAoAtualizar || idade > this.staleMinutes);
+        const humano = (min) => {
+            min = Math.round(min);
+            if (!Number.isFinite(min)) return 'tempo indeterminado';
+            if (min < 60) return `${min} min`;
+            const h = Math.floor(min / 60);
+            if (h < 48) return min % 60 ? `${h} h ${String(min % 60).padStart(2, '0')} min` : `${h} h`;
+            return `${Math.floor(h / 24)} dias`;
+        };
+        const mensagem = fusoSuspeito
+            ? 'A data da leitura está no futuro; confira ANA_DATA_UTC_OFFSET.'
+            : desatualizado
+                ? `Última leitura há ${humano(idade)}. A estação ou a conexão com a ANA pode estar com problema; não trate este valor como atual.`
+                : `Leitura há ${humano(idade)}.`;
+        return {
+            ...data,
+            estado: desatualizado ? 'desatualizado' : 'ok',
+            frescor: {
+                idadeMinutos: Number.isFinite(idade) ? Math.round(idade) : null,
+                desatualizado,
+                limiteMinutos: this.staleMinutes,
+                falhaAoAtualizar: Boolean(falhaAoAtualizar),
+                fusoSuspeito,
+                mensagem
+            }
+        };
+    }
+
+    // ─── Nível atual ────────────────────────────────────────────────────────────────
+    _fontes(action, dias) {
+        const fontes = [];
+        if (this.enablePythonEngine) fontes.push(['Python', () => this._fetchFromPython(action, dias)]);
+        if (this.hidroWebService.authService.hasCredentials()) {
+            fontes.push(['HidroWebService', () => this._readingsFromHidroWeb(dias)]);
+        }
+        if (this.enableLegacyFallback) fontes.push(['WebService Legado', () => this._readingsFromLegacy(dias)]);
+        return fontes;
+    }
+
     async getNivelRioAcre() {
         const now = Date.now();
-        if (this._cache && (now - this._lastFetchTime < this._cacheTtlMs)) {
-            return this._cache;
+        if (this._cache && now - this._lastFetchTime < this._cacheTtlMs) {
+            return this._comFrescor(this._cache, false);
         }
-
-        // 1. Tentativa Primária: Execução Direta via Engine Python
-        if (this.enablePythonEngine) {
+        const erros = [];
+        for (const [nome, buscar] of this._fontes('nivel', 2)) {
             try {
-                const pyData = await this._fetchFromPython('nivel');
-                if (pyData && pyData.nivel) {
-                    this._cache = pyData;
+                const r = await buscar();
+                const data = Array.isArray(r.readings) ? this._buildNivel(r.readings, r.fonte) : r; // r = JSON do Python
+                if (data && data.nivel) {
+                    this._cache = data;
                     this._lastFetchTime = now;
-                    return this._cache;
+                    return this._comFrescor(data, false);
                 }
-            } catch (pyError) {
-                console.warn('[RioAcreService] Falha no motor Python, tentando via Node:', pyError.message);
+                throw new Error('sem leitura válida');
+            } catch (err) {
+                erros.push(`${nome}: ${err.message}`);
+                console.warn(`[RioAcreService] Falha em ${nome}:`, err.message);
             }
         }
-
-        // 2. Tentativa Secundária: API HidroWebService
-        try {
-            const data = await this._fetchFromHidroWeb();
-            this._cache = data;
-            this._lastFetchTime = now;
-            return this._cache;
-        } catch (hwError) {
-            console.warn('[RioAcreService] Falha na consulta à nova API HidroWebService:', hwError.message);
-        }
-
-        // 3. Fallback: Cache existente
-        if (this._cache) {
-            return this._cache;
-        }
-
-        // 4. Fallback: Endpoint Legado da ANA (se habilitado)
-        if (this.enableLegacyFallback) {
-            try {
-                console.log('[RioAcreService] Utilizando fallback legado');
-                const legacyData = await this._fetchFromLegacyAna();
-                this._cache = legacyData;
-                this._lastFetchTime = now;
-                return this._cache;
-            } catch (legacyError) {
-                console.warn('[RioAcreService] Fallback legado também falhou:', legacyError.message);
-            }
-        }
-
-        // 5. Fallback Seguro Controlado (Garante que a UI nunca quebre)
-        return this._getFallbackData();
+        if (this._cache) return this._comFrescor(this._cache, true); // dado real, porém velho
+        throw new DadosIndisponiveisError(erros.join('; ') || 'nenhuma fonte configurada');
     }
 
-    /**
-     * Retorna os dados históricos agregados do nível do Rio Acre
-     * @param {number} [dias=30] Período em dias (7, 15, 30 ou 60)
-     */
+    // ─── Histórico ──────────────────────────────────────────────────────────────────
     async getHistoricoRioAcre(dias = 30) {
         const diasParam = Math.max(1, Math.min(365, Number(dias) || 30));
         const now = Date.now();
+        const cached = this._historicoCache[diasParam];
+        if (cached && now - cached.at < 30 * 60 * 1000) return this._comFrescor(cached.data, false);
 
-        if (this._historicoCache && this._historicoCache.periodoDias === diasParam && (now - this._lastHistoricoFetchTime < this._historicoCacheTtlMs)) {
-            return this._historicoCache;
-        }
-
-        // 1. Tentativa Primária: Engine Python
-        if (this.enablePythonEngine) {
+        const erros = [];
+        for (const [nome, buscar] of this._fontes('historico', diasParam)) {
             try {
-                const pyData = await this._fetchFromPython('historico', diasParam);
-                if (pyData && pyData.pontos) {
-                    this._historicoCache = pyData;
-                    this._lastHistoricoFetchTime = now;
-                    return this._historicoCache;
+                const r = await buscar();
+                const data = Array.isArray(r.readings)
+                    ? this._aggregateHistoricalReadings(r.readings, diasParam, r.fonte)
+                    : r;
+                if (data && data.pontos && data.pontos.length) {
+                    this._historicoCache[diasParam] = { at: now, data };
+                    return this._comFrescor(data, false);
                 }
-            } catch (pyError) {
-                console.warn('[RioAcreService] Falha no histórico via Python, tentando via Node:', pyError.message);
+                throw new Error('sem pontos válidos');
+            } catch (err) {
+                erros.push(`${nome}: ${err.message}`);
+                console.warn(`[RioAcreService] Histórico — falha em ${nome}:`, err.message);
             }
         }
-
-        // 2. Tentativa Secundária: Nova API HidroWebService
-        try {
-            const data = await this._fetchHistoricoFromHidroWeb(diasParam);
-            this._historicoCache = data;
-            this._lastHistoricoFetchTime = now;
-            return this._historicoCache;
-        } catch (hwError) {
-            console.warn('[RioAcreService] Falha no histórico da nova API HidroWebService:', hwError.message);
-        }
-
-        // 3. Fallback: Cache existente
-        if (this._historicoCache && this._historicoCache.periodoDias === diasParam) {
-            return this._historicoCache;
-        }
-
-        // 4. Fallback: Endpoint Legado da ANA (se habilitado)
-        if (this.enableLegacyFallback) {
-            try {
-                console.log('[RioAcreService] Utilizando fallback legado');
-                const legacyData = await this._fetchLegacyHistorico(diasParam);
-                this._historicoCache = legacyData;
-                this._lastHistoricoFetchTime = now;
-                return this._historicoCache;
-            } catch (legacyError) {
-                console.warn('[RioAcreService] Fallback histórico legado falhou:', legacyError.message);
-            }
-        }
-
-        // 5. Fallback Seguro Controlado
-        return this._getFallbackHistorico(diasParam);
+        if (cached) return this._comFrescor(cached.data, true);
+        throw new DadosIndisponiveisError(erros.join('; ') || 'nenhuma fonte configurada');
     }
 
-    /**
-     * Retorna a previsão hidrológica baseada em telemetria e climatologia histórica multianual
-     */
+    // ─── Estimativa de tendência (NÃO é previsão oficial) ───────────────────────────
     async getPrevisaoRioAcre() {
         const now = Date.now();
-        if (this._previsaoCache && (now - this._lastPrevisaoFetchTime < 1800000)) {
-            return this._previsaoCache;
-        }
+        if (this._previsaoCache && now - this._lastPrevisaoFetchTime < 5 * 60 * 1000) return this._previsaoCache;
 
         if (this.enablePythonEngine) {
             try {
-                const pyData = await this._fetchFromPython('previsao');
-                if (pyData && pyData.projecoes) {
-                    this._previsaoCache = pyData;
+                const py = await this._fetchFromPython('previsao');
+                if (py && py.tipo === 'estimativa-de-tendencia') {
+                    this._previsaoCache = py;
                     this._lastPrevisaoFetchTime = now;
-                    return this._previsaoCache;
+                    return py;
                 }
             } catch (err) {
-                console.warn('[RioAcreService] Falha na previsão via Python:', err.message);
+                console.warn('[RioAcreService] Previsão via Python falhou:', err.message);
             }
         }
 
-        // Fallback em caso de indisponibilidade
-        const nivelData = await this.getNivelRioAcre();
-        const nivelAtual = nivelData?.nivel?.metros || 1.68;
-        return {
-            timestamp: now,
-            dataReferencia: new Date().toLocaleDateString('pt-BR'),
-            mesReferencia: 'Outubro',
-            nivelAtual: nivelAtual,
-            direcaoPrevisao: 'Estabilidade',
-            iconeDirecao: 'minus',
-            corDirecao: 'emerald',
-            riscoInundacao: 'Nulo (< 0,1%)',
-            statusRisco: 'Seguro',
-            corRisco: 'emerald',
-            diagnostico: 'O Rio Acre encontra-se na fase final da estiagem amazônica. Ausência de ondas de cheia nas cabeceiras.',
-            projecoes: {
-                "24h": { "nivel": nivelAtual, "delta": "+0,01 m", "min": nivelAtual - 0.04, "max": nivelAtual + 0.04, "tendencia": "Estabilidade" },
-                "48h": { "nivel": Number((nivelAtual + 0.03).toFixed(2)), "delta": "+0,03 m", "min": nivelAtual - 0.06, "max": nivelAtual + 0.08, "tendencia": "Estável" },
-                "7d": { "nivel": Number((nivelAtual + 0.10).toFixed(2)), "delta": "+0,10 m", "min": nivelAtual - 0.10, "max": nivelAtual + 0.20, "tendencia": "Sazonal" }
-            },
+        const nivel = await this.getNivelRioAcre(); // lança DadosIndisponiveisError se não há dado real
+        let hist = null;
+        try { hist = await this.getHistoricoRioAcre(2); } catch (_) { /* segue sem histórico */ }
+        const result = this._calcularPrevisao(nivel, hist);
+        this._previsaoCache = result;
+        this._lastPrevisaoFetchTime = now;
+        return result;
+    }
+
+    _situacao(n) {
+        if (n >= this.cotaTransbordamento) return { riscoInundacao: 'Acima da cota de transbordamento (14,00 m)', statusRisco: 'Transbordamento', corRisco: 'red' };
+        if (n >= this.cotaAlerta) return { riscoInundacao: 'Acima da cota de alerta (13,50 m)', statusRisco: 'Alerta', corRisco: 'orange' };
+        if (n >= this.cotaAtencao) return { riscoInundacao: 'Acima da cota de atenção (12,50 m)', statusRisco: 'Atenção', corRisco: 'amber' };
+        return { riscoInundacao: `${fmt(this.cotaAlerta - n)} m abaixo da cota de alerta`, statusRisco: 'Abaixo das cotas de atenção', corRisco: 'emerald' };
+    }
+
+    _calcularPrevisao(nivelData, hist) {
+        const nivelAtual = nivelData.nivel.metros;
+        const rb = new Date(Date.now() - RB_OFFSET_MS);
+        const mes = rb.getUTCMonth() + 1;
+        const [mediaMes, tipoMes] = CLIMATOLOGIA[mes];
+        const diffMedia = Number((nivelAtual - mediaMes).toFixed(2));
+        const frescor = nivelData.frescor;
+
+        const base = {
+            tipo: 'estimativa-de-tendencia',
+            estado: nivelData.estado,
+            timestamp: Date.now(),
+            dataReferencia: nivelData.nivel.dataLeitura,
+            mesReferencia: MESES[mes - 1],
+            nivelAtual,
+            frescor,
+            aviso: 'Extrapolação simples da tendência das últimas 24 h. Não considera chuva prevista nem o nível a montante e NÃO substitui os alertas do SGB/CPRM e da Defesa Civil (199).',
             comparativoHistorico: {
-                mediaMes: 1.95,
-                diferencaMedia: '-0,27 m',
-                anoCheiaRecorde: { ano: 2024, nivel: 17.89, data: 'Março/2024' },
-                anoSecaRecorde: { ano: 2024, nivel: 1.23, data: 'Setembro/2024' },
-                mesmoPeriodo2024: { ano: 2024, nivel: 1.35, status: 'Seca Severa' },
-                mesmoPeriodo2023: { ano: 2023, nivel: 1.82, status: 'Estiagem Típica' }
-            }
+                mediaMes,
+                diferencaMedia: `${diffMedia > 0 ? '+' : ''}${diffMedia.toFixed(2).replace('.', ',')} m`,
+                recordeCheia: RECORDE_CHEIA,
+                recordeSeca: RECORDE_SECA,
+                aviso: 'Médias mensais aproximadas, sem fonte oficial citada: use apenas como referência.'
+            },
+            climatologiaAnual: MESES.map((nome, i) => ({ mes: nome.slice(0, 3), nome, media: CLIMATOLOGIA[i + 1][0], tipo: CLIMATOLOGIA[i + 1][1] })),
+            ...this._situacao(nivelAtual)
+        };
+
+        const pts = (hist?.leituras24h || []).filter((p) => typeof p.timestamp === 'number');
+        const spanH = pts.length > 1 ? (pts[pts.length - 1].timestamp - pts[0].timestamp) / 3600000 : 0;
+        if (frescor.desatualizado || pts.length < 6 || spanH < 5) {
+            const motivo = frescor.desatualizado ? 'a última leitura está desatualizada' : 'há poucas leituras recentes para estimar a tendência';
+            return {
+                ...base,
+                disponivel: false,
+                motivo,
+                direcaoPrevisao: 'Indisponível', iconeDirecao: 'minus', corDirecao: 'slate',
+                projecoes: {},
+                diagnostico: `Estimativa indisponível: ${motivo}. Cota atual: ${fmt(nivelAtual)} m.`
+            };
+        }
+
+        // Regressão linear (mínimos quadrados) sobre as médias horárias das últimas 24 h.
+        const t0 = pts[0].timestamp;
+        const xs = pts.map((p) => (p.timestamp - t0) / 3600000);
+        const ys = pts.map((p) => p.nivel);
+        const n = pts.length;
+        const mx = xs.reduce((a, b) => a + b, 0) / n;
+        const my = ys.reduce((a, b) => a + b, 0) / n;
+        const sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+        const slope = sxx ? xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / sxx : 0; // m/h
+        const std = Math.sqrt(xs.reduce((a, x, i) => a + (ys[i] - (my + slope * (x - mx))) ** 2, 0) / Math.max(n - 2, 1));
+
+        const projetar = (horas) => {
+            const delta = Number((slope * horas * AMORTECIMENTO[horas]).toFixed(2));
+            const alvo = Number(Math.max(0, nivelAtual + delta).toFixed(2));
+            const faixa = Math.max(0.04, 2 * std) * Math.sqrt(horas / 24);
+            return {
+                nivel: alvo,
+                delta: `${delta > 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} m`,
+                min: Number(Math.max(0, alvo - faixa).toFixed(2)),
+                max: Number((alvo + faixa).toFixed(2)),
+                tendencia: delta > 0.03 ? 'Elevação' : delta < -0.03 ? 'Queda' : 'Estabilidade'
+            };
+        };
+        const p24 = projetar(24), p48 = projetar(48), p7d = projetar(168);
+        p7d.tendencia += ' (baixa confiança)';
+        const [icone, cor] = ({ 'Elevação': ['trending-up', 'amber'], 'Queda': ['trending-down', 'blue'] })[p24.tendencia] || ['minus', 'emerald'];
+        const delta24 = Number((nivelAtual - ys[0]).toFixed(2));
+
+        return {
+            ...base,
+            disponivel: true,
+            direcaoPrevisao: p24.tendencia, iconeDirecao: icone, corDirecao: cor,
+            projecoes: { '24h': p24, '48h': p48, '7d': p7d },
+            diagnostico: `Cota atual de ${fmt(nivelAtual)} m, ${fmt(Math.abs(diffMedia))} m ${diffMedia > 0 ? 'acima' : 'abaixo'} da média de referência de ${MESES[mes - 1]} (${fmt(mediaMes)} m, período de ${tipoMes.toLowerCase()}). Variação medida nas últimas 24 h: ${delta24 > 0 ? '+' : ''}${fmt(delta24)} m. As projeções acima são extrapolação dessa tendência e perdem confiança com o tempo; para alertas oficiais consulte o SGB/CPRM e a Defesa Civil (199).`
         };
     }
 
-    // ─── Integração Nova API HidroWebService ───────────────────────────────────────
-
-    /**
-     * Extrai e normaliza a leitura mais recente a partir do HidroWebService
-     */
-    async _fetchFromHidroWeb() {
+    // ─── Fontes de dados ────────────────────────────────────────────────────────────
+    async _readingsFromHidroWeb(dias) {
+        const range = dias <= 2 ? 'DIAS_2' : dias <= 7 ? 'DIAS_7' : dias <= 14 ? 'DIAS_14' : dias <= 21 ? 'DIAS_21' : 'DIAS_30';
         const items = await this.hidroWebService.consultarSerieTelemetricaAdotada({
-            codigosEstacoes: this.station.codigo,
-            tipoFiltroData: 'DATA_LEITURA',
-            rangeIntervalo: 'DIAS_2'
+            codigosEstacoes: this.station.codigo, tipoFiltroData: 'DATA_LEITURA', rangeIntervalo: range
         });
+        const readings = this._cleanReadings(this._parseHidroWebReadings(items || []));
+        if (!readings.length) throw new Error('nenhuma leitura com cota válida');
+        return { readings, fonte: 'HidroWebService (ANA)' };
+    }
 
-        if (!items || items.length === 0) {
-            throw new Error('Nenhum dado retornado pela API HidroWebService');
-        }
-
-        const validReadings = this._parseHidroWebReadings(items);
-        if (validReadings.length === 0) {
-            throw new Error('Nenhuma leitura com cota válida encontrada na resposta do HidroWebService');
-        }
-
-        // Ordena por data decrescente (mais recente primeiro)
-        validReadings.sort((a, b) => b.timestamp - a.timestamp);
-        const latest = validReadings[0];
-
-        // Tendência recente (comparação com leitura de ~1h antes)
-        let tendencia = 'Estável';
-        let tendenciaIcon = 'minus';
-        let tendenciaSinal = '=';
-        const compareIdx = Math.min(4, validReadings.length - 1);
-        if (compareIdx > 0) {
-            const diff = latest.nivelM - validReadings[compareIdx].nivelM;
-            if (diff >= 0.02) {
-                tendencia = 'Subindo';
-                tendenciaIcon = 'trending-up';
-                tendenciaSinal = '+';
-            } else if (diff <= -0.02) {
-                tendencia = 'Descendo';
-                tendenciaIcon = 'trending-down';
-                tendenciaSinal = '-';
+    async _readingsFromLegacy(dias) {
+        const hoje = Date.now();
+        const dp = (ms) => {
+            const [y, m, d] = getRioBrancoDateStr(ms).split('-');
+            return `${d}/${m}/${y}`;
+        };
+        const query = `?codEstacao=${this.station.codigo}&dataInicio=${dp(hoje - dias * 86400000)}&dataFim=${dp(hoje)}`;
+        const bases = (process.env.ANA_LEGACY_URLS || 'https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos,http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos')
+            .split(',').map((u) => u.trim()).filter(Boolean);
+        let ultimoErro = null;
+        for (const base of bases) {
+            try {
+                const resp = await axios.get(base + query, {
+                    timeout: dias > 2 ? 25000 : 12000,
+                    headers: { 'User-Agent': 'CamRB-RioBranco-Monitoring/3.0', Accept: 'application/xml, text/xml, */*' }
+                });
+                const xml = String(resp.data || '');
+                if (xml.includes('<ErrorTable>')) throw new Error('WebService legado retornou ErrorTable');
+                const readings = this._cleanReadings(this._parseLegacyXml(xml));
+                if (!readings.length) throw new Error('XML legado sem leituras válidas');
+                return { readings, fonte: 'WebService Legado (ANA)' };
+            } catch (err) {
+                ultimoErro = err;
             }
         }
-
-        return this._formatRioData({
-            nivelM: latest.nivelM,
-            nivelCm: latest.nivelCm,
-            dataLeitura: latest.dataLeituraFormatada,
-            dataAtualizacao: latest.dataAtualizacaoFormatada,
-            vazao: latest.vazao,
-            chuva: latest.chuva,
-            qualidadeCota: latest.qualidadeCota,
-            qualidadeChuva: latest.qualidadeChuva,
-            qualidadeVazao: latest.qualidadeVazao,
-            tendencia,
-            tendenciaIcon,
-            tendenciaSinal,
-            fonte: 'HidroWebService (ANA)'
-        });
+        throw ultimoErro || new Error('sem URL legada configurada');
     }
 
-    /**
-     * Extrai e processa as séries históricas da nova API HidroWebService
-     */
-    async _fetchHistoricoFromHidroWeb(dias = 30) {
-        let range = 'DIAS_30';
-        if (dias <= 2) range = 'DIAS_2';
-        else if (dias <= 7) range = 'DIAS_7';
-        else if (dias <= 14) range = 'DIAS_14';
-        else if (dias <= 21) range = 'DIAS_21';
-
-        const items = await this.hidroWebService.consultarSerieTelemetricaAdotada({
-            codigosEstacoes: this.station.codigo,
-            tipoFiltroData: 'DATA_LEITURA',
-            rangeIntervalo: range
-        });
-
-        if (!items || items.length === 0) {
-            throw new Error('Nenhum dado histórico retornado pelo HidroWebService');
-        }
-
-        const validReadings = this._parseHidroWebReadings(items);
-        if (validReadings.length === 0) {
-            throw new Error('Nenhuma medição válida encontrada no histórico do HidroWebService');
-        }
-
-        return this._aggregateHistoricalReadings(validReadings, dias, 'HidroWebService (ANA)');
-    }
-
-    /**
-     * Faz o parsing e normalização de um array de leituras do HidroWebService
-     */
-    _parseHidroWebReadings(items) {
+    _parseLegacyXml(xml) {
         const readings = [];
-
-        for (const item of items) {
-            if (!item || typeof item !== 'object') continue;
-
-            // Extrai a cota/nível suportando múltiplas chaves oficiais
-            const rawCota = item.Cota_Adotada ?? item.Cota ?? item.Nivel ?? item.Nivel_Adotado ?? item.Cota_Bruta ?? item.Nivel_Bruto ?? item.cota_adotada ?? item.cota;
-            const rawChuva = item.Chuva_Adotada ?? item.Chuva ?? item.Chuva_Bruta ?? item.chuva_adotada ?? item.chuva;
-            const rawVazao = item.Vazao_Adotada ?? item.Vazao ?? item.Vazao_Bruta ?? item.vazao_adotada ?? item.vazao;
-
-            const statusCota = item.Cota_Adotada_Status ?? item.Status_Cota ?? item.Qualidade_Cota ?? item.StatusCota ?? item.cota_adotada_status;
-            const statusChuva = item.Chuva_Adotada_Status ?? item.Status_Chuva ?? item.Qualidade_Chuva ?? item.StatusChuva ?? item.chuva_adotada_status;
-            const statusVazao = item.Vazao_Adotada_Status ?? item.Status_Vazao ?? item.Qualidade_Vazao ?? item.StatusVazao ?? item.vazao_adotada_status;
-
-            const dataStr = item.Data_Hora_Medicao ?? item.DataHoraMedicao ?? item.Data_Hora ?? item.DataHora ?? item.Data_Leitura ?? item.DataHoraLeitura ?? item.Data_Medicao ?? item.data_hora_medicao ?? item.data_hora;
-            const dataAtualizacaoStr = item.Data_Atualizacao ?? item.Data_Hora_Atualizacao ?? item.DataUltimaAtualizacao ?? item.data_hora_atualizacao ?? item.data_atualizacao;
-
-            if (rawCota === null || rawCota === undefined || !dataStr) continue;
-
-            const rawVal = typeof rawCota === 'string' ? parseFloat(rawCota.replace(',', '.')) : Number(rawCota);
-            if (isNaN(rawVal) || rawVal <= 0) continue;
-
-            // Normalização de unidade: se > 30, o sensor enviou em centímetros (ex: 176 = 1.76m)
-            const nivelM = rawVal > 30 ? (rawVal / 100) : rawVal;
-            const nivelCm = rawVal > 30 ? rawVal : (rawVal * 100);
-
-            // Parsing e conversão para fuso horário de Rio Branco / Acre (UTC-5)
-            const dateObj = this._parseDateToLocal(dataStr);
-            if (!dateObj) continue;
-
-            const dateAtualizacaoObj = dataAtualizacaoStr ? this._parseDateToLocal(dataAtualizacaoStr) : null;
-
-            readings.push({
-                timestamp: dateObj.getTime(),
-                dateObj,
-                dayKey: getRioBrancoDateStr(dateObj),
-                nivelM,
-                nivelCm,
-                dataLeituraFormatada: formatRioBrancoDateTime(dateObj, { second: undefined }),
-                dataAtualizacaoFormatada: dateAtualizacaoObj ? formatRioBrancoDateTime(dateAtualizacaoObj, { second: undefined }) : null,
-                vazao: rawVazao !== null && rawVazao !== undefined ? (typeof rawVazao === 'string' ? parseFloat(rawVazao.replace(',', '.')) : Number(rawVazao)) : null,
-                chuva: rawChuva !== null && rawChuva !== undefined ? (typeof rawChuva === 'string' ? parseFloat(rawChuva.replace(',', '.')) : Number(rawChuva)) : 0,
-                qualidadeCota: this.hidroWebService.normalizeQuality(statusCota),
-                qualidadeChuva: this.hidroWebService.normalizeQuality(statusChuva),
-                qualidadeVazao: this.hidroWebService.normalizeQuality(statusVazao)
+        for (const b of xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)) {
+            const tag = (name) => (b[1].match(new RegExp(`<${name}>([^<]*)</${name}>`, 'i')) || [])[1];
+            const r = this._makeReading({
+                dataStr: tag('DataHora'), rawCota: tag('Nivel') || tag('Cota'),
+                rawVazao: tag('Vazao'), rawChuva: tag('Chuva')
             });
+            if (r) readings.push(r);
         }
-
         return readings;
     }
 
-    /**
-     * Interpreta datas fornecidas pela ANA (ISO ou padrão brasileiro)
-     * e garante o timestamp exato no fuso horário do Acre (America/Rio_Branco, UTC-5).
-     */
+    _parseHidroWebReadings(items) {
+        const readings = [];
+        for (const item of items) {
+            if (!item || typeof item !== 'object') continue;
+            const pick = (...keys) => { for (const k of keys) if (item[k] !== undefined && item[k] !== null) return item[k]; return undefined; };
+            const r = this._makeReading({
+                dataStr: pick('Data_Hora_Medicao', 'DataHoraMedicao', 'Data_Hora', 'DataHora', 'Data_Leitura', 'DataHoraLeitura', 'Data_Medicao', 'data_hora_medicao', 'data_hora'),
+                rawCota: pick('Cota_Adotada', 'Cota', 'Nivel', 'Nivel_Adotado', 'Cota_Bruta', 'Nivel_Bruto', 'cota_adotada', 'cota'),
+                rawChuva: pick('Chuva_Adotada', 'Chuva', 'Chuva_Bruta', 'chuva_adotada', 'chuva'),
+                rawVazao: pick('Vazao_Adotada', 'Vazao', 'Vazao_Bruta', 'vazao_adotada', 'vazao'),
+                statusCota: pick('Cota_Adotada_Status', 'Status_Cota', 'Qualidade_Cota', 'StatusCota', 'cota_adotada_status'),
+                statusChuva: pick('Chuva_Adotada_Status', 'Status_Chuva', 'Qualidade_Chuva', 'StatusChuva', 'chuva_adotada_status'),
+                statusVazao: pick('Vazao_Adotada_Status', 'Status_Vazao', 'Qualidade_Vazao', 'StatusVazao', 'vazao_adotada_status'),
+                atualizacaoStr: pick('Data_Atualizacao', 'Data_Hora_Atualizacao', 'DataUltimaAtualizacao', 'data_hora_atualizacao', 'data_atualizacao')
+            });
+            if (r) readings.push(r);
+        }
+        return readings;
+    }
+
+    _makeReading({ dataStr, rawCota, rawVazao, rawChuva, statusCota, statusChuva, statusVazao, atualizacaoStr }) {
+        const nivel = toNum(rawCota);
+        const dateObj = this._parseDateToLocal(dataStr);
+        if (nivel === null || nivel <= 0 || !dateObj) return null;
+        const nivelM = nivel > 30 ? nivel / 100 : nivel; // alguns registros vêm em cm
+        const upd = atualizacaoStr ? this._parseDateToLocal(atualizacaoStr) : null;
+        return {
+            timestamp: dateObj.getTime(),
+            dateObj,
+            dayKey: getRioBrancoDateStr(dateObj),
+            nivelM: Number(nivelM.toFixed(2)),
+            nivelCm: Math.round(nivelM * 100),
+            dataLeituraFormatada: formatRioBrancoDateTime(dateObj, { second: undefined }),
+            dataAtualizacaoFormatada: upd ? formatRioBrancoDateTime(upd, { second: undefined }) : null,
+            vazao: toNum(rawVazao),
+            chuva: toNum(rawChuva),
+            qualidadeCota: this.hidroWebService.normalizeQuality(statusCota),
+            qualidadeChuva: this.hidroWebService.normalizeQuality(statusChuva),
+            qualidadeVazao: this.hidroWebService.normalizeQuality(statusVazao)
+        };
+    }
+
+    /** Ordena (mais antiga → mais recente), remove duplicatas e descarta leituras de qualidade RUIM. */
+    _cleanReadings(readings) {
+        const byTs = new Map();
+        for (const r of readings) {
+            if (r.qualidadeCota?.status === 'RUIM') continue;
+            byTs.set(r.timestamp, r);
+        }
+        return [...byTs.values()].sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    /** Interpreta datas da ANA; sem fuso explícito usa ANA_DATA_UTC_OFFSET (padrão -05:00). */
     _parseDateToLocal(dateStr) {
         if (!dateStr) return null;
-        try {
-            const str = String(dateStr).trim();
-
-            // Formato ISO com ou sem timezone: "2026-09-14T09:00:00" ou "2026-09-14T09:00:00Z" ou "2026-09-14T09:00:00-03:00"
-            if (str.includes('T')) {
-                const d = new Date(str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/) ? str : `${str}-03:00`);
-                return isNaN(d.getTime()) ? null : d;
-            }
-
-            // Formato comum da ANA: "YYYY-MM-DD HH:mm:ss" ou "DD/MM/YYYY HH:mm:ss"
-            if (str.includes('/')) {
-                const [datePart, timePart] = str.split(' ');
-                const [d, m, y] = datePart.split('/');
-                const time = timePart || '00:00:00';
-                const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${time}-03:00`;
-                const dt = new Date(iso);
-                return isNaN(dt.getTime()) ? null : dt;
-            }
-
-            if (str.includes('-')) {
-                const [datePart, timePart] = str.split(' ');
-                const time = timePart || '00:00:00';
-                const iso = `${datePart}T${time}-03:00`;
-                const dt = new Date(iso);
-                return isNaN(dt.getTime()) ? null : dt;
-            }
-        } catch (_) {}
-        return null;
+        const str = String(dateStr).trim().replace(/(\d{2}:\d{2}:\d{2})\.\d+/, '$1');
+        const off = this.dataUtcOffset;
+        let iso = null;
+        if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:?\d{2})?$/.test(str)) {
+            iso = str.replace(' ', 'T');
+            if (!/(Z|[+-]\d{2}:?\d{2})$/.test(iso)) iso += (iso.length === 16 ? ':00' : '') + off;
+        } else if (/^\d{2}\/\d{2}\/\d{4}( \d{2}:\d{2}(:\d{2})?)?$/.test(str)) {
+            const [dp, tp = '00:00:00'] = str.split(' ');
+            const [d, m, y] = dp.split('/');
+            iso = `${y}-${m}-${d}T${tp.length === 5 ? tp + ':00' : tp}${off}`;
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            iso = `${str}T00:00:00${off}`;
+        }
+        if (!iso) return null;
+        const d = new Date(iso);
+        return Number.isNaN(d.getTime()) ? null : d;
     }
 
-    /**
-     * Agrega leituras em séries horárias (24h) e diárias (7/15/30 dias)
-     */
-    _aggregateHistoricalReadings(validReadings, dias = 30, fonte = 'HidroWebService (ANA)') {
-        // 1. Agregação Horária das últimas 24h
-        const hourlyMap = new Map();
-        for (const r of validReadings) {
-            const dt = r.dateObj;
-            const hourKey = `${r.dayKey} ${String(dt.getHours()).padStart(2, '0')}:00`;
-            if (!hourlyMap.has(hourKey)) hourlyMap.set(hourKey, []);
-            hourlyMap.get(hourKey).push(r.nivelM);
+    // ─── Montagem das respostas ─────────────────────────────────────────────────────
+    _buildNivel(readings, fonte) {
+        const latest = readings[readings.length - 1];
+        // Tendência: compara com a leitura mais próxima de 1 h antes (exige ≥ 30 min de histórico).
+        let ref = null;
+        for (let i = readings.length - 1; i >= 0; i--) {
+            if (readings[i].timestamp <= latest.timestamp - 3600000) { ref = readings[i]; break; }
         }
-
-        const sortedHourKeys = Array.from(hourlyMap.keys()).sort().slice(-24);
-        let maior24h = -Infinity;
-        let menor24h = Infinity;
-        let soma24h = 0;
-
-        const leituras24h = sortedHourKeys.map(k => {
-            const vals = hourlyMap.get(k);
-            const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-            const minH = Math.min(...vals);
-            const maxH = Math.max(...vals);
-            const [d, h] = k.split(' ');
-            const [y, mon, day] = d.split('-');
-
-            if (maxH > maior24h) maior24h = maxH;
-            if (minH < menor24h) menor24h = minH;
-            soma24h += avg;
-
-            return {
-                dataHora: `${day}/${mon} ${h}`,
-                hora: h,
-                dataCompleta: `${day}/${mon}/${y} às ${h}`,
-                nivel: Number(avg.toFixed(2)),
-                min: Number(minH.toFixed(2)),
-                max: Number(maxH.toFixed(2))
-            };
+        if (!ref && latest.timestamp - readings[0].timestamp >= 1800000) ref = readings[0];
+        let tendencia = 'Estável', tendenciaIcon = 'minus', tendenciaSinal = '=';
+        if (ref) {
+            const diff = latest.nivelM - ref.nivelM;
+            if (diff >= 0.02) { tendencia = 'Subindo'; tendenciaIcon = 'trending-up'; tendenciaSinal = '+'; }
+            else if (diff <= -0.02) { tendencia = 'Descendo'; tendenciaIcon = 'trending-down'; tendenciaSinal = '-'; }
+        }
+        return this._formatRioData({
+            nivelM: latest.nivelM, nivelCm: latest.nivelCm,
+            dataLeitura: latest.dataLeituraFormatada, dataAtualizacao: latest.dataAtualizacaoFormatada,
+            leituraTimestamp: latest.timestamp,
+            vazao: latest.vazao, chuva: latest.chuva,
+            qualidadeCota: latest.qualidadeCota, qualidadeChuva: latest.qualidadeChuva, qualidadeVazao: latest.qualidadeVazao,
+            tendencia, tendenciaIcon, tendenciaSinal, fonte
         });
-
-        const nivelIni24h = leituras24h[0]?.nivel || 0;
-        const nivelFim24h = leituras24h[leituras24h.length - 1]?.nivel || 0;
-        const var24h = Number((nivelFim24h - nivelIni24h).toFixed(2));
-        const varPct24h = nivelIni24h > 0 ? Number(((var24h / nivelIni24h) * 100).toFixed(1)) : 0;
-
-        const estatisticas24h = {
-            maiorNivel: { metros: Number((maior24h !== -Infinity ? maior24h : 0).toFixed(2)) },
-            menorNivel: { metros: Number((menor24h !== Infinity ? menor24h : 0).toFixed(2)) },
-            mediaPeriodo: leituras24h.length ? Number((soma24h / leituras24h.length).toFixed(2)) : 0,
-            variacaoPeriodo: var24h,
-            variacaoPercentual: varPct24h
-        };
-
-        // 2. Agregação Diária para o período solicitado (ex: 7, 15, 30 dias)
-        const dayMap = new Map();
-        for (const r of validReadings) {
-            if (!dayMap.has(r.dayKey)) dayMap.set(r.dayKey, []);
-            dayMap.get(r.dayKey).push(r);
-        }
-
-        const sortedDays = Array.from(dayMap.keys()).sort().slice(-dias);
-        const pontos = [];
-        let maiorNivel = -Infinity;
-        let dataMaior = '';
-        let menorNivel = Infinity;
-        let dataMenor = '';
-        let somaNiveis = 0;
-
-        const todayStr = getRioBrancoDateStr(new Date());
-        const yesterdayStr = getRioBrancoDateStr(new Date(Date.now() - 86400000));
-
-        for (let i = 0; i < sortedDays.length; i++) {
-            const day = sortedDays[i];
-            const list = dayMap.get(day);
-            const sum = list.reduce((a, b) => a + b.nivelM, 0);
-            const avg = sum / list.length;
-            const min = Math.min(...list.map(x => x.nivelM));
-            const max = Math.max(...list.map(x => x.nivelM));
-            const [y, m, d] = day.split('-');
-            const dataFmt = `${d}/${m}`;
-            const dataCompleta = `${d}/${m}/${y}`;
-
-            const dateObj = new Date(`${y}-${m}-${d}T12:00:00-05:00`);
-            const rawDiaSemana = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'short' });
-            const diaSemana = (rawDiaSemana.charAt(0).toUpperCase() + rawDiaSemana.slice(1)).replace('.', '');
-            const diaSemanaCompleto = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'long' });
-
-            if (max > maiorNivel) {
-                maiorNivel = max;
-                dataMaior = dataCompleta;
-            }
-            if (min < menorNivel) {
-                menorNivel = min;
-                dataMenor = dataCompleta;
-            }
-            somaNiveis += avg;
-
-            const prevAvg = i > 0 ? (dayMap.get(sortedDays[i - 1]).reduce((a, b) => a + b.nivelM, 0) / dayMap.get(sortedDays[i - 1]).length) : avg;
-            const variacaoDia = Number((avg - prevAvg).toFixed(2));
-            const variacaoDiaPct = prevAvg > 0 ? Number(((variacaoDia / prevAvg) * 100).toFixed(1)) : 0;
-
-            const statusInfo = this._calculateStatusInfo(avg);
-
-            pontos.push({
-                data: dataFmt,
-                dataCompleta,
-                diaSemana,
-                diaSemanaCompleto,
-                isHoje: day === todayStr,
-                isOntem: day === yesterdayStr,
-                nivel: Number(avg.toFixed(2)),
-                min: Number(min.toFixed(2)),
-                max: Number(max.toFixed(2)),
-                variacaoDia,
-                variacaoDiaPct,
-                status: statusInfo,
-                pontosLeitura: list.length
-            });
-        }
-
-        const mediaPeriodo = pontos.length ? Number((somaNiveis / pontos.length).toFixed(2)) : 0;
-        const nivelInicial = pontos[0]?.nivel || 0;
-        const nivelFinal = pontos[pontos.length - 1]?.nivel || 0;
-        const variacaoPeriodo = Number((nivelFinal - nivelInicial).toFixed(2));
-        const variacaoPercentual = nivelInicial > 0 ? Number(((variacaoPeriodo / nivelInicial) * 100).toFixed(1)) : 0;
-
-        return {
-            periodoDias: dias,
-            fonte,
-            cotasReferencia: {
-                secaHistorica: this.cotaSecaHistorica,
-                alerta: this.cotaAlerta,
-                transbordamento: this.cotaTransbordamento
-            },
-            estatisticas: {
-                maiorNivel: { metros: Number((maiorNivel !== -Infinity ? maiorNivel : 0).toFixed(2)), data: dataMaior },
-                menorNivel: { metros: Number((menorNivel !== Infinity ? menorNivel : 0).toFixed(2)), data: dataMenor },
-                mediaPeriodo,
-                variacaoPeriodo,
-                variacaoPercentual
-            },
-            estatisticas24h,
-            leituras24h,
-            pontos,
-            timestamp: Date.now()
-        };
     }
 
-    /**
-     * Formata o objeto consolidado com todas as propriedades esperadas pelo frontend
-     */
-    _formatRioData({
-        nivelM,
-        nivelCm,
-        dataLeitura,
-        dataAtualizacao = null,
-        vazao = null,
-        chuva = null,
-        qualidadeCota = null,
-        qualidadeChuva = null,
-        qualidadeVazao = null,
-        tendencia = 'Estável',
-        tendenciaIcon = 'minus',
-        tendenciaSinal = '=',
-        fonte = 'HidroWebService (ANA)'
-    }) {
-        const nivelFormatado = nivelM.toFixed(2).replace('.', ',');
-        const status = this._calculateStatusInfo(nivelM);
-        const percentualAlerta = Math.min(Math.round((nivelM / this.cotaAlerta) * 100), 100);
-
+    _formatRioData({ nivelM, nivelCm, dataLeitura, dataAtualizacao = null, leituraTimestamp = null, vazao = null, chuva = null,
+        qualidadeCota = null, qualidadeChuva = null, qualidadeVazao = null,
+        tendencia = 'Estável', tendenciaIcon = 'minus', tendenciaSinal = '=', fonte = 'HidroWebService (ANA)' }) {
         return {
-            estacao: {
-                codigo: this.station.codigo,
-                estcodigo: this.station.estcodigo,
-                nome: this.station.nome,
-                rio: this.station.rio,
-                municipio: this.station.municipio,
-                estado: this.station.estado,
-                responsavel: this.station.responsavel,
-                operadora: this.station.operadora
-            },
+            estacao: { ...this.station },
             nivel: {
                 metros: Number(nivelM.toFixed(2)),
                 centimetros: Math.round(nivelCm),
-                formatado: `${nivelFormatado} m`,
+                formatado: `${fmt(nivelM)} m`,
                 dataLeitura,
+                timestamp: leituraTimestamp,
                 dataAtualizacao,
                 qualidade: qualidadeCota
             },
-            vazao: vazao ? `${Number(vazao).toFixed(1).replace('.', ',')} m³/s` : null,
+            vazao: vazao !== null && vazao !== undefined ? `${fmt(vazao, 1)} m³/s` : null,
             vazaoQualidade: qualidadeVazao,
-            chuva: chuva !== null && chuva !== undefined ? `${Number(chuva).toFixed(1).replace('.', ',')} mm` : null,
+            chuva: chuva !== null && chuva !== undefined ? `${fmt(chuva, 1)} mm` : null,
             chuvaQualidade: qualidadeChuva,
-            tendencia: {
-                status: tendencia,
-                icon: tendenciaIcon,
-                sinal: tendenciaSinal
-            },
+            chuvaReferencia: 'última leitura',
+            tendencia: { status: tendencia, icon: tendenciaIcon, sinal: tendenciaSinal },
             cotas: {
-                secaHistorica: `${this.cotaSecaHistorica.toFixed(2).replace('.', ',')} m`,
-                alerta: `${this.cotaAlerta.toFixed(2).replace('.', ',')} m`,
-                transbordamento: `${this.cotaTransbordamento.toFixed(2).replace('.', ',')} m`,
-                percentualAlerta
+                secaHistorica: `${fmt(this.cotaSecaHistorica)} m`,
+                atencao: `${fmt(this.cotaAtencao)} m`,
+                alerta: `${fmt(this.cotaAlerta)} m`,
+                transbordamento: `${fmt(this.cotaTransbordamento)} m`,
+                percentualAlerta: Math.min(Math.round((nivelM / this.cotaAlerta) * 100), 100)
             },
-            status,
+            status: this._calculateStatusInfo(nivelM),
             fonte,
             timestamp: Date.now()
         };
     }
 
-    _calculateStatusInfo(nivelMetros) {
-        let status = 'Normal';
-        let statusColor = 'emerald';
-        let statusBg = 'bg-emerald-500';
-        let badgeBg = 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-
-        if (nivelMetros >= this.cotaTransbordamento) {
-            status = 'Transbordamento';
-            statusColor = 'red';
-            statusBg = 'bg-red-600';
-            badgeBg = 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
-        } else if (nivelMetros >= this.cotaAlerta) {
-            status = 'Alerta';
-            statusColor = 'amber';
-            statusBg = 'bg-amber-500';
-            badgeBg = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-        } else if (nivelMetros < 1.50) {
-            status = 'Seca Severa';
-            statusColor = 'rose';
-            statusBg = 'bg-rose-600';
-            badgeBg = 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
-        } else if (nivelMetros < 3.00) {
-            status = 'Nível Baixo / Estiagem';
-            statusColor = 'orange';
-            statusBg = 'bg-orange-500';
-            badgeBg = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800';
-        }
-
-        return {
-            tipo: status,
-            color: statusColor,
-            statusBg,
-            badgeBg
+    _aggregateHistoricalReadings(readings, dias = 30, fonte = 'HidroWebService (ANA)') {
+        const latest = readings[readings.length - 1];
+        const rbParts = (ts) => {
+            const d = new Date(ts - RB_OFFSET_MS); // "relógio" de Rio Branco lido em UTC
+            const p2 = (n) => String(n).padStart(2, '0');
+            return { y: d.getUTCFullYear(), mo: p2(d.getUTCMonth() + 1), d: p2(d.getUTCDate()), h: p2(d.getUTCHours()) };
         };
-    }
 
-    // ─── Fallback Legado (SOAP/XML) ───────────────────────────────────────────────
-
-    _formatDateParam(date) {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    }
-
-    async _fetchFromLegacyAna() {
-        const dEnd = new Date();
-        const dStart = new Date(Date.now() - 2 * 86400000);
-        const dataInicio = this._formatDateParam(dStart);
-        const dataFim = this._formatDateParam(dEnd);
-
-        const url = `http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=${this.station.codigo}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
-
-        const response = await axios.get(url, {
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'CamRB-RioBranco-Monitoring/1.0',
-                'Accept': 'application/xml, text/xml, */*'
-            }
+        // 24 h: janela de 24 horas terminando na última leitura, agregada por hora.
+        const janela = readings.filter((r) => r.timestamp > latest.timestamp - 24 * 3600000);
+        const porHora = new Map();
+        for (const r of janela) {
+            const p = rbParts(r.timestamp);
+            const k = `${p.y}-${p.mo}-${p.d} ${p.h}`;
+            if (!porHora.has(k)) porHora.set(k, { vals: [], ts: Date.UTC(p.y, Number(p.mo) - 1, Number(p.d), Number(p.h)) + RB_OFFSET_MS });
+            porHora.get(k).vals.push(r.nivelM);
+        }
+        const leituras24h = [...porHora.keys()].sort().map((k) => {
+            const { vals, ts } = porHora.get(k);
+            const [dia, h] = k.split(' ');
+            const [y, mo, d] = dia.split('-');
+            return {
+                dataHora: `${d}/${mo} ${h}:00`, hora: `${h}:00`, dataCompleta: `${d}/${mo}/${y} às ${h}:00`,
+                timestamp: ts,
+                nivel: Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)),
+                min: Number(Math.min(...vals).toFixed(2)), max: Number(Math.max(...vals).toFixed(2))
+            };
         });
-
-        const xml = String(response.data || '');
-        if (xml.includes('<ErrorTable>')) {
-            throw new Error('WebService Legado ANA retornou ErrorTable');
-        }
-
-        const blocks = [...xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)];
-        const validReadings = [];
-
-        for (const b of blocks) {
-            const matchNivel = b[1].match(/<Nivel>([\d.,]+)<\/Nivel>/i) || b[1].match(/<Cota>([\d.,]+)<\/Cota>/i);
-            const matchData = b[1].match(/<DataHora>([^<]+)<\/DataHora>/i);
-            const matchVazao = b[1].match(/<Vazao>([\d.,]+)<\/Vazao>/i);
-            const matchChuva = b[1].match(/<Chuva>([\d.,]+)<\/Chuva>/i);
-
-            if (matchNivel && matchNivel[1] && matchData && matchData[1]) {
-                const rawLevel = parseFloat(matchNivel[1].replace(',', '.'));
-                if (!isNaN(rawLevel) && rawLevel > 0) {
-                    const nivelM = rawLevel > 30 ? (rawLevel / 100) : rawLevel;
-                    validReadings.push({
-                        nivelCm: rawLevel > 30 ? rawLevel : (rawLevel * 100),
-                        nivelM,
-                        dataHoraStr: matchData[1].trim(),
-                        vazao: matchVazao && matchVazao[1] ? parseFloat(matchVazao[1].replace(',', '.')) : null,
-                        chuva: matchChuva && matchChuva[1] ? parseFloat(matchChuva[1].replace(',', '.')) : 0
-                    });
-                }
-            }
-        }
-
-        if (validReadings.length === 0) {
-            throw new Error('Nenhuma medição válida encontrada no XML legado da ANA');
-        }
-
-        const latest = validReadings[0];
-        let dataLeituraFormatada = latest.dataHoraStr;
-        try {
-            const iso = latest.dataHoraStr.replace(' ', 'T') + '-03:00';
-            const dLocal = new Date(iso);
-            if (!isNaN(dLocal.getTime())) {
-                dataLeituraFormatada = formatRioBrancoDateTime(dLocal, { second: undefined });
-            }
-        } catch (_) {}
-
-        return this._formatRioData({
-            nivelM: latest.nivelM,
-            nivelCm: latest.nivelCm,
-            dataLeitura: dataLeituraFormatada,
-            vazao: latest.vazao,
-            chuva: latest.chuva,
-            tendencia: 'Estável',
-            tendenciaIcon: 'minus',
-            tendenciaSinal: '=',
-            fonte: 'WebService Legado (ANA)'
-        });
-    }
-
-    async _fetchLegacyHistorico(dias = 30) {
-        const dEnd = new Date();
-        const dStart = new Date(Date.now() - dias * 86400000);
-        const dataInicio = this._formatDateParam(dStart);
-        const dataFim = this._formatDateParam(dEnd);
-
-        const url = `http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=${this.station.codigo}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
-
-        const response = await axios.get(url, {
-            timeout: 25000,
-            headers: {
-                'User-Agent': 'CamRB-RioBranco-Monitoring/1.0',
-                'Accept': 'application/xml, text/xml, */*'
-            }
-        });
-
-        const xml = String(response.data || '');
-        if (xml.includes('<ErrorTable>')) {
-            throw new Error('WebService Legado ANA retornou ErrorTable no histórico');
-        }
-
-        const blocks = [...xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)];
-        const readings = [];
-
-        for (const b of blocks) {
-            const matchNivel = b[1].match(/<Nivel>([\d.,]+)<\/Nivel>/i) || b[1].match(/<Cota>([\d.,]+)<\/Cota>/i);
-            const matchData = b[1].match(/<DataHora>([^<]+)<\/DataHora>/i);
-            if (matchNivel && matchData) {
-                const raw = parseFloat(matchNivel[1].replace(',', '.'));
-                if (!isNaN(raw) && raw > 0) {
-                    const nivelM = raw > 30 ? (raw / 100) : raw;
-                    const dateObj = this._parseDateToLocal(matchData[1].trim());
-                    if (dateObj) {
-                        readings.push({
-                            timestamp: dateObj.getTime(),
-                            dateObj,
-                            dayKey: getRioBrancoDateStr(dateObj),
-                            nivelM,
-                            nivelCm: raw > 30 ? raw : (raw * 100)
-                        });
-                    }
-                }
-            }
-        }
-
-        if (readings.length === 0) {
-            throw new Error('Nenhum dado legado encontrado no histórico');
-        }
-
-        return this._aggregateHistoricalReadings(readings, dias, 'WebService Legado (ANA)');
-    }
-
-    // ─── Fallback Seguro Mock (Último recurso) ───────────────────────────────────
-
-    _getFallbackData() {
-        return this._formatRioData({
-            nivelM: 1.76,
-            nivelCm: 176,
-            dataLeitura: formatRioBrancoDateTime(new Date(), { second: undefined }),
-            tendencia: 'Estável',
-            tendenciaIcon: 'minus',
-            tendenciaSinal: '=',
-            fonte: 'Cache / Fallback'
-        });
-    }
-
-    _getFallbackHistorico(dias = 30) {
-        const pontos = [];
-        const baseLevel = 1.74;
-        const todayStr = getRioBrancoDateStr(new Date());
-        const yesterdayStr = getRioBrancoDateStr(new Date(Date.now() - 86400000));
-
-        for (let i = dias - 1; i >= 0; i--) {
-            const dt = new Date(Date.now() - i * 86400000);
-            const dStr = String(dt.getDate()).padStart(2, '0');
-            const mStr = String(dt.getMonth() + 1).padStart(2, '0');
-            const yStr = dt.getFullYear();
-            const dayKey = `${yStr}-${mStr}-${dStr}`;
-
-            const dateObj = new Date(`${yStr}-${mStr}-${dStr}T12:00:00-05:00`);
-            const rawDiaSemana = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'short' });
-            const diaSemana = (rawDiaSemana.charAt(0).toUpperCase() + rawDiaSemana.slice(1)).replace('.', '');
-            const diaSemanaCompleto = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'long' });
-
-            const level = Number((baseLevel + (i / dias) * 0.45).toFixed(2));
-            const prevLevel = i < dias - 1 ? pontos[pontos.length - 1]?.nivel || level : level;
-            const variacaoDia = Number((level - prevLevel).toFixed(2));
-
-            pontos.push({
-                data: `${dStr}/${mStr}`,
-                dataCompleta: `${dStr}/${mStr}/${yStr}`,
-                diaSemana,
-                diaSemanaCompleto,
-                isHoje: dayKey === todayStr,
-                isOntem: dayKey === yesterdayStr,
-                nivel: level,
-                min: Number((level - 0.04).toFixed(2)),
-                max: Number((level + 0.04).toFixed(2)),
-                variacaoDia,
-                status: this._calculateStatusInfo(level),
-                pontosLeitura: 96
-            });
-        }
-
-        const leituras24h = [];
-        const now = new Date();
-        const base24h = 1.66;
-        for (let h = 23; h >= 0; h--) {
-            const dt = new Date(now.getTime() - h * 3600000);
-            const d = String(dt.getDate()).padStart(2, '0');
-            const m = String(dt.getMonth() + 1).padStart(2, '0');
-            const y = dt.getFullYear();
-            const hh = String(dt.getHours()).padStart(2, '0') + ':00';
-            const progress = (24 - h) / 24;
-            const nivelH = Number((base24h + progress * 0.13).toFixed(2));
-
-            leituras24h.push({
-                dataHora: `${d}/${m} ${hh}`,
-                hora: hh,
-                dataCompleta: `${d}/${m}/${y} às ${hh}`,
-                nivel: nivelH,
-                min: Number((nivelH - 0.01).toFixed(2)),
-                max: Number((nivelH + 0.01).toFixed(2))
-            });
-        }
-
-        const ini24h = leituras24h[0]?.nivel || 1.66;
-        const fim24h = leituras24h[leituras24h.length - 1]?.nivel || 1.79;
-        const diff24h = Number((fim24h - ini24h).toFixed(2));
-
+        const niveis24 = janela.map((r) => r.nivelM);
+        const ini24 = leituras24h[0].nivel, fim24 = leituras24h[leituras24h.length - 1].nivel;
+        const var24 = Number((fim24 - ini24).toFixed(2));
         const estatisticas24h = {
-            maiorNivel: { metros: fim24h },
-            menorNivel: { metros: ini24h },
-            mediaPeriodo: Number(((ini24h + fim24h) / 2).toFixed(2)),
-            variacaoPeriodo: diff24h,
-            variacaoPercentual: Number(((diff24h / ini24h) * 100).toFixed(1))
+            maiorNivel: { metros: Math.max(...niveis24) },
+            menorNivel: { metros: Math.min(...niveis24) },
+            mediaPeriodo: Number((leituras24h.reduce((a, l) => a + l.nivel, 0) / leituras24h.length).toFixed(2)),
+            variacaoPeriodo: var24,
+            variacaoPercentual: ini24 > 0 ? Number(((var24 / ini24) * 100).toFixed(1)) : 0
         };
 
+        // Diário
+        const porDia = new Map();
+        for (const r of readings) {
+            if (!porDia.has(r.dayKey)) porDia.set(r.dayKey, []);
+            porDia.get(r.dayKey).push(r);
+        }
+        const hoje = getRioBrancoDateStr(new Date());
+        const ontem = getRioBrancoDateStr(new Date(Date.now() - 86400000));
+        const pontos = [];
+        let anterior = null;
+        for (const dia of [...porDia.keys()].sort().slice(-dias)) {
+            const lista = porDia.get(dia);
+            const vals = lista.map((x) => x.nivelM);
+            const media = vals.reduce((a, b) => a + b, 0) / vals.length;
+            const [y, m, d] = dia.split('-');
+            const ref = new Date(`${y}-${m}-${d}T12:00:00-05:00`);
+            const curto = ref.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'short' });
+            const variacaoDia = anterior !== null ? Number((media - anterior).toFixed(2)) : 0;
+            pontos.push({
+                data: `${d}/${m}`, dataCompleta: `${d}/${m}/${y}`,
+                diaSemana: (curto.charAt(0).toUpperCase() + curto.slice(1)).replace('.', ''),
+                diaSemanaCompleto: ref.toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'long' }),
+                isHoje: dia === hoje, isOntem: dia === ontem,
+                nivel: Number(media.toFixed(2)), min: Number(Math.min(...vals).toFixed(2)), max: Number(Math.max(...vals).toFixed(2)),
+                variacaoDia,
+                variacaoDiaPct: anterior ? Number(((variacaoDia / anterior) * 100).toFixed(1)) : 0,
+                status: this._calculateStatusInfo(media), pontosLeitura: lista.length
+            });
+            anterior = media;
+        }
+        const maior = pontos.reduce((a, p) => (p.max > a.max ? p : a));
+        const menor = pontos.reduce((a, p) => (p.min < a.min ? p : a));
+        const inicial = pontos[0].nivel, final = pontos[pontos.length - 1].nivel;
+        const varPeriodo = Number((final - inicial).toFixed(2));
         return {
             periodoDias: dias,
-            fonte: 'Cache / Fallback',
-            cotasReferencia: {
-                secaHistorica: this.cotaSecaHistorica,
-                alerta: this.cotaAlerta,
-                transbordamento: this.cotaTransbordamento
-            },
+            diasDisponiveis: pontos.length,
+            fonte,
+            cotasReferencia: { secaHistorica: this.cotaSecaHistorica, atencao: this.cotaAtencao, alerta: this.cotaAlerta, transbordamento: this.cotaTransbordamento },
             estatisticas: {
-                maiorNivel: { metros: 2.21, data: pontos[0]?.dataCompleta },
-                menorNivel: { metros: 1.63, data: pontos[pontos.length - 2]?.dataCompleta },
-                mediaPeriodo: 1.85,
-                variacaoPeriodo: -0.45,
-                variacaoPercentual: -20.3
+                maiorNivel: { metros: maior.max, data: maior.dataCompleta },
+                menorNivel: { metros: menor.min, data: menor.dataCompleta },
+                mediaPeriodo: Number((pontos.reduce((a, p) => a + p.nivel, 0) / pontos.length).toFixed(2)),
+                variacaoPeriodo: varPeriodo,
+                variacaoPercentual: inicial > 0 ? Number(((varPeriodo / inicial) * 100).toFixed(1)) : 0
             },
             estatisticas24h,
             leituras24h,
             pontos,
+            ultimaLeituraTimestamp: latest.timestamp,
             timestamp: Date.now()
         };
+    }
+
+    _calculateStatusInfo(n) {
+        const mk = (tipo, color, bg, badge) => ({ tipo, color, statusBg: bg, badgeBg: badge });
+        if (n >= this.cotaTransbordamento) return mk('Transbordamento', 'red', 'bg-red-600', 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800');
+        if (n >= this.cotaAlerta) return mk('Alerta', 'amber', 'bg-amber-500', 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800');
+        if (n < 1.50) return mk('Seca Severa', 'rose', 'bg-rose-600', 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800');
+        if (n < 3.00) return mk('Nível Baixo / Estiagem', 'orange', 'bg-orange-500', 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800');
+        return mk('Normal', 'emerald', 'bg-emerald-500', 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800');
     }
 }
 
 module.exports = RioAcreService;
+module.exports.DadosIndisponiveisError = DadosIndisponiveisError;

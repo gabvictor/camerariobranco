@@ -1,27 +1,80 @@
 """
-Serviço de Monitoramento Telemétrico do Rio Acre em Python.
-Consulta dados oficiais da ANA (Agência Nacional de Águas) para a Estação Ponte Metálica (13600002).
-Suporta API HidroWebService, WebService Legado SOAP/XML e Cache Inteligente em Memória.
+rio_service.py — Telemetria do Rio Acre (estação 13600002, Rio Branco - Ponte Metálica).
+
+Fonte dos dados: ANA / SGB-CPRM (Rede Hidrometeorológica Nacional).
+
+Ordem das fontes (da melhor para a pior):
+    1. API HidroWebService (autenticada, traz código de qualidade por leitura)
+    2. WebService legado em XML (sem qualidade)
+    3. Cache anterior, SEMPRE marcado como "desatualizado"
+    4. Nada: levanta DadosIndisponiveis (a API HTTP responde 503)
+
+Regras importantes deste módulo:
+    * NUNCA inventa leitura. Se não há dado real, o erro é explícito.
+    * Todo resultado leva a idade da leitura ("frescor") e um sinal de desatualizado.
+    * A previsão é só uma extrapolação da tendência recente (não é modelo hidrológico).
+
+Configuração por variáveis de ambiente:
+    ANA_HIDROWEB_USUARIO / ANA_HIDROWEB_SENHA   credenciais da HidroWeb (ou "hidroWebANA" no serviceAccountKey.json)
+    ANA_DATA_UTC_OFFSET     fuso em que a ANA publica as datas (padrão "-05:00", hora local de Rio Branco)
+    RIO_STALE_MINUTES       idade (min) a partir da qual a leitura é "desatualizada" (padrão 120)
+    RIO_CACHE_TTL_SEC       validade do cache do nível atual (padrão 600)
+    RIO_HISTORY_TTL_SEC     validade do cache do histórico (padrão 1800)
+    ANA_LEGACY_URLS         URLs do webservice legado separadas por vírgula (padrão: https e depois http)
+
+Uso por linha de comando:
+    python rio_service.py --action nivel|historico|previsao [--dias 30]
 """
 
-import time
-import math
+from __future__ import annotations
+
+import base64
+import json
 import logging
-import requests
-import xml.etree.ElementTree as ET
+import math
+import os
+import re
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 
-try:
-    from zoneinfo import ZoneInfo
-    RIO_BRANCO_TZ = ZoneInfo("America/Rio_Branco")
-except ImportError:
-    # Fallback para UTC-5 caso zoneinfo não esteja disponível
-    RIO_BRANCO_TZ = timezone(timedelta(hours=-5))
+import requests
 
-logger = logging.getLogger("RioAcreService")
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s] %(message)s")
+try:  # defusedxml protege contra XML malicioso (a URL legada pode ser http)
+    from defusedxml import ElementTree as ET
+except ImportError:  # pragma: no cover
+    import xml.etree.ElementTree as ET
 
-RIO_ACRE_STATION = {
+logger = logging.getLogger("RioAcre")
+
+# Acre está em UTC-5 o ano todo (sem horário de verão). Offset fixo evita depender do
+# pacote tzdata, que não existe por padrão no Windows.
+RB_TZ = timezone(timedelta(hours=-5), "America/Rio_Branco")
+
+
+# ─── Configuração ────────────────────────────────────────────────────────────────
+
+def _parse_offset(text: str | None, default: timezone = RB_TZ) -> timezone:
+    m = re.fullmatch(r"\s*([+-])(\d{1,2}):?(\d{2})?\s*", text or "")
+    if not m:
+        return default
+    delta = timedelta(hours=int(m.group(2)), minutes=int(m.group(3) or 0))
+    return timezone(delta if m.group(1) == "+" else -delta)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+ANA_DATA_TZ = _parse_offset(os.environ.get("ANA_DATA_UTC_OFFSET", "-05:00"))
+STALE_MINUTES = _env_int("RIO_STALE_MINUTES", 120)
+NIVEL_TTL_SEC = _env_int("RIO_CACHE_TTL_SEC", 600)
+HISTORICO_TTL_SEC = _env_int("RIO_HISTORY_TTL_SEC", 1800)
+
+ESTACAO = {
     "codigo": "13600002",
     "estcodigo": "95967480",
     "nome": "Rio Branco - Ponte Metálica",
@@ -29,683 +82,732 @@ RIO_ACRE_STATION = {
     "municipio": "Rio Branco",
     "estado": "AC",
     "responsavel": "ANA",
-    "operadora": "SGB-CPRM"
+    "operadora": "SGB-CPRM",
 }
 
-class RioAcrePythonService:
-    def __init__(self):
-        self.station = RIO_ACRE_STATION
-        self.cota_alerta = 13.50          # metros
-        self.cota_transbordamento = 14.00 # metros
-        self.cota_seca_historica = 1.23   # metros (recorde histórico)
+# Cotas oficiais (relatório SAH/SGB da bacia do Rio Acre): atenção 12,5 m, alerta 13,5 m,
+# inundação/transbordamento 14,0 m.
+COTA_ATENCAO = 12.50
+COTA_ALERTA = 13.50
+COTA_TRANSBORDAMENTO = 14.00
 
-        self._cache = None
-        self._last_fetch_time = 0
-        self._cache_ttl_sec = 600         # 10 minutos para tempo real
+# Valores de REFERÊNCIA exibidos como contexto. Não alimentam nenhum cálculo de previsão.
+# - Recorde de cheia: 18,40 m em 04/03/2015 (Portal Amazônia, "maiores enchentes de Rio Branco desde 1971").
+# - Recorde de seca: 1,23 m em 21/09/2024 (valor que já estava no site; o boletim do SGB de 20/09/2024
+#   ainda listava 1,24 m em 2022 como mínima, então CONFIRA com o SGB antes de divulgar).
+# - Médias mensais: valores aproximados que já estavam no site; sem fonte citada. Tratar como indicativo.
+RECORDE_CHEIA = {"nivel": 18.40, "data": "04/03/2015"}
+RECORDE_SECA = {"nivel": 1.23, "data": "21/09/2024"}
+CLIMATOLOGIA = {
+    1: (9.50, "Início da Cheia"), 2: (11.80, "Pico de Cheias"), 3: (12.20, "Pico de Cheias"),
+    4: (9.80, "Início da Descida"), 5: (6.50, "Transição p/ Seca"), 6: (3.80, "Estiagem"),
+    7: (2.50, "Seca Típica"), 8: (1.80, "Seca Severa"), 9: (1.60, "Mínima do Ano"),
+    10: (1.95, "Transição p/ Chuvas"), 11: (4.20, "Elevação das Águas"), 12: (7.10, "Inverno Amazônico"),
+}
+MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
+         "Setembro", "Outubro", "Novembro", "Dezembro"]
+DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+DIAS_SEMANA_COMPLETO = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira",
+                        "sexta-feira", "sábado", "domingo"]
 
-        self._historico_cache = {}
-        self._historico_last_fetch = {}
-        self._historico_ttl_sec = 1800     # 30 minutos para histórico
 
-    def get_nivel_rio_acre(self) -> dict:
-        """Retorna a medição consolidada mais recente do Rio Acre."""
-        now = time.time()
-        if self._cache and (now - self._last_fetch_time < self._cache_ttl_sec):
-            return self._cache
+class DadosIndisponiveis(Exception):
+    """Nenhuma fonte respondeu e não existe cache: não há leitura real para mostrar."""
 
-        # 1. Tentativa via API Legada XML (alta disponibilidade)
+
+# ─── Utilidades ──────────────────────────────────────────────────────────────────
+
+def to_float(value) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return None if (isinstance(value, float) and math.isnan(value)) else float(value)
+    text = str(value).strip().replace(",", ".")
+    if not text:
+        return None
+    try:
+        number = float(text)
+    except ValueError:
+        return None
+    return None if math.isnan(number) else number
+
+
+_FORMATOS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%d/%m/%Y %H:%M:%S",
+             "%d/%m/%Y %H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y")
+
+
+def parse_ana_datetime(value) -> datetime | None:
+    """Converte a data da ANA para datetime com fuso de Rio Branco.
+
+    Sem fuso explícito na string, assume ANA_DATA_UTC_OFFSET (padrão: hora local de Rio Branco).
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    text = re.sub(r"(\d{2}:\d{2}:\d{2})\.\d+", r"\1", text)  # tira frações de segundo
+
+    tz = ANA_DATA_TZ
+    m = re.search(r"(Z|[+-]\d{2}:?\d{2})$", text) if ":" in text else None
+    if m:
+        tz = timezone.utc if m.group(1) == "Z" else _parse_offset(m.group(1))
+        text = text[: m.start()].strip()
+
+    for fmt in _FORMATOS:
         try:
-            data = self._fetch_from_legacy_ana()
-            if data:
-                self._cache = data
-                self._last_fetch_time = now
-                return self._cache
-        except Exception as e:
-            logger.warning(f"Falha ao consultar API Legada ANA: {e}")
+            naive = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        return naive.replace(tzinfo=tz).astimezone(RB_TZ)
+    return None
 
-        # 2. Fallback para cache existente
-        if self._cache:
-            return self._cache
 
-        # 3. Fallback seguro controlado
-        return self._get_fallback_data()
+def normalize_quality(code) -> dict:
+    """Códigos de qualidade da ANA: 0 OK, 1 suspeito, 2 ruim."""
+    number = to_float(code)
+    if number is None:
+        return {"codigo": -1, "status": "DESCONHECIDO", "confiavel": True}
+    number = int(number)
+    if number == 0:
+        return {"codigo": 0, "status": "OK", "confiavel": True}
+    if number == 1:
+        return {"codigo": 1, "status": "SUSPEITO", "confiavel": False}
+    if number == 2:
+        return {"codigo": 2, "status": "RUIM", "confiavel": False}
+    return {"codigo": number, "status": "DESCONHECIDO", "confiavel": True}
 
-    def get_historico_rio_acre(self, dias: int = 30) -> dict:
-        """Retorna o histórico agregado de medições do Rio Acre (24h + diário)."""
-        dias = max(1, min(365, int(dias)))
-        now = time.time()
 
-        if dias in self._historico_cache and (now - self._historico_last_fetch.get(dias, 0) < self._historico_ttl_sec):
-            return self._historico_cache[dias]
+def fmt_num(value: float, casas: int = 2) -> str:
+    return f"{value:.{casas}f}".replace(".", ",")
 
-        try:
-            data = self._fetch_legacy_historico(dias)
-            if data:
-                self._historico_cache[dias] = data
-                self._historico_last_fetch[dias] = now
-                return data
-        except Exception as e:
-            logger.warning(f"Falha ao consultar histórico na ANA: {e}")
 
-        if dias in self._historico_cache:
-            return self._historico_cache[dias]
+def fmt_data_hora(dt: datetime) -> str:
+    return dt.astimezone(RB_TZ).strftime("%d/%m/%Y às %H:%M")
 
-        return self._get_fallback_historico(dias)
 
-    # ─── Consultas à ANA ─────────────────────────────────────────────────────────
+def status_por_cota(nivel_m: float) -> dict:
+    if nivel_m >= COTA_TRANSBORDAMENTO:
+        tipo, cor, bg = "Transbordamento", "red", "bg-red-600"
+        badge = "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+    elif nivel_m >= COTA_ALERTA:
+        tipo, cor, bg = "Alerta", "amber", "bg-amber-500"
+        badge = "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+    elif nivel_m < 1.50:
+        tipo, cor, bg = "Seca Severa", "rose", "bg-rose-600"
+        badge = "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+    elif nivel_m < 3.00:
+        tipo, cor, bg = "Nível Baixo / Estiagem", "orange", "bg-orange-500"
+        badge = "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
+    else:
+        tipo, cor, bg = "Normal", "emerald", "bg-emerald-500"
+        badge = "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+    return {"tipo": tipo, "color": cor, "statusBg": bg, "badgeBg": badge}
 
-    def _fetch_from_legacy_ana(self) -> dict:
-        now_dt = datetime.now()
-        start_dt = now_dt - timedelta(days=2)
-        data_inicio = start_dt.strftime("%d/%m/%Y")
-        data_fim = now_dt.strftime("%d/%m/%Y")
 
-        url = (
-            f"http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-            f"?codEstacao={self.station['codigo']}&dataInicio={data_inicio}&dataFim={data_fim}"
-        )
+def _first(item: dict, *keys):
+    for key in keys:
+        if key in item and item[key] is not None:
+            return item[key]
+    return None
 
-        resp = requests.get(url, timeout=12, headers={"User-Agent": "CamRB-Python-RioAcre/1.0"})
-        if resp.status_code != 200:
-            raise RuntimeError(f"HTTP {resp.status_code} na API da ANA")
 
-        readings = self._parse_xml_readings(resp.text)
-        if not readings:
-            raise ValueError("Nenhuma leitura válida retornada no XML")
+def _make_reading(dt, raw_level, vazao=None, chuva=None, q_cota=None, q_chuva=None, q_vazao=None,
+                  atualizacao=None) -> dict | None:
+    level = to_float(raw_level)
+    if dt is None or level is None or level <= 0:
+        return None
+    # A ANA às vezes manda em cm (ex.: 176 = 1,76 m). Rio Acre nunca passa de ~19 m.
+    nivel_m = level / 100.0 if level > 30 else level
+    return {
+        "dt": dt,
+        "nivel_m": round(nivel_m, 2),
+        "vazao": to_float(vazao),
+        "chuva": to_float(chuva),
+        "q_cota": normalize_quality(q_cota),
+        "q_chuva": normalize_quality(q_chuva),
+        "q_vazao": normalize_quality(q_vazao),
+        "atualizacao": atualizacao,
+    }
 
-        # Ordenar por timestamp decrescente
-        readings.sort(key=lambda r: r["timestamp"], reverse=True)
-        latest = readings[0]
 
-        # Calcular tendência comparando com leitura de ~1h atrás
-        tendencia = "Estável"
-        tendencia_icon = "minus"
-        tendencia_sinal = "="
-        compare_idx = min(4, len(readings) - 1)
-        if compare_idx > 0:
-            diff = latest["nivel_m"] - readings[compare_idx]["nivel_m"]
-            if diff >= 0.02:
-                tendencia = "Subindo"
-                tendencia_icon = "trending-up"
-                tendencia_sinal = "+"
-            elif diff <= -0.02:
-                tendencia = "Descendo"
-                tendencia_icon = "trending-down"
-                tendencia_sinal = "-"
+# ─── Cliente HidroWebService (fonte primária) ────────────────────────────────────
 
-        return self._format_rio_data(
-            nivel_m=latest["nivel_m"],
-            nivel_cm=latest["nivel_cm"],
-            data_leitura=latest["data_formatada"],
-            vazao=latest.get("vazao"),
-            chuva=latest.get("chuva"),
-            tendencia=tendencia,
-            tendencia_icon=tendencia_icon,
-            tendencia_sinal=tendencia_sinal,
-            fonte="Agência Nacional de Águas (ANA)"
-        )
+class HidroWebClient:
+    BASE_URL = "https://www.ana.gov.br/hidrowebservice"
+    RANGES = ((2, "DIAS_2"), (7, "DIAS_7"), (14, "DIAS_14"), (21, "DIAS_21"), (30, "DIAS_30"))
 
-    def _fetch_legacy_historico(self, dias: int = 30) -> dict:
-        now_dt = datetime.now()
-        start_dt = now_dt - timedelta(days=dias)
-        data_inicio = start_dt.strftime("%d/%m/%Y")
-        data_fim = now_dt.strftime("%d/%m/%Y")
+    def __init__(self, session: requests.Session | None = None, base_url: str | None = None, timeout: int = 20):
+        self.session = session or requests.Session()
+        self.base_url = (base_url or os.environ.get("ANA_HIDROWEB_URL") or self.BASE_URL).rstrip("/")
+        self.timeout = timeout
+        self._token: str | None = None
+        self._token_exp = 0.0
+        self._lock = threading.Lock()
 
-        url = (
-            f"http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-            f"?codEstacao={self.station['codigo']}&dataInicio={data_inicio}&dataFim={data_fim}"
-        )
+    # credenciais ------------------------------------------------------------------
+    @staticmethod
+    def credentials() -> tuple[str, str] | None:
+        user = (os.environ.get("ANA_HIDROWEB_USUARIO") or os.environ.get("ANA_HIDROWEB_IDENTIFICADOR")
+                or os.environ.get("ANA_HIDROWEB_LOGIN"))
+        pwd = os.environ.get("ANA_HIDROWEB_SENHA") or os.environ.get("ANA_HIDROWEB_PASSWORD")
+        if user and pwd:
+            return user.strip(), pwd.strip()
 
-        resp = requests.get(url, timeout=25, headers={"User-Agent": "CamRB-Python-RioAcre/1.0"})
-        if resp.status_code != 200:
-            raise RuntimeError(f"HTTP {resp.status_code} na API histórica da ANA")
-
-        readings = self._parse_xml_readings(resp.text)
-        if not readings:
-            raise ValueError("Nenhum dado histórico no XML da ANA")
-
-        return self._aggregate_historical_readings(readings, dias, "Agência Nacional de Águas (ANA)")
-
-    def _parse_xml_readings(self, xml_text: str) -> list:
-        root = ET.fromstring(xml_text)
-        readings = []
-
-        for item in root.findall(".//DadosHidrometereologicos"):
-            nivel_elem = item.findtext("Nivel") or item.findtext("Cota")
-            data_elem = item.findtext("DataHora")
-            vazao_elem = item.findtext("Vazao")
-            chuva_elem = item.findtext("Chuva")
-
-            if not nivel_elem or not data_elem:
-                continue
-
+        candidates = [os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH"), "/etc/secrets/serviceAccountKey.json",
+                      os.path.join(os.getcwd(), "serviceAccountKey.json")]
+        for path in filter(None, candidates):
             try:
-                raw_level = float(str(nivel_elem).strip().replace(",", "."))
-                if raw_level <= 0 or math.isnan(raw_level):
-                    continue
-
-                # Normalização: se > 30, o dado veio em cm (ex: 176 = 1.76m)
-                nivel_m = raw_level / 100.0 if raw_level > 30 else raw_level
-                nivel_cm = raw_level if raw_level > 30 else (raw_level * 100.0)
-
-                dt_str = str(data_elem).strip()
-                # Parsing da data: "YYYY-MM-DD HH:MM:SS"
-                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-
-                vazao = float(vazao_elem.replace(",", ".")) if vazao_elem and vazao_elem.strip() else None
-                chuva = float(chuva_elem.replace(",", ".")) if chuva_elem and chuva_elem.strip() else 0.0
-
-                readings.append({
-                    "timestamp": dt.timestamp(),
-                    "dt": dt,
-                    "day_key": dt.strftime("%Y-%m-%d"),
-                    "nivel_m": round(nivel_m, 2),
-                    "nivel_cm": round(nivel_cm),
-                    "data_formatada": dt.strftime("%d/%m/%Y às %H:%M"),
-                    "vazao": vazao,
-                    "chuva": chuva
-                })
-            except Exception:
+                with open(path, "r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except (OSError, ValueError):
                 continue
+            cfg = next((data[k] for k in ("hidroWebANA", "hidrowebana", "ana", "hidroWeb", "hidroweb")
+                        if isinstance(data.get(k), dict)), None)
+            if cfg:
+                u = cfg.get("usuario") or cfg.get("identificador") or cfg.get("email") or cfg.get("login") or cfg.get("user")
+                p = cfg.get("senha") or cfg.get("password") or cfg.get("pass")
+                if u and p:
+                    return str(u).strip(), str(p).strip()
+        return None
 
-        return readings
+    def available(self) -> bool:
+        return self.credentials() is not None
 
-    def _aggregate_historical_readings(self, readings: list, dias: int, fonte: str) -> dict:
-        # 1. Agregação Horária 24h
-        hourly_map = {}
-        for r in readings:
-            hour_key = r["dt"].strftime("%Y-%m-%d %H:00")
-            hourly_map.setdefault(hour_key, []).append(r["nivel_m"])
-
-        sorted_hour_keys = sorted(hourly_map.keys())[-24:]
-        leituras_24h = []
-        maior_24h = -float("inf")
-        menor_24h = float("inf")
-        soma_24h = 0.0
-
-        for k in sorted_hour_keys:
-            vals = hourly_map[k]
-            avg = sum(vals) / len(vals)
-            min_h = min(vals)
-            max_h = max(vals)
-            dt_part, h_part = k.split(" ")
-            y, mon, d = dt_part.split("-")
-
-            maior_24h = max(maior_24h, max_h)
-            menor_24h = min(menor_24h, min_h)
-            soma_24h += avg
-
-            leituras_24h.append({
-                "dataHora": f"{d}/{mon} {h_part}",
-                "hora": h_part,
-                "dataCompleta": f"{d}/{mon}/{y} às {h_part}",
-                "nivel": round(avg, 2),
-                "min": round(min_h, 2),
-                "max": round(max_h, 2)
-            })
-
-        ini_24h = leituras_24h[0]["nivel"] if leituras_24h else 0
-        fim_24h = leituras_24h[-1]["nivel"] if leituras_24h else 0
-        var_24h = round(fim_24h - ini_24h, 2)
-        var_pct_24h = round((var_24h / ini_24h * 100), 1) if ini_24h > 0 else 0.0
-
-        estatisticas_24h = {
-            "maiorNivel": {"metros": round(maior_24h if maior_24h != -float("inf") else 0, 2)},
-            "menorNivel": {"metros": round(menor_24h if menor_24h != float("inf") else 0, 2)},
-            "mediaPeriodo": round(soma_24h / len(leituras_24h), 2) if leituras_24h else 0.0,
-            "variacaoPeriodo": var_24h,
-            "variacaoPercentual": var_pct_24h
-        }
-
-        # 2. Agregação Diária
-        day_map = {}
-        for r in readings:
-            day_map.setdefault(r["day_key"], []).append(r)
-
-        sorted_days = sorted(day_map.keys())[-dias:]
-        pontos = []
-        maior_nivel = -float("inf")
-        data_maior = ""
-        menor_nivel = float("inf")
-        data_menor = ""
-        soma_niveis = 0.0
-
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        dias_semana_abrev = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-        dias_semana_extenso = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
-
-        for i, day in enumerate(sorted_days):
-            list_r = day_map[day]
-            vals = [x["nivel_m"] for x in list_r]
-            avg = sum(vals) / len(vals)
-            min_d = min(vals)
-            max_d = max(vals)
-
-            y, m, d = day.split("-")
-            data_fmt = f"{d}/{m}"
-            data_completa = f"{d}/{m}/{y}"
-            dt_obj = datetime.strptime(day, "%Y-%m-%d")
-            dia_sem = dias_semana_abrev[dt_obj.weekday()]
-            dia_sem_comp = dias_semana_extenso[dt_obj.weekday()]
-
-            if max_d > maior_nivel:
-                maior_nivel = max_d
-                data_maior = data_completa
-            if min_d < menor_nivel:
-                menor_nivel = min_d
-                data_menor = data_completa
-
-            soma_niveis += avg
-
-            prev_avg = (sum([x["nivel_m"] for x in day_map[sorted_days[i-1]]]) / len(day_map[sorted_days[i-1]])) if i > 0 else avg
-            var_dia = round(avg - prev_avg, 2)
-            var_dia_pct = round((var_dia / prev_avg * 100), 1) if prev_avg > 0 else 0.0
-
-            pontos.append({
-                "data": data_fmt,
-                "dataCompleta": data_completa,
-                "diaSemana": dia_sem,
-                "diaSemanaCompleto": dia_sem_comp,
-                "isHoje": day == today_str,
-                "isOntem": day == yesterday_str,
-                "nivel": round(avg, 2),
-                "min": round(min_d, 2),
-                "max": round(max_d, 2),
-                "variacaoDia": var_dia,
-                "variacaoDiaPct": var_dia_pct,
-                "status": self._calculate_status_info(avg),
-                "pontosLeitura": len(list_r)
-            })
-
-        media_periodo = round(soma_niveis / len(pontos), 2) if pontos else 0.0
-        nivel_ini = pontos[0]["nivel"] if pontos else 0.0
-        nivel_fim = pontos[-1]["nivel"] if pontos else 0.0
-        var_per = round(nivel_fim - nivel_ini, 2)
-        var_per_pct = round((var_per / nivel_ini * 100), 1) if nivel_ini > 0 else 0.0
-
-        return {
-            "periodoDias": dias,
-            "fonte": fonte,
-            "cotasReferencia": {
-                "secaHistorica": self.cota_seca_historica,
-                "alerta": self.cota_alerta,
-                "transbordamento": self.cota_transbordamento
-            },
-            "estatisticas": {
-                "maiorNivel": {"metros": round(maior_nivel if maior_nivel != -float("inf") else 0, 2), "data": data_maior},
-                "menorNivel": {"metros": round(menor_nivel if menor_nivel != float("inf") else 0, 2), "data": data_menor},
-                "mediaPeriodo": media_periodo,
-                "variacaoPeriodo": var_per,
-                "variacaoPercentual": var_per_pct
-            },
-            "estatisticas24h": estatisticas_24h,
-            "leituras24h": leituras_24h,
-            "pontos": pontos,
-            "timestamp": int(time.time() * 1000)
-        }
-
-    def _format_rio_data(self, nivel_m: float, nivel_cm: float, data_leitura: str,
-                         vazao: float = None, chuva: float = None,
-                         tendencia: str = "Estável", tendencia_icon: str = "minus",
-                         tendencia_sinal: str = "=", fonte: str = "ANA") -> dict:
-        nivel_formatado = f"{nivel_m:.2f}".replace(".", ",")
-        status = self._calculate_status_info(nivel_m)
-        percentual_alerta = min(round((nivel_m / self.cota_alerta) * 100), 100)
-
-        return {
-            "estacao": {
-                "codigo": self.station["codigo"],
-                "estcodigo": self.station["estcodigo"],
-                "nome": self.station["nome"],
-                "rio": self.station["rio"],
-                "municipio": self.station["municipio"],
-                "estado": self.station["estado"],
-                "responsavel": self.station["responsavel"],
-                "operadora": self.station["operadora"]
-            },
-            "nivel": {
-                "metros": round(nivel_m, 2),
-                "centimetros": round(nivel_cm),
-                "formatado": f"{nivel_formatado} m",
-                "dataLeitura": data_leitura,
-                "qualidade": {"codigo": 0, "status": "OK", "confiavel": True}
-            },
-            "vazao": f"{vazao:.1f}".replace(".", ",") + " m³/s" if vazao is not None else None,
-            "chuva": f"{chuva:.1f}".replace(".", ",") + " mm" if chuva is not None else None,
-            "tendencia": {
-                "status": tendencia,
-                "icon": tendencia_icon,
-                "sinal": tendencia_sinal
-            },
-            "cotas": {
-                "secaHistorica": f"{self.cota_seca_historica:.2f}".replace(".", ",") + " m",
-                "alerta": f"{self.cota_alerta:.2f}".replace(".", ",") + " m",
-                "transbordamento": f"{self.cota_transbordamento:.2f}".replace(".", ",") + " m",
-                "percentualAlerta": percentual_alerta
-            },
-            "status": status,
-            "fonte": fonte,
-            "timestamp": int(time.time() * 1000)
-        }
-
-    def _calculate_status_info(self, nivel_m: float) -> dict:
-        if nivel_m >= self.cota_transbordamento:
-            return {
-                "tipo": "Transbordamento",
-                "color": "red",
-                "statusBg": "bg-red-600",
-                "badgeBg": "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
-            }
-        elif nivel_m >= self.cota_alerta:
-            return {
-                "tipo": "Alerta",
-                "color": "amber",
-                "statusBg": "bg-amber-500",
-                "badgeBg": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-            }
-        elif nivel_m < 1.50:
-            return {
-                "tipo": "Seca Severa",
-                "color": "rose",
-                "statusBg": "bg-rose-600",
-                "badgeBg": "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
-            }
-        elif nivel_m < 3.00:
-            return {
-                "tipo": "Nível Baixo / Estiagem",
-                "color": "orange",
-                "statusBg": "bg-orange-500",
-                "badgeBg": "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
-            }
-        return {
-            "tipo": "Normal",
-            "color": "emerald",
-            "statusBg": "bg-emerald-500",
-            "badgeBg": "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-        }
-
-    def _get_fallback_data(self) -> dict:
-        now_str = datetime.now().strftime("%d/%m/%Y às %H:%M")
-        return self._format_rio_data(
-            nivel_m=1.76,
-            nivel_cm=176,
-            data_leitura=now_str,
-            vazao=41.2,
-            chuva=0.0,
-            tendencia="Estável",
-            fonte="Cache Local / Fallback"
+    # autenticação -----------------------------------------------------------------
+    def _authenticate(self) -> str:
+        creds = self.credentials()
+        if not creds:
+            raise RuntimeError("Credenciais da HidroWeb não configuradas")
+        resp = self.session.get(
+            f"{self.base_url}/EstacoesTelemetricas/OAUth/v1",
+            headers={"Identificador": creds[0], "Senha": creds[1], "Accept": "application/json",
+                     "User-Agent": "CamRB-RioAcre/3.0"},
+            timeout=self.timeout,
         )
+        resp.raise_for_status()
+        try:
+            body = resp.json()
+        except ValueError:
+            body = resp.text
 
-    def _get_fallback_historico(self, dias: int = 30) -> dict:
-        pontos = []
-        base_level = 1.70
-        dias_semana_abrev = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-        dias_semana_extenso = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+        token = None
+        if isinstance(body, str) and len(body) > 20:
+            token = body
+        elif isinstance(body, dict):
+            items = body.get("items", body)
+            if isinstance(items, str):
+                token = items
+            elif isinstance(items, dict):
+                token = next((items[k] for k in ("tokenautenticacao", "tokenAutenticacao", "access_token",
+                                                 "accessToken", "token") if items.get(k)), None)
+        if not isinstance(token, str) or not token.strip():
+            raise RuntimeError("Resposta de autenticação da ANA sem token")
+        token = token.strip()
+        self._token = token
+        self._token_exp = self._jwt_expiration(token)
+        return token
 
-        for i in range(dias - 1, -1, -1):
-            dt = datetime.now() - timedelta(days=i)
-            day_str = dt.strftime("%Y-%m-%d")
-            data_fmt = dt.strftime("%d/%m")
-            data_comp = dt.strftime("%d/%m/%Y")
-            level = round(base_level + (i / dias) * 0.40, 2)
-            pontos.append({
-                "data": data_fmt,
-                "dataCompleta": data_comp,
-                "diaSemana": dias_semana_abrev[dt.weekday()],
-                "diaSemanaCompleto": dias_semana_extenso[dt.weekday()],
-                "isHoje": i == 0,
-                "isOntem": i == 1,
-                "nivel": level,
-                "min": round(level - 0.05, 2),
-                "max": round(level + 0.05, 2),
-                "variacaoDia": 0.02,
-                "status": self._calculate_status_info(level),
-                "pontosLeitura": 96
-            })
+    @staticmethod
+    def _jwt_expiration(token: str) -> float:
+        try:
+            payload = token.split(".")[1]
+            payload += "=" * (-len(payload) % 4)
+            exp = json.loads(base64.urlsafe_b64decode(payload)).get("exp")
+            if isinstance(exp, (int, float)):
+                return float(exp)
+        except Exception:  # noqa: BLE001 - JWT mal formado: usa TTL padrão
+            pass
+        return time.time() + 12 * 3600
 
-        leituras_24h = []
-        for h in range(23, -1, -1):
-            dt_h = datetime.now() - timedelta(hours=h)
-            h_str = dt_h.strftime("%H:00")
-            val = round(1.68 + (24 - h) * 0.003, 2)
-            leituras_24h.append({
-                "dataHora": dt_h.strftime("%d/%m ") + h_str,
-                "hora": h_str,
-                "dataCompleta": dt_h.strftime("%d/%m/%Y às ") + h_str,
-                "nivel": val,
-                "min": val,
-                "max": val
-            })
+    def _get_token(self, force: bool = False) -> str:
+        with self._lock:
+            if not force and self._token and time.time() < self._token_exp - 300:
+                return self._token
+            return self._authenticate()
 
-        return {
-            "periodoDias": dias,
-            "fonte": "Cache Local / Simulação",
-            "cotasReferencia": {
-                "secaHistorica": self.cota_seca_historica,
-                "alerta": self.cota_alerta,
-                "transbordamento": self.cota_transbordamento
-            },
-            "estatisticas": {
-                "maiorNivel": {"metros": 2.10, "data": pontos[0]["dataCompleta"]},
-                "menorNivel": {"metros": 1.65, "data": pontos[-1]["dataCompleta"]},
-                "mediaPeriodo": 1.85,
-                "variacaoPeriodo": -0.35,
-                "variacaoPercentual": -16.0
-            },
-            "estatisticas24h": {
-                "maiorNivel": {"metros": 1.75},
-                "menorNivel": {"metros": 1.68},
-                "mediaPeriodo": 1.71,
-                "variacaoPeriodo": 0.07,
-                "variacaoPercentual": 4.1
-            },
-            "leituras24h": leituras_24h,
-            "pontos": pontos,
-            "timestamp": int(time.time() * 1000)
-        }
+    # consultas --------------------------------------------------------------------
+    def _request(self, endpoint: str, params: dict, retry: bool = True):
+        token = self._get_token()
+        resp = self.session.get(
+            f"{self.base_url}{endpoint}", params=params, timeout=self.timeout,
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json",
+                     "User-Agent": "CamRB-RioAcre/3.0"},
+        )
+        if resp.status_code in (401, 403) and retry:
+            self._get_token(force=True)
+            return self._request(endpoint, params, retry=False)
+        resp.raise_for_status()
+        return resp.json()
 
-    def get_previsao_rio_acre(self) -> dict:
-        """
-        Modelo hidrológico preditivo para o Rio Acre baseado em:
-        1. Telemetria recente (taxa de variação dh/dt nas últimas 24h e 72h)
-        2. Climatologia histórica da estação Ponte Metálica da CPRM/ANA (1971-2025)
-        3. Comportamento sazonal da bacia hidrográfica do Alto Acre
-        4. Comparação direta com anos de referência (Cheia 2024 vs Seca 2024 vs 2023)
-        """
-        now = datetime.now()
-        mes_idx = now.month
-        meses_nomes = [
-            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-        ]
-        mes_atual = meses_nomes[mes_idx - 1]
+    @classmethod
+    def range_for(cls, dias: int) -> str:
+        return next((name for limite, name in cls.RANGES if dias <= limite), "DIAS_30")
 
-        # Climatologia média mensal histórica da CPRM/ANA (1971-2025) para Rio Branco
-        climatologia = {
-            1: {"media": 9.50, "min_hist": 4.10, "max_hist": 15.20, "tipo": "Início da Cheia"},
-            2: {"media": 11.80, "min_hist": 5.20, "max_hist": 17.72, "tipo": "Pico de Cheias"},
-            3: {"media": 12.20, "min_hist": 6.00, "max_hist": 17.89, "tipo": "Pico Histórico"},
-            4: {"media": 9.80, "min_hist": 4.50, "max_hist": 14.50, "tipo": "Início da Descida"},
-            5: {"media": 6.50, "min_hist": 3.10, "max_hist": 11.00, "tipo": "Transição p/ Seca"},
-            6: {"media": 3.80, "min_hist": 2.20, "max_hist": 7.50, "tipo": "Estiagem"},
-            7: {"media": 2.50, "min_hist": 1.60, "max_hist": 5.20, "tipo": "Seca Típica"},
-            8: {"media": 1.80, "min_hist": 1.30, "max_hist": 3.80, "tipo": "Seca Severa"},
-            9: {"media": 1.60, "min_hist": 1.23, "max_hist": 3.50, "tipo": "Mínima Histórica"},
-            10: {"media": 1.95, "min_hist": 1.35, "max_hist": 6.20, "tipo": "Transição p/ Chuvas"},
-            11: {"media": 4.20, "min_hist": 1.80, "max_hist": 10.50, "tipo": "Elevação das Águas"},
-            12: {"media": 7.10, "min_hist": 2.90, "max_hist": 13.80, "tipo": "Inverno Amazônico"}
-        }
+    @staticmethod
+    def _items(payload) -> list:
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict):
+            items = payload.get("items")
+            if isinstance(items, list):
+                return items
+            if isinstance(items, dict):
+                return next((v for v in items.values() if isinstance(v, list)), [items])
+        return []
 
-        # Obter nível atual
-        nivel_data = self.get_nivel_rio_acre()
-        nivel_atual = nivel_data.get("nivel", {}).get("metros", 1.68)
-        vazao_atual = nivel_data.get("vazao", "39,5 m³/s")
-        chuva_atual = nivel_data.get("chuva", "0,0 mm")
-
-        # Obter tendência recente das últimas 24h
-        hist_24h = self.get_historico_rio_acre(1)
-        leituras = hist_24h.get("leituras24h", [])
-        if len(leituras) >= 2:
-            delta_24h = round(leituras[-1]["nivel"] - leituras[0]["nivel"], 2)
-        else:
-            delta_24h = 0.0
-
-        taxa_horaria = delta_24h / 24.0 # metros/hora
-
-        # Sazonalidade esperada do mês atual vs próximo mês
-        prox_mes_idx = (mes_idx % 12) + 1
-        tendencia_sazonal_mes = climatologia[prox_mes_idx]["media"] - climatologia[mes_idx]["media"]
-        fator_sazonal_diario = round(tendencia_sazonal_mes / 30.0, 3)
-
-        # Projeção combinada (inércia recente + viés climatológico)
-        proj_24h_delta = round((taxa_horaria * 24.0 * 0.8) + (fator_sazonal_diario * 0.2), 2)
-        proj_24h_nivel = round(max(1.0, nivel_atual + proj_24h_delta), 2)
-
-        proj_48h_delta = round((taxa_horaria * 48.0 * 0.6) + (fator_sazonal_diario * 2.0 * 0.4), 2)
-        proj_48h_nivel = round(max(1.0, nivel_atual + proj_48h_delta), 2)
-
-        proj_7d_delta = round((taxa_horaria * 24.0 * 7 * 0.3) + (fator_sazonal_diario * 7.0 * 0.7), 2)
-        proj_7d_nivel = round(max(1.0, nivel_atual + proj_7d_delta), 2)
-
-        media_mes = climatologia[mes_idx]["media"]
-        diff_media = round(nivel_atual - media_mes, 2)
-        diff_media_str = f"{'+' if diff_media > 0 else ''}{diff_media:.2f} m".replace('.', ',')
-
-        if proj_24h_delta > 0.03:
-            direcao_24h = "Elevação"
-            icone_24h = "trending-up"
-            cor_24h = "amber"
-        elif proj_24h_delta < -0.03:
-            direcao_24h = "Queda"
-            icone_24h = "trending-down"
-            cor_24h = "blue"
-        else:
-            direcao_24h = "Estabilidade"
-            icone_24h = "minus"
-            cor_24h = "emerald"
-
-        if nivel_atual < 10.0:
-            risco_inundacao = "Nulo (< 0,1%)"
-            status_risco = "Seguro"
-            cor_risco = "emerald"
-        elif nivel_atual < 13.0:
-            risco_inundacao = "Baixo (15%)"
-            status_risco = "Atenção Preventiva"
-            cor_risco = "amber"
-        elif nivel_atual < 13.5:
-            risco_inundacao = "Moderado (40%)"
-            status_risco = "Cota de Alerta Iminente"
-            cor_risco = "orange"
-        else:
-            risco_inundacao = "Crítico (> 80%)"
-            status_risco = "Inundação Ativa"
-            cor_risco = "red"
-
-        if mes_idx in [6, 7, 8, 9, 10]:
-            diagnostico = (
-                f"O Rio Acre está no período de {climatologia[mes_idx]['tipo'].lower()}. "
-                f"A cota atual de {nivel_atual:.2f} m está {abs(diff_media):.2f} m {'acima' if diff_media > 0 else 'abaixo'} "
-                f"da média histórica para {mes_atual} ({media_mes:.2f} m). "
-                f"A probabilidade de enchente é nula nas próximas 48h devido à ausência de ondas de cheia nas cabeceiras em Brasiléia e Xapuri."
+    def readings(self, codigo: str, dias: int) -> list[dict]:
+        params = {"Codigos_Estacoes": codigo, "Tipo Filtro Data": "DATA_LEITURA",
+                  "Range Intervalo de busca": self.range_for(dias)}
+        try:
+            payload = self._request("/EstacoesTelemetricas/HidroinfoanaSerieTelemetricaAdotada/v2", params)
+        except requests.RequestException:
+            payload = self._request("/EstacoesTelemetricas/HidroinfoanaSerieTelemetricaAdotada/v1", params)
+        out = []
+        for item in self._items(payload):
+            if not isinstance(item, dict):
+                continue
+            dt = parse_ana_datetime(_first(item, "Data_Hora_Medicao", "DataHoraMedicao", "Data_Hora", "DataHora",
+                                           "Data_Leitura", "DataHoraLeitura", "Data_Medicao", "data_hora_medicao",
+                                           "data_hora"))
+            reading = _make_reading(
+                dt,
+                _first(item, "Cota_Adotada", "Cota", "Nivel", "Nivel_Adotado", "Cota_Bruta", "Nivel_Bruto",
+                       "cota_adotada", "cota"),
+                vazao=_first(item, "Vazao_Adotada", "Vazao", "Vazao_Bruta", "vazao_adotada", "vazao"),
+                chuva=_first(item, "Chuva_Adotada", "Chuva", "Chuva_Bruta", "chuva_adotada", "chuva"),
+                q_cota=_first(item, "Cota_Adotada_Status", "Status_Cota", "Qualidade_Cota", "StatusCota",
+                              "cota_adotada_status"),
+                q_chuva=_first(item, "Chuva_Adotada_Status", "Status_Chuva", "Qualidade_Chuva", "StatusChuva",
+                               "chuva_adotada_status"),
+                q_vazao=_first(item, "Vazao_Adotada_Status", "Status_Vazao", "Qualidade_Vazao", "StatusVazao",
+                               "vazao_adotada_status"),
+                atualizacao=parse_ana_datetime(_first(item, "Data_Atualizacao", "Data_Hora_Atualizacao",
+                                                      "DataUltimaAtualizacao", "data_hora_atualizacao",
+                                                      "data_atualizacao")),
             )
-        else:
-            diagnostico = (
-                f"Período de {climatologia[mes_idx]['tipo'].lower()} no Rio Acre. "
-                f"O monitoramento das estações a montante (Assis Brasil, Brasiléia e Xapuri) é essencial, "
-                f"pois as ondas de cheia levam de 24h a 48h para alcançar a Ponte Metálica em Rio Branco."
-            )
+            if reading:
+                out.append(reading)
+        return out
 
+
+# ─── Cliente do webservice legado (reserva) ──────────────────────────────────────
+
+class LegacyAnaClient:
+    DEFAULT_URLS = (
+        "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos",
+        "http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos",
+    )
+
+    def __init__(self, session: requests.Session | None = None, timeout: int = 25):
+        self.session = session or requests.Session()
+        self.timeout = timeout
+        env = os.environ.get("ANA_LEGACY_URLS")
+        self.urls = tuple(u.strip() for u in env.split(",") if u.strip()) if env else self.DEFAULT_URLS
+
+    @staticmethod
+    def parse_xml(xml_text: str) -> list[dict]:
+        root = ET.fromstring(xml_text)
+        out = []
+        for node in root.iter():
+            if node.tag.rsplit("}", 1)[-1] != "DadosHidrometereologicos":
+                continue
+            fields = {child.tag.rsplit("}", 1)[-1]: (child.text or "").strip() for child in node}
+            reading = _make_reading(
+                parse_ana_datetime(fields.get("DataHora")),
+                fields.get("Nivel") or fields.get("Cota"),
+                vazao=fields.get("Vazao"),
+                chuva=fields.get("Chuva"),
+            )
+            if reading:
+                out.append(reading)
+        return out
+
+    def readings(self, codigo: str, dias: int) -> list[dict]:
+        hoje = datetime.now(RB_TZ)
+        params = {"codEstacao": codigo, "dataInicio": (hoje - timedelta(days=dias)).strftime("%d/%m/%Y"),
+                  "dataFim": hoje.strftime("%d/%m/%Y")}
+        last_error: Exception | None = None
+        for url in self.urls:
+            try:
+                resp = self.session.get(url, params=params, timeout=self.timeout,
+                                        headers={"User-Agent": "CamRB-RioAcre/3.0", "Accept": "application/xml, text/xml"})
+                resp.raise_for_status()
+                if "<ErrorTable>" in resp.text:
+                    raise RuntimeError("WebService legado retornou ErrorTable")
+                readings = self.parse_xml(resp.text)
+                if readings:
+                    return readings
+                raise RuntimeError("XML legado sem leituras válidas")
+            except Exception as exc:  # noqa: BLE001 - tenta a próxima URL
+                last_error = exc
+        raise last_error or RuntimeError("Sem URL legada configurada")
+
+
+# ─── Serviço ─────────────────────────────────────────────────────────────────────
+
+class RioAcreService:
+    station = ESTACAO
+
+    def __init__(self, hidroweb: HidroWebClient | None = None, legacy: LegacyAnaClient | None = None, clock=None):
+        self.hidroweb = hidroweb or HidroWebClient()
+        self.legacy = legacy or LegacyAnaClient()
+        self._clock = clock or (lambda: datetime.now(RB_TZ))
+        self._cache: dict[int, dict] = {}
+        self._lock = threading.RLock()
+
+    # --- carregamento de séries ---------------------------------------------------
+    def _now(self) -> datetime:
+        return self._clock()
+
+    @staticmethod
+    def _bucket(dias: int) -> int:
+        return next((b for b in (2, 7, 14, 21, 30) if dias <= b), dias)
+
+    def _sources(self):
+        if self.hidroweb.available():
+            yield "HidroWebService (ANA)", self.hidroweb
+        yield "WebService Legado (ANA)", self.legacy
+
+    @staticmethod
+    def _clean(readings: list[dict]) -> list[dict]:
+        """Ordena por data, remove duplicatas e descarta leituras com qualidade RUIM."""
+        unique = {}
+        for r in readings:
+            if r["q_cota"]["status"] == "RUIM":
+                continue
+            unique[r["dt"]] = r
+        return [unique[k] for k in sorted(unique)]
+
+    def _load_series(self, dias: int, ttl: int) -> dict:
+        dias = max(1, int(dias))
+        key = self._bucket(dias)
+        with self._lock:
+            now = time.time()
+            entry = self._cache.get(key)
+            if entry and now - entry["fetched"] < ttl:
+                return {**entry, "stale_cache": False}
+
+            errors = []
+            for fonte, client in self._sources():
+                try:
+                    readings = self._clean(client.readings(self.station["codigo"], key))
+                    if not readings:
+                        raise RuntimeError("fonte respondeu sem leituras válidas")
+                    entry = {"readings": readings, "fonte": fonte, "fetched": now}
+                    self._cache[key] = entry
+                    return {**entry, "stale_cache": False}
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"{fonte}: {exc}")
+                    logger.warning("Falha em %s: %s", fonte, exc)
+
+            if entry:  # dado real, porém velho: devolve marcado como desatualizado
+                return {**entry, "stale_cache": True}
+            raise DadosIndisponiveis("; ".join(errors) or "nenhuma fonte configurada")
+
+    # --- frescor ------------------------------------------------------------------
+    def _frescor(self, latest_dt: datetime, fetched: float, stale_cache: bool) -> dict:
+        idade = (self._now() - latest_dt).total_seconds() / 60.0
+        fuso_suspeito = idade < -5  # leitura "no futuro": fuso da ANA provavelmente mal configurado
+        idade = max(idade, 0.0)
+        desatualizado = bool(stale_cache or idade > STALE_MINUTES)
+        if fuso_suspeito:
+            mensagem = "A data da leitura está no futuro; confira ANA_DATA_UTC_OFFSET."
+        elif desatualizado:
+            mensagem = (f"Última leitura há {self._humanizar(idade)}. A estação ou a conexão com a ANA "
+                        f"pode estar com problema; não trate este valor como atual.")
+        else:
+            mensagem = f"Leitura há {self._humanizar(idade)}."
+        return {"idadeMinutos": round(idade), "desatualizado": desatualizado, "limiteMinutos": STALE_MINUTES,
+                "falhaAoAtualizar": bool(stale_cache), "fusoSuspeito": fuso_suspeito,
+                "buscadoEm": int(fetched * 1000), "mensagem": mensagem}
+
+    @staticmethod
+    def _humanizar(minutos: float) -> str:
+        minutos = int(round(minutos))
+        if minutos < 60:
+            return f"{minutos} min"
+        horas, resto = divmod(minutos, 60)
+        if horas < 48:
+            return f"{horas} h {resto:02d} min" if resto else f"{horas} h"
+        return f"{horas // 24} dias"
+
+    # --- nível atual --------------------------------------------------------------
+    def get_nivel(self) -> dict:
+        series = self._load_series(2, NIVEL_TTL_SEC)
+        readings = series["readings"]
+        latest = readings[-1]
+
+        # Tendência: compara com a leitura mais próxima de 1 hora antes (e exige ao menos 30 min de histórico).
+        referencia = next((r for r in reversed(readings) if r["dt"] <= latest["dt"] - timedelta(hours=1)), None)
+        if referencia is None and (latest["dt"] - readings[0]["dt"]) >= timedelta(minutes=30):
+            referencia = readings[0]
+        tendencia, icone, sinal = "Estável", "minus", "="
+        if referencia is not None:
+            diff = latest["nivel_m"] - referencia["nivel_m"]
+            if diff >= 0.02:
+                tendencia, icone, sinal = "Subindo", "trending-up", "+"
+            elif diff <= -0.02:
+                tendencia, icone, sinal = "Descendo", "trending-down", "-"
+
+        nivel_m = latest["nivel_m"]
+        frescor = self._frescor(latest["dt"], series["fetched"], series["stale_cache"])
         return {
+            "estado": "desatualizado" if frescor["desatualizado"] else "ok",
+            "estacao": dict(self.station),
+            "nivel": {
+                "metros": nivel_m,
+                "centimetros": round(nivel_m * 100),
+                "formatado": f"{fmt_num(nivel_m)} m",
+                "dataLeitura": fmt_data_hora(latest["dt"]),
+                "timestamp": int(latest["dt"].timestamp() * 1000),
+                "dataAtualizacao": fmt_data_hora(latest["atualizacao"]) if latest["atualizacao"] else None,
+                "qualidade": latest["q_cota"],
+            },
+            "vazao": f"{fmt_num(latest['vazao'], 1)} m³/s" if latest["vazao"] is not None else None,
+            "vazaoQualidade": latest["q_vazao"],
+            "chuva": f"{fmt_num(latest['chuva'], 1)} mm" if latest["chuva"] is not None else None,
+            "chuvaQualidade": latest["q_chuva"],
+            "chuvaReferencia": "última leitura",
+            "tendencia": {"status": tendencia, "icon": icone, "sinal": sinal},
+            "cotas": {
+                "secaHistorica": f"{fmt_num(RECORDE_SECA['nivel'])} m",
+                "atencao": f"{fmt_num(COTA_ATENCAO)} m",
+                "alerta": f"{fmt_num(COTA_ALERTA)} m",
+                "transbordamento": f"{fmt_num(COTA_TRANSBORDAMENTO)} m",
+                "percentualAlerta": min(round(nivel_m / COTA_ALERTA * 100), 100),
+            },
+            "status": status_por_cota(nivel_m),
+            "fonte": series["fonte"],
+            "frescor": frescor,
             "timestamp": int(time.time() * 1000),
-            "dataReferencia": now.strftime("%d/%m/%Y às %H:%M"),
-            "mesReferencia": mes_atual,
-            "nivelAtual": nivel_atual,
-            "direcaoPrevisao": direcao_24h,
-            "iconeDirecao": icone_24h,
-            "corDirecao": cor_24h,
-            "riscoInundacao": risco_inundacao,
-            "statusRisco": status_risco,
-            "corRisco": cor_risco,
-            "diagnostico": diagnostico,
-            "projecoes": {
-                "24h": {
-                    "nivel": proj_24h_nivel,
-                    "delta": f"{'+' if proj_24h_delta > 0 else ''}{proj_24h_delta:.2f} m".replace('.', ','),
-                    "min": round(proj_24h_nivel - 0.04, 2),
-                    "max": round(proj_24h_nivel + 0.04, 2),
-                    "tendencia": direcao_24h
-                },
-                "48h": {
-                    "nivel": proj_48h_nivel,
-                    "delta": f"{'+' if proj_48h_delta > 0 else ''}{proj_48h_delta:.2f} m".replace('.', ','),
-                    "min": round(proj_48h_nivel - 0.08, 2),
-                    "max": round(proj_48h_nivel + 0.08, 2),
-                    "tendencia": "Estável / Leve Subida" if proj_48h_delta >= 0 else "Queda"
-                },
-                "7d": {
-                    "nivel": proj_7d_nivel,
-                    "delta": f"{'+' if proj_7d_delta > 0 else ''}{proj_7d_delta:.2f} m".replace('.', ','),
-                    "min": round(proj_7d_nivel - 0.15, 2),
-                    "max": round(proj_7d_nivel + 0.15, 2),
-                    "tendencia": "Tendência Sazonal"
-                }
+        }
+
+    # --- histórico ----------------------------------------------------------------
+    def get_historico(self, dias: int = 30) -> dict:
+        dias = max(1, min(365, int(dias)))
+        series = self._load_series(dias, HISTORICO_TTL_SEC)
+        readings = series["readings"]
+        latest = readings[-1]["dt"]
+        frescor = self._frescor(latest, series["fetched"], series["stale_cache"])
+
+        # 24 h: janela de 24 horas terminando na última leitura, agregada por hora.
+        janela = [r for r in readings if r["dt"] > latest - timedelta(hours=24)]
+        por_hora: dict[str, list[dict]] = {}
+        for r in janela:
+            por_hora.setdefault(r["dt"].strftime("%Y-%m-%d %H"), []).append(r)
+        leituras24h = []
+        for chave in sorted(por_hora):
+            valores = [r["nivel_m"] for r in por_hora[chave]]
+            dia, hora = chave.split(" ")
+            y, mo, d = dia.split("-")
+            leituras24h.append({
+                "dataHora": f"{d}/{mo} {hora}:00", "hora": f"{hora}:00",
+                "dataCompleta": f"{d}/{mo}/{y} às {hora}:00",
+                "nivel": round(sum(valores) / len(valores), 2),
+                "min": round(min(valores), 2), "max": round(max(valores), 2),
+            })
+        niveis24 = [r["nivel_m"] for r in janela]
+        ini24, fim24 = leituras24h[0]["nivel"], leituras24h[-1]["nivel"]
+        var24 = round(fim24 - ini24, 2)
+        estatisticas24h = {
+            "maiorNivel": {"metros": round(max(niveis24), 2)},
+            "menorNivel": {"metros": round(min(niveis24), 2)},
+            "mediaPeriodo": round(sum(l["nivel"] for l in leituras24h) / len(leituras24h), 2),
+            "variacaoPeriodo": var24,
+            "variacaoPercentual": round(var24 / ini24 * 100, 1) if ini24 > 0 else 0.0,
+        }
+
+        # Diário
+        por_dia: dict[str, list[dict]] = {}
+        for r in readings:
+            por_dia.setdefault(r["dt"].strftime("%Y-%m-%d"), []).append(r)
+        dias_ordenados = sorted(por_dia)[-dias:]
+        hoje = self._now().strftime("%Y-%m-%d")
+        ontem = (self._now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        pontos, anterior = [], None
+        for dia in dias_ordenados:
+            lista = por_dia[dia]
+            valores = [r["nivel_m"] for r in lista]
+            media = sum(valores) / len(valores)
+            y, mo, d = dia.split("-")
+            data_dia = datetime.strptime(dia, "%Y-%m-%d")
+            variacao = round(media - anterior, 2) if anterior is not None else 0.0
+            pontos.append({
+                "data": f"{d}/{mo}", "dataCompleta": f"{d}/{mo}/{y}",
+                "diaSemana": DIAS_SEMANA[data_dia.weekday()],
+                "diaSemanaCompleto": DIAS_SEMANA_COMPLETO[data_dia.weekday()],
+                "isHoje": dia == hoje, "isOntem": dia == ontem,
+                "nivel": round(media, 2), "min": round(min(valores), 2), "max": round(max(valores), 2),
+                "variacaoDia": variacao,
+                "variacaoDiaPct": round(variacao / anterior * 100, 1) if anterior else 0.0,
+                "status": status_por_cota(media), "pontosLeitura": len(lista),
+            })
+            anterior = media
+
+        maior = max(pontos, key=lambda p: p["max"])
+        menor = min(pontos, key=lambda p: p["min"])
+        inicial, final = pontos[0]["nivel"], pontos[-1]["nivel"]
+        var_periodo = round(final - inicial, 2)
+        return {
+            "estado": "desatualizado" if frescor["desatualizado"] else "ok",
+            "periodoDias": dias,
+            "diasDisponiveis": len(pontos),
+            "fonte": series["fonte"],
+            "cotasReferencia": {"secaHistorica": RECORDE_SECA["nivel"], "atencao": COTA_ATENCAO,
+                                "alerta": COTA_ALERTA, "transbordamento": COTA_TRANSBORDAMENTO},
+            "estatisticas": {
+                "maiorNivel": {"metros": maior["max"], "data": maior["dataCompleta"]},
+                "menorNivel": {"metros": menor["min"], "data": menor["dataCompleta"]},
+                "mediaPeriodo": round(sum(p["nivel"] for p in pontos) / len(pontos), 2),
+                "variacaoPeriodo": var_periodo,
+                "variacaoPercentual": round(var_periodo / inicial * 100, 1) if inicial > 0 else 0.0,
             },
+            "estatisticas24h": estatisticas24h,
+            "leituras24h": leituras24h,
+            "pontos": pontos,
+            "frescor": frescor,
+            "timestamp": int(time.time() * 1000),
+        }
+
+    # --- estimativa de tendência (NÃO é previsão oficial) -------------------------
+    # Fatores de amortecimento empíricos, sem calibração estatística.
+    AMORTECIMENTO = {24: 0.8, 48: 0.6, 168: 0.3}
+
+    @staticmethod
+    def _regressao(pontos: list[tuple[float, float]]) -> tuple[float, float]:
+        """Mínimos quadrados: devolve (inclinação em m/h, desvio-padrão dos resíduos)."""
+        n = len(pontos)
+        mx = sum(x for x, _ in pontos) / n
+        my = sum(y for _, y in pontos) / n
+        sxx = sum((x - mx) ** 2 for x, _ in pontos)
+        if sxx == 0:
+            return 0.0, 0.0
+        slope = sum((x - mx) * (y - my) for x, y in pontos) / sxx
+        resid = [y - (my + slope * (x - mx)) for x, y in pontos]
+        std = math.sqrt(sum(e * e for e in resid) / max(n - 2, 1))
+        return slope, std
+
+    def get_previsao(self) -> dict:
+        nivel = self.get_nivel()
+        series = self._load_series(2, NIVEL_TTL_SEC)
+        readings = series["readings"]
+        latest = readings[-1]
+        agora = self._now()
+        mes = agora.month
+        media_mes, tipo_mes = CLIMATOLOGIA[mes]
+        nivel_atual = latest["nivel_m"]
+        diff_media = round(nivel_atual - media_mes, 2)
+        frescor = nivel["frescor"]
+
+        base = {
+            "tipo": "estimativa-de-tendencia",
+            "estado": nivel["estado"],
+            "timestamp": int(time.time() * 1000),
+            "dataReferencia": fmt_data_hora(latest["dt"]),
+            "mesReferencia": MESES[mes - 1],
+            "nivelAtual": nivel_atual,
+            "frescor": frescor,
+            "aviso": ("Extrapolação simples da tendência das últimas 24 h. Não considera chuva prevista nem o "
+                      "nível a montante e NÃO substitui os alertas do SGB/CPRM e da Defesa Civil (199)."),
             "comparativoHistorico": {
                 "mediaMes": media_mes,
-                "diferencaMedia": diff_media_str,
-                "anoCheiaRecorde": {"ano": 2024, "nivel": 17.89, "data": "Março/2024"},
-                "anoSecaRecorde": {"ano": 2024, "nivel": 1.23, "data": "Setembro/2024"},
-                "mesmoPeriodo2024": {"ano": 2024, "nivel": 1.35, "status": "Seca Histórica Extrema"},
-                "mesmoPeriodo2023": {"ano": 2023, "nivel": 1.82, "status": "Estiagem Normal"}
+                "diferencaMedia": ("+" if diff_media > 0 else "") + f"{diff_media:.2f} m".replace(".", ","),
+                "recordeCheia": RECORDE_CHEIA,
+                "recordeSeca": RECORDE_SECA,
+                "aviso": "Médias mensais aproximadas, sem fonte oficial citada: use apenas como referência.",
             },
             "climatologiaAnual": [
-                {"mes": c["mes"], "nome": c["nome"], "media": climatologia[idx]["media"], "tipo": climatologia[idx]["tipo"]}
-                for idx, c in enumerate([
-                    {"mes": "Jan", "nome": "Janeiro"}, {"mes": "Fev", "nome": "Fevereiro"},
-                    {"mes": "Mar", "nome": "Março"}, {"mes": "Abr", "nome": "Abril"},
-                    {"mes": "Mai", "nome": "Maio"}, {"mes": "Jun", "nome": "Junho"},
-                    {"mes": "Jul", "nome": "Julho"}, {"mes": "Ago", "nome": "Agosto"},
-                    {"mes": "Set", "nome": "Setembro"}, {"mes": "Out", "nome": "Outubro"},
-                    {"mes": "Nov", "nome": "Novembro"}, {"mes": "Dez", "nome": "Dezembro"}
-                ], 1)
-            ]
+                {"mes": MESES[i][:3], "nome": MESES[i], "media": CLIMATOLOGIA[i + 1][0], "tipo": CLIMATOLOGIA[i + 1][1]}
+                for i in range(12)
+            ],
         }
+        base.update(self._situacao(nivel_atual))
 
-    def get_nivel_json(self) -> str:
-        import json
-        return json.dumps(self.get_nivel_rio_acre(), ensure_ascii=False)
+        janela = [r for r in readings if r["dt"] > latest["dt"] - timedelta(hours=24)]
+        span_h = (janela[-1]["dt"] - janela[0]["dt"]).total_seconds() / 3600 if len(janela) > 1 else 0
+        if frescor["desatualizado"] or len(janela) < 6 or span_h < 6:
+            motivo = ("a última leitura está desatualizada" if frescor["desatualizado"]
+                      else "há poucas leituras recentes para estimar a tendência")
+            base.update({
+                "disponivel": False, "motivo": motivo,
+                "direcaoPrevisao": "Indisponível", "iconeDirecao": "minus", "corDirecao": "slate",
+                "projecoes": {}, "diagnostico": f"Estimativa indisponível: {motivo}. Cota atual: {fmt_num(nivel_atual)} m.",
+            })
+            return base
 
-    def get_historico_json(self, dias: int = 30) -> str:
-        import json
-        return json.dumps(self.get_historico_rio_acre(dias), ensure_ascii=False)
+        t0 = janela[0]["dt"]
+        slope, std = self._regressao([((r["dt"] - t0).total_seconds() / 3600, r["nivel_m"]) for r in janela])
 
-    def get_previsao_json(self) -> str:
-        import json
-        return json.dumps(self.get_previsao_rio_acre(), ensure_ascii=False)
+        def projetar(horas: int) -> dict:
+            delta = round(slope * horas * self.AMORTECIMENTO[horas], 2)
+            alvo = round(max(0.0, nivel_atual + delta), 2)
+            faixa = max(0.04, 2 * std) * math.sqrt(horas / 24)
+            return {"nivel": alvo, "delta": ("+" if delta > 0 else "") + f"{delta:.2f} m".replace(".", ","),
+                    "min": round(max(0.0, alvo - faixa), 2), "max": round(alvo + faixa, 2),
+                    "tendencia": "Elevação" if delta > 0.03 else "Queda" if delta < -0.03 else "Estabilidade",
+                    "_delta": delta}
+
+        p24, p48, p7d = projetar(24), projetar(48), projetar(168)
+        p7d["tendencia"] += " (baixa confiança)"
+        direcao = p24["tendencia"]
+        icone, cor = {"Elevação": ("trending-up", "amber"), "Queda": ("trending-down", "blue")}.get(
+            direcao, ("minus", "emerald"))
+        delta24 = round(nivel_atual - janela[0]["nivel_m"], 2)
+        for p in (p24, p48, p7d):
+            p.pop("_delta")
+
+        base.update({
+            "disponivel": True,
+            "direcaoPrevisao": direcao, "iconeDirecao": icone, "corDirecao": cor,
+            "projecoes": {"24h": p24, "48h": p48, "7d": p7d},
+            "diagnostico": (
+                f"Cota atual de {fmt_num(nivel_atual)} m, {fmt_num(abs(diff_media))} m "
+                f"{'acima' if diff_media > 0 else 'abaixo'} da média de referência de {MESES[mes - 1]} "
+                f"({fmt_num(media_mes)} m, período de {tipo_mes.lower()}). Variação medida nas últimas 24 h: "
+                f"{'+' if delta24 > 0 else ''}{fmt_num(delta24)} m. As projeções acima são extrapolação dessa "
+                f"tendência e perdem confiança com o tempo; para alertas oficiais consulte o SGB/CPRM e a Defesa Civil (199)."),
+        })
+        return base
+
+    @staticmethod
+    def _situacao(nivel: float) -> dict:
+        """Situação em relação às cotas oficiais (sem percentuais de 'risco' inventados)."""
+        if nivel >= COTA_TRANSBORDAMENTO:
+            return {"riscoInundacao": "Acima da cota de transbordamento (14,00 m)", "statusRisco": "Transbordamento", "corRisco": "red"}
+        if nivel >= COTA_ALERTA:
+            return {"riscoInundacao": "Acima da cota de alerta (13,50 m)", "statusRisco": "Alerta", "corRisco": "orange"}
+        if nivel >= COTA_ATENCAO:
+            return {"riscoInundacao": "Acima da cota de atenção (12,50 m)", "statusRisco": "Atenção", "corRisco": "amber"}
+        return {"riscoInundacao": f"{fmt_num(COTA_ALERTA - nivel)} m abaixo da cota de alerta",
+                "statusRisco": "Abaixo das cotas de atenção", "corRisco": "emerald"}
+
+
+# ─── Linha de comando ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import argparse
-    import json
     import sys
 
-    if hasattr(sys.stdout, 'reconfigure'):
-        try:
-            sys.stdout.reconfigure(encoding='utf-8')
-        except Exception:
-            pass
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s %(message)s")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
 
-    parser = argparse.ArgumentParser(description="Rio Acre Python Telemetry Service CLI")
-    parser.add_argument("--action", choices=["nivel", "historico", "previsao"], default="nivel", help="Ação a executar")
-    parser.add_argument("--dias", type=int, default=30, help="Quantidade de dias para histórico")
+    parser = argparse.ArgumentParser(description="Telemetria do Rio Acre (ANA)")
+    parser.add_argument("--action", choices=["nivel", "historico", "previsao"], default="nivel")
+    parser.add_argument("--dias", type=int, default=30)
     args = parser.parse_args()
 
-    service = RioAcrePythonService()
-    if args.action == "nivel":
-        print(service.get_nivel_json())
-    elif args.action == "historico":
-        print(service.get_historico_json(args.dias))
-    elif args.action == "previsao":
-        print(service.get_previsao_json())
-
+    servico = RioAcreService()
+    try:
+        if args.action == "nivel":
+            resultado = servico.get_nivel()
+        elif args.action == "historico":
+            resultado = servico.get_historico(args.dias)
+        else:
+            resultado = servico.get_previsao()
+    except DadosIndisponiveis as exc:
+        print(json.dumps({"estado": "indisponivel", "erro": str(exc)}, ensure_ascii=False))
+        sys.exit(2)
+    print(json.dumps(resultado, ensure_ascii=False))

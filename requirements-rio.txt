@@ -1,2 +1,4 @@
-flask>=3.0.0
-requests>=2.31.0
+flask>=3.0
+requests>=2.31
+defusedxml>=0.7
+# produção (Linux): gunicorn>=21   |   Windows: waitress>=3

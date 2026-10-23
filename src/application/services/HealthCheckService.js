@@ -120,9 +120,11 @@ class HealthCheckService {
                 const nivelStr = (data.nivel && (data.nivel.formatado || data.nivel.metros)) ? (data.nivel.formatado || `${data.nivel.metros} m`) : `${data.nivel} m`;
                 const statusStr = (data.status && data.status.tipo) ? data.status.tipo : (data.status || 'Normal');
                 return {
-                    status: hasNivel ? 'healthy' : 'degraded',
+                    status: hasNivel && data.estado !== 'desatualizado' ? 'healthy' : 'degraded',
                     latencyMs: latency,
-                    message: hasNivel ? `Nível atual: ${nivelStr} (${statusStr})` : 'Dados parciais da telemetria',
+                    message: !hasNivel ? 'Dados parciais da telemetria'
+                        : data.estado === 'desatualizado' ? `Leitura DESATUALIZADA: ${nivelStr} (${data.frescor?.mensagem || 'sem atualização recente'})`
+                        : `Nível atual: ${nivelStr} (${statusStr})`,
                     details: data || {}
                 };
             }

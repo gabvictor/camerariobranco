@@ -41,3 +41,16 @@ docker compose ps
 - **Nunca** versionar `serviceAccountKey.json`
 - Restrinja CORS para o domínio oficial
 - Use segredos do provedor de hospedagem (`/etc/secrets/...`) em produção
+
+## Página /rio em Python (servidor autônomo)
+A página `/rio` e as APIs `/api/rio-acre*` também rodam só com Python (Flask), sem Node:
+```bash
+pip install -r requirements-rio.txt
+export ANA_HIDROWEB_USUARIO=... ANA_HIDROWEB_SENHA=...   # opcional; sem isso usa o XML legado
+python rio_server.py --port 5000                          # http://localhost:5000/rio
+# produção (Linux):  gunicorn -w 2 -b 0.0.0.0:5000 rio_server:app
+# produção (Windows): waitress-serve --port=5000 rio_server:app
+```
+Comportamento: HidroWeb → XML legado → cache (marcado "desatualizado") → HTTP 503. Nunca exibe valor inventado.
+Atrás de proxy reverso defina `RIO_TRUST_PROXY=1`. Testes: `python -m unittest discover -s tests -v` e `npm run test:rio`.
+

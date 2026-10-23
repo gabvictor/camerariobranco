@@ -212,14 +212,56 @@ const requestLogger = (METRICS) => (req, res, next) => {
     next();
 };
 
+// ─── Helper: Verifica de forma assíncrona se a requisição provém de um Admin ───
+const checkIsAdminRequest = async (req) => {
+    try {
+        const cookies = parseCookies(req);
+        if (cookies.__session) {
+            try {
+                const decodedClaims = await admin.auth().verifySessionCookie(cookies.__session, true);
+                if (isUserAdmin(decodedClaims.email)) {
+                    req.user = decodedClaims;
+                    return true;
+                }
+            } catch (_) {}
+        }
+
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const idToken = authHeader.split('Bearer ')[1];
+            try {
+                const decodedToken = await admin.auth().verifyIdToken(idToken);
+                if (isUserAdmin(decodedToken.email)) {
+                    req.user = decodedToken;
+                    return true;
+                }
+            } catch (_) {}
+        }
+
+        if (req.query && req.query.token) {
+            try {
+                const decodedToken = await admin.auth().verifyIdToken(req.query.token);
+                if (isUserAdmin(decodedToken.email)) {
+                    req.user = decodedToken;
+                    return true;
+                }
+            } catch (_) {}
+        }
+    } catch (_) {}
+
+    return false;
+};
+
 module.exports = {
     verifyAuth,
     verifyAdmin,
     verifyOptionalAdmin,
     verifyAdminPageSession,
+    checkIsAdminRequest,
     createRateLimiter,
     parseCookies,
     isUserAdmin,
     tarpit,
     requestLogger
 };
+
