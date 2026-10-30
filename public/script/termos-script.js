@@ -29,8 +29,9 @@ const SECTION_ICONS = {
     "3": "user-check",
     "4": "cookie",
     "5": "shield-check",
-    "6": "mail",
-    "7": "history"
+    "6": "bell",
+    "7": "mail",
+    "8": "history"
 };
 
 async function fetchTermos() {

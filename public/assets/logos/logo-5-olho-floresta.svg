@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CamRB - Olho da Floresta">
+  <defs>
+    <linearGradient id="a5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#14532d"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#a5)"/>
+  <path d="M5 32 Q32 5 59 32 Q32 59 5 32 Z" fill="#ffffff"/>
+  <path d="M5 32 Q32 5 59 32" fill="none" stroke="#bbf7d0" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="13" fill="#052e16"/>
+  <circle cx="32" cy="32" r="9.5" fill="#064e3b" stroke="#facc15" stroke-width="1.6"/>
+  <polygon fill="#ef4444" points="32,25 33.73,29.62 38.66,29.84 34.8,32.91 36.11,37.66 32,34.94 27.89,37.66 29.2,32.91 25.34,29.84 30.27,29.62"/>
+  <circle cx="26.5" cy="26.5" r="2.3" fill="#ffffff" opacity=".8"/>
+</svg>

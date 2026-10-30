@@ -2733,6 +2733,8 @@ function initCameraTour(user) {
 initializeCameraLogic(null);
 
 onAuthStateChanged(auth, (user) => {
+    // Conta de e-mail ainda não confirmada não conta como logada
+    if (user && !user.emailVerified) user = null;
     currentAuthUser = user;
     activeAuthUser = user;
     initializeCameraLogic(user);

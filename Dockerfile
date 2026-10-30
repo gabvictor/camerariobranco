@@ -36,6 +36,8 @@ RUN mkdir -p /app/public/timelapse /app/public/uploads/sponsors && chown -R node
 COPY --chown=node:node --from=builder /app/src ./src
 COPY --chown=node:node --from=builder /app/public ./public
 COPY --chown=node:node --from=builder /app/server.js ./server.js
+# Scripts de manutenção (ex.: scripts/verify-existing-users.js via `docker compose exec camrb ...`)
+COPY --chown=node:node --from=builder /app/scripts ./scripts
 COPY --chown=node:node rio_service.py ./rio_service.py
 
 # Executa com usuário não-root por segurança

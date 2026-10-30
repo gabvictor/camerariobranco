@@ -18,9 +18,10 @@ service cloud.firestore {
     match /userData/{userId} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       
-      // CREATE: Permite criar se for o próprio usuário E NÃO estiver definindo 'role'
-      allow create: if request.auth != null 
+      // CREATE: Permite criar se for o próprio usuário, com e-mail verificado, E NÃO estiver definindo 'role'
+      allow create: if request.auth != null
                    && request.auth.uid == userId
+                   && request.auth.token.email_verified == true
                    && !('role' in request.resource.data);
 
       // UPDATE: Permite atualizar se for o próprio usuário E NÃO estiver alterando 'role'
@@ -44,8 +45,9 @@ service cloud.firestore {
       // Permite a leitura pública para visualização do chat ao vivo ou por Admin.
       allow read: if true;
 
-      // PERMISSÃO DE CRIAÇÃO (mantém a validação de dados para qualquer usuário autenticado)
+      // PERMISSÃO DE CRIAÇÃO (usuário autenticado com e-mail verificado, com validação dos dados)
       allow create: if request.auth != null
+                    && request.auth.token.email_verified == true
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.userDisplayName is string
                     && request.resource.data.userDisplayName.size() > 0
@@ -72,6 +74,15 @@ service cloud.firestore {
     match /changelog/{docId} {
       allow read: if true; // Público pode ler as novidades
       allow write: if isAdmin(); // Apenas admin pode publicar
+    }
+
+    // 6. ALERTAS DO RIO ACRE (e-mails dos inscritos = dado pessoal)
+    // Acesso apenas pelo servidor (Admin SDK ignora estas regras). Nenhum cliente lê ou escreve.
+    match /alertSubscribers/{docId} {
+      allow read, write: if false;
+    }
+    match /system/{docId} {
+      allow read, write: if false;
     }
 
   }

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="CamRB - Ponte Metálica">
+  <defs>
+    <linearGradient id="a2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#4338ca"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#a2)"/>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 42 Q32 6 56 42" stroke-width="3.2"/>
+    <g stroke-width="1.6" opacity=".9"><line x1="14" y1="34.13" x2="14" y2="42"/><line x1="20" y1="28.5" x2="20" y2="42"/><line x1="26" y1="25.13" x2="26" y2="42"/><line x1="32" y1="24" x2="32" y2="42"/><line x1="38" y1="25.13" x2="38" y2="42"/><line x1="44" y1="28.5" x2="44" y2="42"/><line x1="50" y1="34.13" x2="50" y2="42"/></g>
+    <line x1="5" y1="42" x2="59" y2="42" stroke-width="3.2"/>
+    <line x1="10" y1="42" x2="10" y2="47" stroke-width="2.4"/>
+    <line x1="54" y1="42" x2="54" y2="47" stroke-width="2.4"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-width="2">
+    <path d="M6 51 q4 -2.2 8 0 q4 2.2 8 0 q4 -2.2 8 0 q4 2.2 8 0 q4 -2.2 8 0 q4 2.2 8 0 q4 -2.2 8 0" stroke="#7dd3fc"/>
+    <path d="M10 57 q4 -2.2 8 0 q4 2.2 8 0 q4 -2.2 8 0 q4 2.2 8 0 q4 -2.2 8 0 q4 2.2 8 0" stroke="#38bdf8" opacity=".8"/>
+  </g>
+  <circle cx="50" cy="14" r="7" fill="#0f0d2e" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="50" cy="14" r="2.8" fill="#ef4444"/>
+  <text x="76" y="38" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-1" fill="#111827">Cam<tspan fill="#4f46e5">RB</tspan></text>
+  <text x="77" y="55" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="2.2" fill="#6b7280">RIO BRANCO • ACRE</text>
+</svg>

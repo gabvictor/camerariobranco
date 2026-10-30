@@ -82,6 +82,8 @@ if (!isAppInitialized) {
 }
 
 onAuthStateChanged(auth, async (user) => {
+    // Conta de e-mail ainda não confirmada não conta como logada
+    if (user && !user.emailVerified) user = null;
     currentUser = user;
     
     if (user && redirectParam && redirectParam.startsWith('/')) {
@@ -510,6 +512,8 @@ function initializeAppLogic() {
         } else {
             let filtered = state.allCameras.filter(cam => cam.status === 'online');
             state.filteredCameras = filtered.length > 0 ? filtered : state.allCameras;
+            // Os cards da página 1 vieram do SSR; a paginação precisa ser desenhada aqui
+            renderPaginationControls();
         }
 
         if (elements.lastUpdatedSpan) elements.lastUpdatedSpan.textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;

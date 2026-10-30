@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CamRB - Pin Rio Branco">
+  <defs>
+    <linearGradient id="a4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#3730a3"/></linearGradient>
+  </defs>
+  <path d="M32 3 C19 3 10 12 10 24.5 C10 39 32 56 32 56 C32 56 54 39 54 24.5 C54 12 45 3 32 3 Z" fill="url(#a4)"/>
+  <circle cx="32" cy="24" r="14" fill="#ffffff"/>
+  <circle cx="32" cy="24" r="10.5" fill="#1e1b4b"/>
+  <circle cx="32" cy="24" r="8" fill="#0f0d2e" stroke="#4f46e5" stroke-width="1.2"/>
+  <polygon fill="#ef4444" points="32,17.8 33.53,21.89 37.9,22.08 34.48,24.8 35.64,29.02 32,26.6 28.36,29.02 29.52,24.8 26.1,22.08 30.47,21.89"/>
+  <ellipse cx="25.5" cy="18.5" rx="2.6" ry="1.7" fill="#ffffff" opacity=".6" transform="rotate(-35 25.5 18.5)"/>
+  <g fill="none" stroke-linecap="round" stroke-width="2.2">
+    <path d="M10 59 q4 -2 8 0 q4 2 8 0 q4 -2 8 0 q4 2 8 0 q4 -2 8 0 q4 2 8 0" stroke="#38bdf8"/>
+  </g>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="CamRB - Cidade na Lente">
+  <defs>
+    <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#4338ca"/></linearGradient>
+    <linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#312e81"/><stop offset=".55" stop-color="#7c3aed"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+    <clipPath id="gc"><circle cx="32" cy="32" r="19"/></clipPath>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#ga)"/>
+  <circle cx="32" cy="32" r="23" fill="#ffffff"/>
+  <g clip-path="url(#gc)">
+    <rect x="8" y="8" width="48" height="48" fill="url(#gs)"/>
+    <polygon fill="#ef4444" points="23,17.4 24.14,20.44 27.37,20.58 24.84,22.6 25.7,25.72 23,23.93 20.3,25.72 21.16,22.6 18.63,20.58 21.86,20.44"/>
+    <g fill="#1e1b4b">
+      <rect x="13" y="39" width="8" height="17"/>
+      <polygon points="21,42 32,31 43,42"/>
+      <rect x="22" y="42" width="20" height="14"/>
+      <rect x="43.5" y="33" width="6" height="23"/>
+      <polygon points="43.5,33 46.5,26 49.5,33"/>
+    </g>
+    <g stroke="#fbbf24" stroke-width="1.1" opacity=".75">
+      <line x1="26" y1="44" x2="26" y2="53"/><line x1="30" y1="44" x2="30" y2="53"/>
+      <line x1="34" y1="44" x2="34" y2="53"/><line x1="38" y1="44" x2="38" y2="53"/>
+    </g>
+    <g fill="#fbbf24" opacity=".9">
+      <rect x="15" y="43" width="1.6" height="2"/><rect x="18" y="43" width="1.6" height="2"/>
+      <rect x="15" y="48" width="1.6" height="2"/><rect x="18" y="48" width="1.6" height="2"/>
+      <rect x="45.6" y="38" width="1.6" height="2"/><rect x="45.6" y="44" width="1.6" height="2"/>
+    </g>
+  </g>
+  <circle cx="32" cy="32" r="19" fill="none" stroke="#c7d2fe" stroke-width="1.2"/>
+  <circle cx="53" cy="11" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+  <text x="76" y="38" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-1" fill="#111827">Cam<tspan fill="#4f46e5">RB</tspan></text>
+  <text x="77" y="55" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="2.2" fill="#6b7280">RIO BRANCO • ACRE</text>
+</svg>

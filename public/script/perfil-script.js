@@ -31,6 +31,8 @@ const userAvatarImg = document.getElementById('user-avatar-img');
 const favCountBadge = document.getElementById('fav-count-badge');
 
 onAuthStateChanged(auth, (user) => {
+    // Conta de e-mail ainda não confirmada não conta como logada
+    if (user && !user.emailVerified) user = null;
     currentUser = user;
     if (user) {
         const displayName = user.displayName || user.email.split('@')[0];

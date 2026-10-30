@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="icon" href="/assets/logos/logo-1-lente-rio.svg" type="image/svg+xml">
+
     <link rel="icon" href="/assets/icone.png" type="image/png">
     <link rel="apple-touch-icon" href="/assets/icone.png">
     <link rel="manifest" href="/manifest.json">
@@ -100,9 +102,7 @@
                     <!-- Brand + Navigation Links -->
                     <div class="flex items-center gap-4 sm:gap-6 min-w-0">
                         <a href="/" class="flex items-center gap-2.5 flex-shrink-0">
-                            <div class="bg-indigo-600 text-white p-1.5 rounded-lg flex items-center justify-center">
-                                <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                            </div>
+                            <img src="/assets/logos/logo-1-lente-rio.svg" alt="Logo CamRB - Rio Acre" width="40" height="40" class="w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-105 transition-transform">
                             <div class="leading-tight">
                                 <span class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">CamRB</span>
                                 <span class="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5 font-medium">Rio Branco • AC</span>
@@ -614,6 +614,69 @@
                 </div>
             </div>
 
+            <!-- ─── Alertas por e-mail (opcional, com consentimento) ─── -->
+            <div id="alertas-card" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 mb-8">
+                <div class="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800 flex items-start gap-3">
+                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                        <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                            Receber alertas do rio por e-mail
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Opcional e gratuito. Avisamos quando o Rio Acre passar de uma cota. Sem cadastro e sem propaganda.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="alertas-feedback" role="status" aria-live="polite" class="hidden mb-4 p-3 rounded-lg border text-xs sm:text-sm font-medium"></div>
+
+                <form id="alertas-form" class="space-y-4" novalidate>
+                    <div>
+                        <label for="alertas-email" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Seu e-mail</label>
+                        <input id="alertas-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" required placeholder="voce@exemplo.com"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <fieldset>
+                        <legend class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Avisar quando passar de:</legend>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <label class="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 cursor-pointer">
+                                <input type="checkbox" name="niveis" value="atencao" class="mt-0.5 accent-indigo-600">
+                                <span class="text-xs text-slate-700 dark:text-slate-300"><strong class="block text-slate-900 dark:text-white">Atenção</strong>12,50 m</span>
+                            </label>
+                            <label class="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 cursor-pointer">
+                                <input type="checkbox" name="niveis" value="alerta" checked class="mt-0.5 accent-indigo-600">
+                                <span class="text-xs text-slate-700 dark:text-slate-300"><strong class="block text-slate-900 dark:text-white">Alerta</strong>13,50 m</span>
+                            </label>
+                            <label class="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 cursor-pointer">
+                                <input type="checkbox" name="niveis" value="transbordamento" checked class="mt-0.5 accent-indigo-600">
+                                <span class="text-xs text-slate-700 dark:text-slate-300"><strong class="block text-slate-900 dark:text-white">Transbordamento</strong>14,00 m</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input id="alertas-consent" type="checkbox" required class="mt-0.5 accent-indigo-600">
+                        <span class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Quero receber por e-mail os alertas do Rio Acre e concordo com o uso do meu e-mail para isso, conforme a
+                            <a href="/termos#secao-6" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 underline font-semibold">seção 6 dos Termos de Uso</a>.
+                            Posso cancelar a qualquer momento pelo link em cada e-mail.
+                        </span>
+                    </label>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <button id="alertas-submit" type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer">
+                            Quero receber alertas
+                        </button>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Você receberá um e-mail para confirmar. Os alertas são automáticos, baseados em dados da ANA, e não substituem a Defesa Civil (199).
+                        </p>
+                    </div>
+                </form>
+            </div>
+
             <!-- ─── 5. Diretório de Emergência e Resgate 24h ─── -->
             <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 mb-8">
                 <div class="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
@@ -765,6 +828,7 @@
     <!-- Scripts -->
     <script src="/script/share-utils.js?v=2"></script>
     <script type="module" src="/script/rio-script.js?v=7"></script>
+    <script src="/script/rio-alertas.js?v=1"></script>
 </body>
 
 </html>

@@ -8,6 +8,9 @@ const isUserAdmin = (email) => {
     return String(email).toLowerCase().trim() === ADMIN_EMAIL;
 };
 
+// Admin só vale com e-mail confirmado: evita que alguém cadastre o e-mail do admin sem ser o dono.
+const isVerifiedAdmin = (decoded) => Boolean(decoded && decoded.email_verified === true && isUserAdmin(decoded.email));
+
 const parseCookies = (req) => {
     const list = {};
     const rc = req.headers.cookie;
@@ -40,7 +43,7 @@ const verifyAdmin = async (req, res, next) => {
     if (!idToken && cookies.__session) {
         try {
             const decodedClaims = await admin.auth().verifySessionCookie(cookies.__session, true);
-            if (isUserAdmin(decodedClaims.email)) {
+            if (isVerifiedAdmin(decodedClaims)) {
                 req.user = decodedClaims;
                 return next();
             } else {
@@ -58,7 +61,7 @@ const verifyAdmin = async (req, res, next) => {
 
     try {
         const decodedToken = await admin.auth().verifyIdToken(idToken);
-        if (isUserAdmin(decodedToken.email)) {
+        if (isVerifiedAdmin(decodedToken)) {
             req.user = decodedToken;
             next();
         } else {
@@ -71,8 +74,8 @@ const verifyAdmin = async (req, res, next) => {
     }
 };
 
-// ─── Middleware: Verify Authenticated User (qualquer usuário logado) ───────────
-const verifyAuth = async (req, res, next) => {
+// ─── Middleware: Verify Authenticated User (usuário logado com e-mail verificado) ──
+const buildVerifyAuth = ({ requireVerifiedEmail }) => async (req, res, next) => {
     let idToken = null;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -87,13 +90,27 @@ const verifyAuth = async (req, res, next) => {
 
     try {
         const decoded = await admin.auth().verifyIdToken(idToken);
+
+        if (requireVerifiedEmail && !decoded.email_verified) {
+            return res.status(403).json({
+                error: 'Confirme seu e-mail para realizar esta ação. Saia e entre novamente para receber o código.',
+                code: 'EMAIL_NOT_VERIFIED'
+            });
+        }
+
         req.user = decoded;
-        req.userIsAdmin = isUserAdmin(decoded.email);
+        req.userIsAdmin = isVerifiedAdmin(decoded);
         next();
     } catch (error) {
         return res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.' });
     }
 };
+
+// Padrão: exige e-mail verificado (comentários e demais ações de usuário).
+const verifyAuth = buildVerifyAuth({ requireVerifiedEmail: true });
+
+// Aceita conta ainda não verificada — usado apenas nas rotas que enviam/validam o código.
+const verifyAuthAllowUnverified = buildVerifyAuth({ requireVerifiedEmail: false });
 
 // ─── Middleware: Verify Optional Admin (para rotas públicas com conteúdo extra) ───
 const verifyOptionalAdmin = async (req, res, next) => {
@@ -103,7 +120,7 @@ const verifyOptionalAdmin = async (req, res, next) => {
         const idToken = authHeader.split('Bearer ')[1];
         try {
             const decodedToken = await admin.auth().verifyIdToken(idToken);
-            if (isUserAdmin(decodedToken.email)) {
+            if (isVerifiedAdmin(decodedToken)) {
                 req.userIsAdmin = true;
                 req.user = decodedToken;
             }
@@ -120,7 +137,7 @@ const verifyAdminPageSession = async (req, res, next) => {
     if (sessionCookie) {
         try {
             const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
-            if (isUserAdmin(decodedClaims.email)) {
+            if (isVerifiedAdmin(decodedClaims)) {
                 req.user = decodedClaims;
                 return next();
             }
@@ -219,7 +236,7 @@ const checkIsAdminRequest = async (req) => {
         if (cookies.__session) {
             try {
                 const decodedClaims = await admin.auth().verifySessionCookie(cookies.__session, true);
-                if (isUserAdmin(decodedClaims.email)) {
+                if (isVerifiedAdmin(decodedClaims)) {
                     req.user = decodedClaims;
                     return true;
                 }
@@ -231,7 +248,7 @@ const checkIsAdminRequest = async (req) => {
             const idToken = authHeader.split('Bearer ')[1];
             try {
                 const decodedToken = await admin.auth().verifyIdToken(idToken);
-                if (isUserAdmin(decodedToken.email)) {
+                if (isVerifiedAdmin(decodedToken)) {
                     req.user = decodedToken;
                     return true;
                 }
@@ -241,7 +258,7 @@ const checkIsAdminRequest = async (req) => {
         if (req.query && req.query.token) {
             try {
                 const decodedToken = await admin.auth().verifyIdToken(req.query.token);
-                if (isUserAdmin(decodedToken.email)) {
+                if (isVerifiedAdmin(decodedToken)) {
                     req.user = decodedToken;
                     return true;
                 }
@@ -254,6 +271,7 @@ const checkIsAdminRequest = async (req) => {
 
 module.exports = {
     verifyAuth,
+    verifyAuthAllowUnverified,
     verifyAdmin,
     verifyOptionalAdmin,
     verifyAdminPageSession,
@@ -261,6 +279,7 @@ module.exports = {
     createRateLimiter,
     parseCookies,
     isUserAdmin,
+    isVerifiedAdmin,
     tarpit,
     requestLogger
 };

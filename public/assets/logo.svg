@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CamRB - Câmeras Rio Branco">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <!-- lente -->
+  <circle cx="32" cy="33" r="21" fill="#ffffff"/>
+  <circle cx="32" cy="33" r="17.5" fill="#1e1b4b"/>
+  <circle cx="32" cy="33" r="14" fill="#0f0d2e" stroke="#4f46e5" stroke-width="1.5"/>
+  <!-- estrela (Acre) -->
+  <polygon fill="#ef4444" points="32,24 34.23,29.93 40.56,30.22 35.61,34.17 37.29,40.28 32,36.8 26.71,40.28 28.39,34.17 23.44,30.22 29.77,29.93"/>
+  <!-- reflexo -->
+  <ellipse cx="24.5" cy="25" rx="3" ry="2" fill="#ffffff" opacity=".55" transform="rotate(-35 24.5 25)"/>
+  <!-- indicador ao vivo -->
+  <circle cx="53" cy="11" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+</svg>

@@ -100,6 +100,13 @@ export const initGlobalAuthUI = () => {
 
     // 1. Setup Auth State UI Changes
     onAuthStateChanged(auth, async (user) => {
+        // Conta de e-mail/senha ainda sem e-mail verificado não conta como logada.
+        // (Durante o fluxo de verificação a sessão é mantida só para validar o código.)
+        if (user && !user.emailVerified) {
+            if (!verificationInProgress) signOut(auth).catch(() => {});
+            user = null;
+        }
+
         localStorage.setItem('camrb_auth_cached', user ? 'logged_in' : 'logged_out');
 
         // Sincroniza presença global em tempo real com token do usuário
@@ -184,6 +191,7 @@ const MODAL_HTML = `
       <p id="modal-desc" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Faça login para salvar câmeras favoritas e personalizar sua experiência.</p>
     </div>
 
+    <div id="auth-main">
     <!-- Google Login -->
     <button id="google-login-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm mb-6 group">
       <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -287,12 +295,225 @@ const MODAL_HTML = `
             Não tem conta? Cadastre-se
         </button>
     </div>
+    </div>
+
+    <!-- Painel de verificação de e-mail (código de 6 dígitos) -->
+    <div id="verify-panel" class="hidden text-left">
+      <form id="verify-form" class="space-y-4" novalidate>
+        <div>
+          <label for="verify-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de verificação</label>
+          <input type="text" id="verify-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+            style="text-align:center;letter-spacing:0.5em;font-size:1.5rem;font-weight:700;"
+            class="block w-full py-3 border border-gray-300 dark:border-gray-600 rounded-xl leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+        </div>
+
+        <div id="verify-error" class="hidden text-red-500 text-xs text-left bg-red-50 dark:bg-red-900/20 p-3 rounded-lg flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+          <span id="verify-error-msg"></span>
+        </div>
+
+        <div id="verify-info" class="hidden text-indigo-600 dark:text-indigo-400 text-xs text-left bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg">
+          <span id="verify-info-msg"></span>
+        </div>
+
+        <button type="submit" id="verify-submit-btn"
+          class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+          Verificar
+        </button>
+      </form>
+
+      <div class="text-sm" style="display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;">
+        <button type="button" id="verify-resend-btn" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold focus:outline-none hover:underline transition-all">Reenviar código</button>
+        <button type="button" id="verify-cancel-btn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none hover:underline transition-all">Cancelar</button>
+      </div>
+    </div>
 
   </div>
 </div>
 `;
 
 let isLoginMode = true;
+
+// ─── Verificação de e-mail por código ────────────────────────────────────────
+const SEND_CODE_URL = '/api/auth/send-code';
+const VERIFY_CODE_URL = '/api/auth/verify-code';
+
+let verificationInProgress = false;   // true enquanto a conta ainda não confirmou o e-mail
+let pendingVerification = null;       // { user, nickname }
+let resendTimer = null;
+
+async function callAuthApi(url, user, body) {
+    const idToken = await user.getIdToken();
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify(body || {})
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    return { ok: res.ok, status: res.status, data };
+}
+
+function showVerifyError(msg) {
+    const box = document.getElementById('verify-error');
+    const text = document.getElementById('verify-error-msg');
+    document.getElementById('verify-info')?.classList.add('hidden');
+    if (box && text) {
+        text.textContent = msg;
+        box.classList.remove('hidden');
+    }
+}
+
+function showVerifyInfo(msg) {
+    const box = document.getElementById('verify-info');
+    const text = document.getElementById('verify-info-msg');
+    document.getElementById('verify-error')?.classList.add('hidden');
+    if (box && text) {
+        text.textContent = msg;
+        box.classList.remove('hidden');
+    }
+}
+
+function clearVerifyMessages() {
+    document.getElementById('verify-error')?.classList.add('hidden');
+    document.getElementById('verify-info')?.classList.add('hidden');
+}
+
+function setVerifyPanelVisible(visible, email = '') {
+    const main = document.getElementById('auth-main');
+    const panel = document.getElementById('verify-panel');
+    if (!main || !panel) return;
+
+    if (visible) {
+        main.classList.add('hidden');
+        panel.classList.remove('hidden');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+        if (title) title.textContent = 'Confirme seu e-mail';
+        if (desc) desc.textContent = `Enviamos um código de 6 dígitos para ${email}. Digite-o abaixo (olhe também a caixa de spam).`;
+    } else {
+        main.classList.remove('hidden');
+        panel.classList.add('hidden');
+        clearVerifyMessages();
+    }
+}
+
+function startResendCountdown(seconds) {
+    const btn = document.getElementById('verify-resend-btn');
+    if (!btn) return;
+    clearInterval(resendTimer);
+    let left = Math.max(0, Math.ceil(seconds));
+
+    const render = () => {
+        if (left > 0) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.textContent = `Reenviar código (${left}s)`;
+        } else {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.cursor = '';
+            btn.textContent = 'Reenviar código';
+            clearInterval(resendTimer);
+        }
+    };
+
+    render();
+    if (left > 0) {
+        resendTimer = setInterval(() => { left -= 1; render(); }, 1000);
+    }
+}
+
+async function requestVerificationCode() {
+    const user = pendingVerification?.user;
+    if (!user) return false;
+    clearVerifyMessages();
+
+    try {
+        const { ok, data } = await callAuthApi(SEND_CODE_URL, user);
+        if (ok) {
+            if (data.alreadyVerified) {
+                await completeVerification();
+                return true;
+            }
+            showVerifyInfo(`Código enviado! Ele vale por ${data.expiresInMinutes || 10} minutos.`);
+            startResendCountdown(data.cooldownSeconds || 60);
+            return true;
+        }
+
+        if (data.code === 'RESEND_COOLDOWN') {
+            startResendCountdown(data.retryAfter || 60);
+            showVerifyInfo('Um código foi enviado há pouco. Confira seu e-mail (e a caixa de spam) ou peça outro quando o contador acabar.');
+            return false;
+        }
+
+        if (data.retryAfter) startResendCountdown(data.retryAfter);
+        showVerifyError(data.error || 'Não foi possível enviar o código. Tente novamente.');
+        return false;
+    } catch (e) {
+        console.error('Erro ao pedir código:', e);
+        showVerifyError('Sem conexão. Verifique sua internet e tente reenviar.');
+        return false;
+    }
+}
+
+async function beginVerification(user, nickname) {
+    verificationInProgress = true;
+    pendingVerification = { user, nickname };
+
+    const input = document.getElementById('verify-code');
+    if (input) input.value = '';
+    setVerifyPanelVisible(true, user.email);
+
+    await requestVerificationCode();
+    input?.focus();
+}
+
+async function completeVerification() {
+    const pending = pendingVerification;
+    if (!pending) return;
+    const { user, nickname } = pending;
+
+    // Traz o claim `email_verified: true` para o token e atualiza o objeto do usuário.
+    await user.getIdToken(true);
+    await user.reload();
+
+    // Cadastro novo: só agora (e-mail confirmado) cria o documento do usuário.
+    if (nickname) {
+        try {
+            await setDoc(doc(db, 'userData', user.uid), {
+                email: user.email,
+                nickname: nickname,
+                createdAt: serverTimestamp(),
+                favoriteCameras: []
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Não foi possível criar o perfil do usuário:', e);
+        }
+    }
+
+    clearInterval(resendTimer);
+    verificationInProgress = false;
+    pendingVerification = null;
+
+    const isAdmin = await syncAdminSession(user);
+    const redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && (isAdmin || !redirect.startsWith('/admin'))) {
+        window.location.href = redirect;
+    } else {
+        // Recarrega para todas as telas passarem a enxergar o usuário já verificado.
+        window.location.reload();
+    }
+}
+
+function cancelVerification() {
+    clearInterval(resendTimer);
+    verificationInProgress = false;
+    pendingVerification = null;
+    setVerifyPanelVisible(false);
+    signOut(auth).catch(() => {});
+}
 
 export function toggleLoginModal(show = true) {
     let modal = document.getElementById('login-modal');
@@ -309,6 +530,7 @@ export function toggleLoginModal(show = true) {
         // Reset to Login Mode by default when opened
         setAuthMode(true);
     } else {
+        if (verificationInProgress && pendingVerification) cancelVerification();
         modal.classList.add('opacity-0', 'pointer-events-none');
         modal.classList.remove('opacity-100', 'pointer-events-auto');
         modal.querySelector('.relative').classList.add('scale-95');
@@ -318,6 +540,7 @@ export function toggleLoginModal(show = true) {
 
 function setAuthMode(isLogin) {
     isLoginMode = isLogin;
+    setVerifyPanelVisible(false);
     const title = document.getElementById('modal-title');
     const desc = document.getElementById('modal-desc');
     const submitBtn = document.getElementById('submit-btn');
@@ -439,6 +662,70 @@ export function initAuthModal() {
         }
     });
 
+    // ─── Painel de verificação de e-mail ───
+    const verifyForm = document.getElementById('verify-form');
+    const verifyInput = document.getElementById('verify-code');
+    const verifyResendBtn = document.getElementById('verify-resend-btn');
+    const verifyCancelBtn = document.getElementById('verify-cancel-btn');
+
+    if (verifyInput) verifyInput.addEventListener('input', () => {
+        verifyInput.value = verifyInput.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    if (verifyResendBtn) verifyResendBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await requestVerificationCode();
+    });
+
+    if (verifyCancelBtn) verifyCancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        cancelVerification();
+        setAuthMode(true);
+    });
+
+    if (verifyForm) verifyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = pendingVerification?.user;
+        if (!user) return;
+
+        const code = (verifyInput?.value || '').replace(/\D/g, '');
+        if (code.length !== 6) {
+            showVerifyError('Digite o código de 6 dígitos.');
+            return;
+        }
+
+        const submitBtn = document.getElementById('verify-submit-btn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Verificando...';
+        }
+        clearVerifyMessages();
+
+        try {
+            const { ok, data } = await callAuthApi(VERIFY_CODE_URL, user, { code });
+            if (!ok) {
+                let msg = data.error || 'Não foi possível verificar o código.';
+                if (data.code === 'INVALID_CODE' && data.remainingAttempts != null) {
+                    msg += ` Restam ${data.remainingAttempts} tentativa(s).`;
+                }
+                showVerifyError(msg);
+                if (['EXPIRED', 'TOO_MANY_ATTEMPTS', 'NO_CODE'].includes(data.code) && verifyInput) {
+                    verifyInput.value = '';
+                }
+                return;
+            }
+            await completeVerification();
+        } catch (err) {
+            console.error('Erro ao verificar código:', err);
+            showVerifyError('Não foi possível concluir a verificação. Tente novamente.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Verificar';
+            }
+        }
+    });
+
     if (loginForm) loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -460,8 +747,16 @@ export function initAuthModal() {
         try {
             let user;
             if (isLoginMode) {
+                verificationInProgress = true;
                 const res = await signInWithEmailAndPassword(auth, email, password);
                 user = res.user;
+
+                if (!user.emailVerified) {
+                    // E-mail ainda não confirmado: pede o código antes de liberar a conta.
+                    await beginVerification(user, null);
+                    return;
+                }
+                verificationInProgress = false;
             } else {
                 const nickname = document.getElementById('nickname').value.trim();
                 const confirmPassword = document.getElementById('confirm-password').value;
@@ -482,16 +777,15 @@ export function initAuthModal() {
                     return;
                 }
 
+                verificationInProgress = true;
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 user = userCredential.user;
 
                 await updateProfile(user, { displayName: nickname });
-                await setDoc(doc(db, 'userData', user.uid), {
-                    email: email,
-                    nickname: nickname,
-                    createdAt: serverTimestamp(),
-                    favoriteCameras: []
-                });
+
+                // A conta só é liberada depois de confirmar o código enviado ao e-mail.
+                await beginVerification(user, nickname);
+                return;
             }
             
             const isAdmin = await syncAdminSession(user);
@@ -505,6 +799,9 @@ export function initAuthModal() {
             }
         } catch (error) {
             console.error("Auth Error:", error);
+            if (!pendingVerification && auth.currentUser && !auth.currentUser.emailVerified) {
+                signOut(auth).catch(() => {});
+            }
             let msg = isLoginMode ? "Erro ao fazer login." : "Erro ao criar conta.";
             
             if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
@@ -520,6 +817,7 @@ export function initAuthModal() {
             }
             showLoginError(msg);
         } finally {
+            if (!pendingVerification) verificationInProgress = false;
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = isLoginMode ? "Entrar" : "Cadastrar";

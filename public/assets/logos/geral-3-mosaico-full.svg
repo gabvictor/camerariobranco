@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="CamRB - Mosaico">
+  <defs>
+    <linearGradient id="gc1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f2937"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>
+    <linearGradient id="gt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0284c7"/></linearGradient>
+    <linearGradient id="gt2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#3730a3"/></linearGradient>
+    <linearGradient id="gt3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#15803d"/></linearGradient>
+    <linearGradient id="gt4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#ea580c"/></linearGradient>
+    <clipPath id="k1"><rect x="7" y="7" width="23" height="23" rx="5"/></clipPath>
+    <clipPath id="k2"><rect x="34" y="7" width="23" height="23" rx="5"/></clipPath>
+    <clipPath id="k3"><rect x="7" y="34" width="23" height="23" rx="5"/></clipPath>
+    <clipPath id="k4"><rect x="34" y="34" width="23" height="23" rx="5"/></clipPath>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#gc1)"/>
+  <g clip-path="url(#k1)">
+    <rect x="7" y="7" width="23" height="23" fill="url(#gt1)"/>
+    <circle cx="23" cy="15" r="3.2" fill="#fde68a"/>
+    <g fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity=".95">
+      <path d="M5 22 q3.5 -1.8 7 0 q3.5 1.8 7 0 q3.5 -1.8 7 0 q3.5 1.8 7 0"/>
+      <path d="M5 27 q3.5 -1.8 7 0 q3.5 1.8 7 0 q3.5 -1.8 7 0 q3.5 1.8 7 0" opacity=".7"/>
+    </g>
+  </g>
+  <g clip-path="url(#k2)">
+    <rect x="34" y="7" width="23" height="23" fill="url(#gt2)"/>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round">
+      <path d="M36 25 Q45.5 9 55 25" stroke-width="2"/>
+      <line x1="35" y1="25" x2="56" y2="25" stroke-width="2"/>
+      <g stroke-width="1"><line x1="40" y1="25" x2="40" y2="19.5"/><line x1="45.5" y1="25" x2="45.5" y2="16"/><line x1="51" y1="25" x2="51" y2="19.5"/></g>
+    </g>
+  </g>
+  <g clip-path="url(#k3)">
+    <rect x="7" y="34" width="23" height="23" fill="url(#gt3)"/>
+    <polygon fill="#ef4444" stroke="#facc15" stroke-width="1.2" stroke-linejoin="round" points="18.5,38 20.35,42.95 25.63,43.18 21.5,46.47 22.91,51.57 18.5,48.65 14.09,51.57 15.5,46.47 11.37,43.18 16.65,42.95"/>
+  </g>
+  <g clip-path="url(#k4)">
+    <rect x="34" y="34" width="23" height="23" fill="url(#gt4)"/>
+    <g fill="#1e1b4b">
+      <rect x="36" y="48" width="5" height="10"/><rect x="42" y="42" width="6" height="16"/>
+      <polygon points="42,42 45,37 48,42"/><rect x="49" y="46" width="7" height="12"/>
+    </g>
+  </g>
+  <circle cx="56" cy="8" r="4.6" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+  <text x="76" y="38" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-1" fill="#111827">Cam<tspan fill="#4f46e5">RB</tspan></text>
+  <text x="77" y="55" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="2.2" fill="#6b7280">RIO BRANCO • ACRE</text>
+</svg>

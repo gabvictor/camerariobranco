@@ -918,6 +918,8 @@ function setupEventListeners() {
 
 // ─── Initialize Auth Listener ───────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
+    // Conta de e-mail ainda não confirmada não conta como logada
+    if (user && !user.emailVerified) user = null;
     state.currentUser = user;
     const mapContainer = document.getElementById('map');
     if (mapContainer && !mapContainer._leaflet_id) {

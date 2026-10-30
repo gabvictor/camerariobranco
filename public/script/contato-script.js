@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Prefill user data if logged in
     onAuthStateChanged(auth, (user) => {
-        if (user) {
+        if (user && user.emailVerified) {
             const nomeInput = document.getElementById('contact-nome');
             const emailInput = document.getElementById('contact-email');
             if (nomeInput && !nomeInput.value) {

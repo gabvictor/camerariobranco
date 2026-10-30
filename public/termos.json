@@ -1,6 +1,6 @@
 {
-  "version": 3.0,
-  "lastUpdated": "Agosto de 2026",
+  "version": 3.1,
+  "lastUpdated": "Outubro de 2026",
   "content": [
     {
       "type": "paragraph",
@@ -145,7 +145,45 @@
     },
     {
       "type": "title",
-      "text": "6. Canal de Atendimento e Encarregado de Dados"
+      "text": "6. E-mails e Alertas do Rio Acre"
+    },
+    {
+      "type": "paragraph",
+      "text": "O CamRB envia e-mails somente nas situações descritas abaixo. Não enviamos propaganda, não vendemos e não compartilhamos sua lista de e-mails com anunciantes ou terceiros."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Código de verificação (segurança da conta):",
+      "text": "ao criar uma conta ou entrar com e-mail e senha, enviamos um código de 6 dígitos para confirmar que o e-mail é realmente seu. Esse e-mail é necessário para o funcionamento da conta e se baseia na segurança e na execução do serviço que você solicitou."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Alertas do Rio Acre (opcional):",
+      "text": "se você se inscrever na página do rio, enviaremos um aviso quando o nível do Rio Acre em Rio Branco ultrapassar as cotas de atenção (12,50 m), alerta (13,50 m) ou transbordamento (14,00 m), conforme os níveis que você escolher. É totalmente voluntário e não exige criar conta. Só enviamos depois que você marcar o consentimento e confirmar o e-mail clicando no link que enviamos (base legal: seu consentimento, art. 7º, I, da LGPD)."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Como deixar de receber:",
+      "text": "todo alerta traz o link \"Deixar de receber\". Com um clique você é removido da lista e nenhum novo alerta é enviado. Você também pode pedir o cancelamento a qualquer momento pelo e-mail de suporte, e retirar o consentimento não tem custo nem consequência para o uso do site."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Dados guardados para os alertas:",
+      "text": "seu e-mail, os níveis que você escolheu, as datas do consentimento e da confirmação e a data do último aviso enviado. Após o cancelamento, mantemos o e-mail apenas marcado como \"cancelado\", para garantir que você não volte a receber mensagens. Se preferir a exclusão definitiva, basta pedir pelo e-mail de suporte."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Envio por provedor:",
+      "text": "os e-mails são entregues por um serviço especializado de envio (atualmente o Resend), que processa seu endereço de e-mail somente para entregar a mensagem, como operador de dados."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Caráter informativo:",
+      "text": "os alertas são automáticos e baseados em leituras da ANA/CPRM. Podem atrasar, falhar ou não chegar (filtro de spam, caixa cheia, instabilidade do provedor ou da fonte de dados). Eles não substituem os avisos oficiais da Defesa Civil (telefone 199) e não devem ser sua única fonte de informação para decisões de segurança."
+    },
+    {
+      "type": "title",
+      "text": "7. Canal de Atendimento e Encarregado de Dados"
     },
     {
       "type": "paragraph",
@@ -158,7 +196,7 @@
     },
     {
       "type": "title",
-      "text": "7. Atualizações destes Termos"
+      "text": "8. Atualizações destes Termos"
     },
     {
       "type": "paragraph",

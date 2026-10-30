@@ -45,6 +45,13 @@ try {
     process.exit(1);
 }
 
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || serviceAccount.admin_email || '').toLowerCase();
+const ADMIN_EMAIL = (serviceAccount.admin_email || process.env.ADMIN_EMAIL || '').toLowerCase();
 
-module.exports = { admin, db, ADMIN_EMAIL };
+// Campos extras lidos do serviceAccountKey.json (fonte principal; variáveis de ambiente só preenchem o que faltar)
+const KEY_FILE_CONFIG = {
+    resend: serviceAccount.resend || {},
+    // Segredo estável usado para assinar links de confirmação/cancelamento de alertas
+    tokenSecret: process.env.ALERT_TOKEN_SECRET || serviceAccount.private_key || ''
+};
+
+module.exports = { admin, db, ADMIN_EMAIL, KEY_FILE_CONFIG };

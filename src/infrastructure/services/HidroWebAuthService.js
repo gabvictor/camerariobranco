@@ -51,19 +51,7 @@ class HidroWebAuthService {
      * sem nunca expor ou registrar os valores.
      */
     getCredentials() {
-        // 1. Variáveis de ambiente têm prioridade
-        const envUser = process.env.ANA_HIDROWEB_USUARIO || process.env.ANA_HIDROWEB_IDENTIFICADOR || process.env.ANA_HIDROWEB_LOGIN;
-        const envPass = process.env.ANA_HIDROWEB_SENHA || process.env.ANA_HIDROWEB_PASSWORD;
-
-        if (envUser && envPass) {
-            return {
-                usuario: String(envUser).trim(),
-                senha: String(envPass).trim(),
-                fonte: 'env'
-            };
-        }
-
-        // 2. Leitura do serviceAccountKey.json
+        // 1. serviceAccountKey.json (fonte principal)
         const secretPath = this._resolveSecretPath();
         if (secretPath) {
             try {
@@ -86,6 +74,18 @@ class HidroWebAuthService {
             } catch (err) {
                 // Silencioso por segurança
             }
+        }
+
+        // 2. Variáveis de ambiente: só são usadas se o serviceAccountKey.json não tiver as credenciais
+        const envUser = process.env.ANA_HIDROWEB_USUARIO || process.env.ANA_HIDROWEB_IDENTIFICADOR || process.env.ANA_HIDROWEB_LOGIN;
+        const envPass = process.env.ANA_HIDROWEB_SENHA || process.env.ANA_HIDROWEB_PASSWORD;
+
+        if (envUser && envPass) {
+            return {
+                usuario: String(envUser).trim(),
+                senha: String(envPass).trim(),
+                fonte: 'env'
+            };
         }
 
         return null;

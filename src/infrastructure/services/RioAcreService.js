@@ -77,6 +77,8 @@ class RioAcreService {
         this._cache = null;
         this._lastFetchTime = 0;
         this._cacheTtlMs = 10 * 60 * 1000;
+        this._cacheTtlFallbackMs = 60 * 1000;
+        this._cacheTtlCurrentMs = this._cacheTtlMs;
 
         this._historicoCache = {};
         this._previsaoCache = null;
@@ -147,17 +149,20 @@ class RioAcreService {
 
     async getNivelRioAcre() {
         const now = Date.now();
-        if (this._cache && now - this._lastFetchTime < this._cacheTtlMs) {
+        if (this._cache && now - this._lastFetchTime < this._cacheTtlCurrentMs) {
             return this._comFrescor(this._cache, false);
         }
         const erros = [];
-        for (const [nome, buscar] of this._fontes('nivel', 2)) {
+        const fontes = this._fontes('nivel', 2);
+        for (const [idx, [nome, buscar]] of fontes.entries()) {
             try {
                 const r = await buscar();
                 const data = Array.isArray(r.readings) ? this._buildNivel(r.readings, r.fonte) : r; // r = JSON do Python
                 if (data && data.nivel) {
                     this._cache = data;
                     this._lastFetchTime = now;
+                    // Dado vindo de fonte reserva (ex.: legado, sem qualidade) vale pouco: tenta a principal de novo logo.
+                    this._cacheTtlCurrentMs = idx === 0 ? this._cacheTtlMs : this._cacheTtlFallbackMs;
                     return this._comFrescor(data, false);
                 }
                 throw new Error('sem leitura válida');

@@ -248,12 +248,6 @@ class HidroWebClient:
     # credenciais ------------------------------------------------------------------
     @staticmethod
     def credentials() -> tuple[str, str] | None:
-        user = (os.environ.get("ANA_HIDROWEB_USUARIO") or os.environ.get("ANA_HIDROWEB_IDENTIFICADOR")
-                or os.environ.get("ANA_HIDROWEB_LOGIN"))
-        pwd = os.environ.get("ANA_HIDROWEB_SENHA") or os.environ.get("ANA_HIDROWEB_PASSWORD")
-        if user and pwd:
-            return user.strip(), pwd.strip()
-
         candidates = [os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH"), "/etc/secrets/serviceAccountKey.json",
                       os.path.join(os.getcwd(), "serviceAccountKey.json")]
         for path in filter(None, candidates):
@@ -269,6 +263,11 @@ class HidroWebClient:
                 p = cfg.get("senha") or cfg.get("password") or cfg.get("pass")
                 if u and p:
                     return str(u).strip(), str(p).strip()
+        user = (os.environ.get("ANA_HIDROWEB_USUARIO") or os.environ.get("ANA_HIDROWEB_IDENTIFICADOR")
+                or os.environ.get("ANA_HIDROWEB_LOGIN"))
+        pwd = os.environ.get("ANA_HIDROWEB_SENHA") or os.environ.get("ANA_HIDROWEB_PASSWORD")
+        if user and pwd:
+            return user.strip(), pwd.strip()
         return None
 
     def available(self) -> bool:

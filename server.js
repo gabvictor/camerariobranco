@@ -27,9 +27,9 @@ const ADMIN_VIEWS_FOLDER = path.join(__dirname, 'src', 'views', 'admin');
 const ERROR_IMAGE_PATH = path.join(PUBLIC_FOLDER, 'assets', 'offline.png');
 
 // ─── Infraestrutura ───────────────────────────────────────────────────────────
-const { admin, db, ADMIN_EMAIL } = require('./src/config/firebaseAdmin');
+const { admin, db, ADMIN_EMAIL, KEY_FILE_CONFIG } = require('./src/config/firebaseAdmin');
 const CONFIG = require('./src/config/appConfig');
-const { tarpit, verifyAdminPageSession, isUserAdmin, parseCookies } = require('./src/middlewares/security');
+const { tarpit, verifyAdminPageSession, verifyAuthAllowUnverified, createRateLimiter, isUserAdmin, isVerifiedAdmin, parseCookies } = require('./src/middlewares/security');
 const { getRioBrancoDateStr } = require('./src/utils/dateUtils');
 
 const escapeXml = (unsafe) => {
@@ -51,6 +51,7 @@ const FirebaseCameraRepository = require('./src/infrastructure/database/Firebase
 const FirebaseReportRepository = require('./src/infrastructure/database/FirebaseReportRepository');
 const FirebaseSponsorRepository = require('./src/infrastructure/database/FirebaseSponsorRepository');
 const SponsorLogoUploadService = require('./src/infrastructure/services/SponsorLogoUploadService');
+const MailService = require('./src/infrastructure/services/MailService');
 
 // Scanner (Strategy + Factory)
 const ScannerFactory = require('./src/infrastructure/scanner/ScannerFactory');
@@ -70,15 +71,21 @@ const GetDashboardDataUseCase = require('./src/application/use-cases/GetDashboar
 const SponsorService = require('./src/application/services/SponsorService');
 const ManageSponsorUseCase = require('./src/application/use-cases/ManageSponsorUseCase');
 const GetSponsorPublicDataUseCase = require('./src/application/use-cases/GetSponsorPublicDataUseCase');
+const EmailVerificationService = require('./src/application/services/EmailVerificationService');
 
 // ─── Apresentação ─────────────────────────────────────────────────────────────
 const CameraController = require('./src/presentation/http/controllers/CameraController');
 const ReportController = require('./src/presentation/http/controllers/ReportController');
 const DashboardController = require('./src/presentation/http/controllers/DashboardController');
 const SponsorController = require('./src/presentation/http/controllers/SponsorController');
+const EmailVerificationController = require('./src/presentation/http/controllers/EmailVerificationController');
 const cameraRoutes = require('./src/presentation/http/routes/cameraRoutes');
 const adminRoutes = require('./src/presentation/http/routes/adminRoutes');
 const sponsorRoutes = require('./src/presentation/http/routes/sponsorRoutes');
+const alertRoutes = require('./src/presentation/http/routes/alertRoutes');
+const AlertController = require('./src/presentation/http/controllers/AlertController');
+const RioAlertService = require('./src/application/services/RioAlertService');
+const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
 // ─── Helper: SSR Theme Inlining (Zero Flash Visual de Tema) ───────────────────
 const applySsrTheme = (html, req) => {
@@ -127,6 +134,28 @@ const cameraCtrl = new CameraController(cameraCache, metrics, cameraRepo, trackV
 const reportCtrl = new ReportController(createReport, reportRepo).setDb(db);
 const dashboardCtrl = new DashboardController(dashboardUC);
 const sponsorCtrl = new SponsorController(sponsorService, manageSponsorUC, getSponsorPublicDataUC, sponsorLogoUpload);
+
+// Verificação de e-mail por código (cadastro/login com e-mail e senha)
+const mailService = new MailService(process.env, { keyFileConfig: KEY_FILE_CONFIG.resend });
+const emailVerificationService = new EmailVerificationService({ db, admin, mailService });
+const emailVerificationCtrl = new EmailVerificationController(emailVerificationService);
+
+// Alertas do Rio Acre por e-mail (opt-in com confirmação e cancelamento)
+const rioAlertService = new RioAlertService({
+    repo: new FirebaseAlertSubscriberRepository(db),
+    mailService,
+    rioService: rioAcreService,
+    tokenSecret: KEY_FILE_CONFIG.tokenSecret,
+    baseUrl: process.env.SITE_BASE_URL
+});
+const alertCtrl = new AlertController(rioAlertService);
+if (mailService.driver === 'console') {
+    console.warn('[AVISO] MODO DE TESTE (MAIL_DRIVER=console): nenhum e-mail é enviado; os códigos de verificação aparecem neste log.');
+} else if (!mailService.isConfigured()) {
+    console.warn(`[AVISO] Envio de e-mail NÃO configurado (defina RESEND_API_KEY ou SMTP_HOST/SMTP_USER/SMTP_PASS). Cadastros e logins com e-mail/senha não conseguirão receber o código de verificação.${mailService.disabledReason ? ' ' + mailService.disabledReason : ''}`);
+} else {
+    console.log(`✔ Envio de e-mail de verificação via ${mailService.driver}`);
+}
 
 // ─── Observer: Conecta Scanner → Cache ───────────────────────────────────────
 scheduler.on('scan:complete', async ({ statuses }) => {
@@ -211,7 +240,7 @@ app.post('/api/auth/session-login', async (req, res) => {
 
     try {
         const decoded = await admin.auth().verifyIdToken(idToken);
-        if (!isUserAdmin(decoded.email)) {
+        if (!isVerifiedAdmin(decoded)) {
             return res.status(403).json({ error: 'Permissões insuficientes.' });
         }
 
@@ -231,6 +260,21 @@ app.post('/api/auth/session-logout', (req, res) => {
     res.setHeader('Set-Cookie', `__session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`);
     res.json({ success: true });
 });
+
+// ─── Verificação de e-mail por código ────────────────────────────────────────
+const sendCodeLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: 'Muitos pedidos de código. Aguarde um minuto e tente novamente.'
+});
+const verifyCodeLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    max: 20,
+    message: 'Muitas tentativas. Aguarde um minuto e tente novamente.'
+});
+
+app.post('/api/auth/send-code', sendCodeLimiter, verifyAuthAllowUnverified, emailVerificationCtrl.sendCode);
+app.post('/api/auth/verify-code', verifyCodeLimiter, verifyAuthAllowUnverified, emailVerificationCtrl.verifyCode);
 
 // ─── Well-known / App Links ───────────────────────────────────────────────────
 app.get('/.well-known/assetlinks.json', async (req, res) => {
@@ -534,7 +578,7 @@ const proxyCameraHandler = async (req, res) => {
         if (token) {
             try {
                 const decoded = await admin.auth().verifyIdToken(token);
-                if (isUserAdmin(decoded.email)) isAdminUser = true;
+                if (isVerifiedAdmin(decoded)) isAdminUser = true;
             } catch (_) { }
         }
         if (!isAdminUser) return res.status(403).send('Acesso negado.');
@@ -910,6 +954,7 @@ app.get('/api/presence/home', handlePresenceConnection);
 // ─── Rotas Modulares ─────────────────────────────────────────────────────────
 app.use('/', cameraRoutes(cameraCtrl));
 app.use('/', sponsorRoutes(sponsorCtrl));
+app.use('/', alertRoutes(alertCtrl));
 app.use('/api', adminRoutes(reportCtrl, dashboardCtrl, {
     healthCheckService,
     scheduler,
@@ -1201,6 +1246,7 @@ async function bootstrap() {
     // 6. Inicia agendador de varreduras e timelapse
     scheduler.start();
     timelapseScheduler.start();
+    rioAlertService.start();
 
     const shutdown = async (signal) => {
         console.log(`\n[${signal}] Salvando métricas e desligando...`);
