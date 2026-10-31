@@ -45,4 +45,3 @@ Nada de texto gerado em massa: o Google reprova justamente isso.
 
 - O CSS é recompilado no `docker build`; a tipografia dos guias é própria (bloco `<style>` no modelo) e não depende disso.
 - A página `/rio` agora tem um texto fixo "Como ler o nível do Rio Acre" abaixo dos painéis dinâmicos.
-- O recorde de cheia de 18,40 m (2015) vem de reportagem; confirme em fonte oficial antes de destacar em outro lugar.

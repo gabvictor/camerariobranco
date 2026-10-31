@@ -53,10 +53,10 @@ const GUIAS = [
             {
                 h: 'Para ter uma ideia de escala',
                 p: [
-                    'A maior cheia de Rio Branco de que temos registro chegou a 18,40 m, em março de 2015. Nas leituras da telemetria da ANA entre 2021 e 2025 que o CamRB examinou, o nível passou de 17 m em abril de 2023 (17,77 m) e em março de 2024 (17,91 m). No extremo oposto, a menor leitura que encontramos nesse período foi de 1,21 m, em 28 de setembro de 2022, no auge da estiagem.',
+                    'A maior cheia já registrada em Rio Branco chegou a 18,41 m, em 4 de março de 2015, segundo o Serviço Geológico do Brasil. O recorde anterior era de 17,66 m, em 1997. Nas leituras da telemetria da ANA entre 2021 e 2025 que o CamRB examinou, o nível passou de 17 m em abril de 2023 (17,77 m) e em março de 2024 (17,91 m). No extremo oposto, a menor leitura que encontramos nesse período foi de 1,21 m, em 28 de setembro de 2022, no auge da estiagem.',
                     'Ou seja, entre a seca e a cheia o rio pode variar mais de 15 metros, e as três cotas de referência ficam na faixa alta dessa variação: são níveis de uma cheia, não do dia a dia.'
                 ],
-                nota: 'Os valores acima vêm da telemetria da ANA (dados preliminares, sem consolidação) e do registro histórico divulgado pela imprensa. O período anterior a 2021 não foi consultado, então a menor leitura citada não deve ser entendida como um recorde absoluto.'
+                nota: 'Os valores acima vêm da telemetria da ANA (dados preliminares, sem consolidação) e de um estudo do SGB sobre a cheia de 2015. O período anterior a 2021 não foi consultado, então a menor leitura citada não deve ser entendida como um recorde absoluto.'
             },
             {
                 h: 'O que o CamRB não faz',

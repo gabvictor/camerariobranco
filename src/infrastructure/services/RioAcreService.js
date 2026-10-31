@@ -20,9 +20,9 @@ const RIO_ACRE_STATION = {
 };
 
 // Valores de REFERÊNCIA (não alimentam a estimativa de tendência). Mesmas fontes/avisos do rio_service.py:
-// cheia recorde 18,40 m em 04/03/2015 (Portal Amazônia); menor nível 1,21 m em 28/09/2022 (telemetria ANA 2021-2025);
+// cheia recorde 18,41 m em 04/03/2015 (SGB/CPRM); menor nível 1,21 m em 28/09/2022 (telemetria ANA 2021-2025);
 // médias mensais 2021-2025 calculadas da telemetria da ANA (ver rio_service.py).
-const RECORDE_CHEIA = { nivel: 18.40, data: '04/03/2015' };
+const RECORDE_CHEIA = { nivel: 18.41, data: '04/03/2015' };
 const RECORDE_SECA = { nivel: 1.21, data: '28/09/2022' };
 const CLIMATOLOGIA = {
     1: [7.83, 'Início da Cheia'], 2: [10.95, 'Pico de Cheias'], 3: [11.40, 'Pico de Cheias'],

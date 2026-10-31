@@ -107,13 +107,13 @@ COTA_ALERTA = 13.50
 COTA_TRANSBORDAMENTO = 14.00
 
 # Valores de REFERÊNCIA exibidos como contexto. Não alimentam nenhum cálculo de previsão.
-# - Recorde de cheia: 18,40 m em 04/03/2015 (Portal Amazônia, "maiores enchentes de Rio Branco desde 1971").
+# - Recorde de cheia: 18,41 m em 04/03/2015 (SGB/CPRM, Buffon et al., XXI SBRH; a imprensa divulgou 18,40 m).
 # - Menor nível: 1,21 m em 28/09/2022, o mínimo da telemetria da ANA na estação 13600002 em 2021-2025
 #   (conferido na HidroWeb em 31/10/2026; qualidade da leitura "0", ou seja, não marcada como ruim). O valor
 #   antigo do site, 1,23 m em 21/09/2024, também aparece na série, mas não é o menor. A série convencional
 #   anterior a 2021 não foi consultada: não é um recorde histórico absoluto.
 # - Médias mensais: valores aproximados que já estavam no site; sem fonte citada. Tratar como indicativo.
-RECORDE_CHEIA = {"nivel": 18.40, "data": "04/03/2015"}
+RECORDE_CHEIA = {"nivel": 18.41, "data": "04/03/2015"}
 RECORDE_SECA = {"nivel": 1.21, "data": "28/09/2022"}
 # - Médias mensais: média, nos anos 2021-2025, das médias mensais da telemetria da ANA (13600002), contando só
 #   os meses com ao menos 1200 leituras (de 3 a 5 anos por mês). Calculadas em 31/10/2026; só 5 anos, então
