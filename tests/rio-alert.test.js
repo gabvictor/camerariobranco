@@ -13,6 +13,7 @@ function makeRepo() {
         get state() { return state; },
         async getSubscriber(id) { return subs.has(id) ? { id, ...subs.get(id) } : null; },
         async saveSubscriber({ id, ...data }) { subs.set(id, data); },
+        async countByStatus() { const c = { ativos: 0, pendentes: 0, cancelados: 0 }; for (const v of subs.values()) { if (v.status === 'active') c.ativos++; else if (v.status === 'pending') c.pendentes++; else if (v.status === 'unsubscribed') c.cancelados++; } return c; },
         async listPendingSubscribers() { return [...subs].filter(([, v]) => v.status === 'pending').map(([id, v]) => ({ id, ...v })); },
         async deleteSubscriber(id) { subs.delete(id); },
         async listActiveSubscribers() { return [...subs].filter(([, v]) => v.status === 'active').map(([id, v]) => ({ id, ...v })); },
@@ -397,4 +398,135 @@ test('purgeStalePending: nova tentativa de inscrição renova o prazo da pendent
     assert.equal((await service.purgeStalePending()).removed, 0);
     clock += 5 * DAY;
     assert.equal((await service.purgeStalePending()).removed, 1);
+});
+
+// ─── Painel admin: prévia, e-mail de teste, simulador e resumo ──────────────
+test('previewAlert: gera o e-mail com a marca de TESTE e sem enviar nada', () => {
+    const ctx = setup();
+    const p = ctx.service.previewAlert({ level: 'transbordamento', metros: 14.35 });
+    assert.match(p.assunto, /^\[TESTE\] /);
+    assert.match(p.assunto, /transbordamento/i);
+    assert.match(p.html, /E-mail de teste/);
+    assert.match(p.texto, /^\[E-MAIL DE TESTE\]/);
+    assert.match(p.texto, /14,35 m/);
+    assert.equal(p.metros, 14.35);
+    assert.equal(ctx.mail.sent.length, 0);
+});
+
+test('previewAlert: nível e metros têm padrão e validação', () => {
+    const ctx = setup();
+    assert.equal(ctx.service.previewAlert({}).nivel, 'alerta');
+    assert.equal(ctx.service.previewAlert({ level: 'atencao' }).metros, 12.6, 'padrão = cota + 10 cm');
+    assert.equal(ctx.service.previewAlert({ level: 'alerta', metros: '13,8' }).metros, 13.8, 'aceita vírgula');
+    assert.throws(() => ctx.service.previewAlert({ level: 'xpto' }), (e) => e.code === 'INVALID_LEVEL');
+    assert.throws(() => ctx.service.previewAlert({ metros: 99 }), (e) => e.code === 'INVALID_METERS');
+    assert.throws(() => ctx.service.previewAlert({ metros: 'abc' }), (e) => e.code === 'INVALID_METERS');
+});
+
+test('alerta real NÃO leva a marca de teste', async () => {
+    const ctx = setup();
+    await subscribeAndConfirm(ctx, 'a@b.com', ['alerta']);
+    ctx.mail.sent.length = 0;
+    await ctx.service.evaluate();
+    ctx.rio.metros = 13.8; await ctx.service.evaluate(); await ctx.service.evaluate();
+    assert.equal(ctx.mail.sent.length, 1);
+    assert.doesNotMatch(ctx.mail.sent[0].subject, /TESTE/);
+    assert.doesNotMatch(ctx.mail.sent[0].html, /E-mail de teste/);
+    assert.doesNotMatch(ctx.mail.sent[0].text, /E-MAIL DE TESTE/);
+});
+
+test('sendTestAlert: envia UM e-mail só para o destino, pelo remetente de alertas, sem tocar inscritos nem estado', async () => {
+    const ctx = setup();
+    await subscribeAndConfirm(ctx, 'inscrito@b.com', ['alerta']);
+    ctx.mail.sent.length = 0;
+    const channels = [];
+    const orig = ctx.mail.sendMessage.bind(ctx.mail);
+    ctx.mail.sendMessage = async (to, m, opts = {}) => { channels.push(opts.channel); return orig(to, m, opts); };
+    const before = JSON.stringify([...ctx.repo.subs]);
+
+    const r = await ctx.service.sendTestAlert({ to: ' Professor@Escola.com ', level: 'alerta', metros: 13.9 });
+
+    assert.equal(r.ok, true);
+    assert.equal(ctx.mail.sent.length, 1);
+    assert.equal(ctx.mail.sent[0].to, 'professor@escola.com');
+    assert.match(ctx.mail.sent[0].subject, /^\[TESTE\] /);
+    assert.deepEqual(channels, ['alertas']);
+    assert.equal(JSON.stringify([...ctx.repo.subs]), before, 'inscritos intactos');
+    assert.equal(ctx.repo.state, null, 'estado do disparador intacto');
+    assert.equal(r.restantesHoje, 19);
+});
+
+test('sendTestAlert: valida e-mail, e-mail não configurado, falha do provedor e limite diário', async () => {
+    const ctx = setup();
+    await assert.rejects(ctx.service.sendTestAlert({ to: 'nao-e-email' }), (e) => e.code === 'INVALID_EMAIL');
+    await assert.rejects(ctx.service.sendTestAlert({ to: 'a@b.com', level: 'xpto' }), (e) => e.code === 'INVALID_LEVEL');
+
+    const semMail = setup({ mailOpts: { configured: false } });
+    await assert.rejects(semMail.service.sendTestAlert({ to: 'a@b.com' }), (e) => e.status === 503);
+
+    const falha = setup({ mailOpts: { failFor: ['ruim@b.com'] } });
+    await assert.rejects(falha.service.sendTestAlert({ to: 'ruim@b.com' }), (e) => e.status === 502);
+    assert.equal(falha.service._tests?.count ?? 0, 0, 'falha não conta no limite');
+
+    const limite = setup({ options: { maxTestsPerDay: 2 } });
+    await limite.service.sendTestAlert({ to: 'a@b.com' });
+    await limite.service.sendTestAlert({ to: 'a@b.com' });
+    await assert.rejects(limite.service.sendTestAlert({ to: 'a@b.com' }), (e) => e.status === 429 && e.code === 'TEST_LIMIT');
+    assert.equal(limite.mail.sent.length, 2);
+});
+
+test('simulate: decide a seco, sem enviar e sem alterar o estado', async () => {
+    const ctx = setup();
+    await subscribeAndConfirm(ctx, 'so-alerta@b.com', ['alerta']);
+    await subscribeAndConfirm(ctx, 'so-transb@b.com', ['transbordamento']);
+    await subscribeAndConfirm(ctx, 'ambos@b.com', ['alerta', 'transbordamento']);
+    await ctx.service.subscribe({ email: 'pendente@b.com', niveis: ['alerta'], consent: true }); // não conta
+    ctx.mail.sent.length = 0;
+    const subsBefore = JSON.stringify([...ctx.repo.subs]);
+
+    const alto = await ctx.service.simulate({ metros: 14.2 });
+    assert.equal(alto.faixaSimulada, 'transbordamento');
+    assert.equal(alto.dispararia, true, 'sem estado prévio, sobe de "normal"');
+    assert.equal(alto.destinatarios, 2, 'só quem escolheu transbordamento');
+    assert.equal(alto.inscritosAtivos, 3);
+
+    const medio = await ctx.service.simulate({ metros: 13.6 });
+    assert.equal(medio.faixaSimulada, 'alerta');
+    assert.equal(medio.destinatarios, 2);
+
+    const baixo = await ctx.service.simulate({ metros: 11 });
+    assert.equal(baixo.faixaSimulada, 'normal');
+    assert.equal(baixo.dispararia, false);
+    assert.equal(baixo.destinatarios, 0);
+    assert.ok(baixo.passos.length >= 3);
+
+    assert.equal(ctx.mail.sent.length, 0, 'nada enviado');
+    assert.equal(ctx.repo.state, null, 'estado intacto');
+    assert.equal(JSON.stringify([...ctx.repo.subs]), subsBefore, 'inscritos intactos');
+});
+
+test('simulate: respeita a faixa já registrada e valida o nível', async () => {
+    const ctx = setup();
+    await ctx.repo.saveState({ level: 'alerta', candidate: null, event: null, sent: { date: '', count: 0 } });
+    const mesma = await ctx.service.simulate({ metros: 13.7 });
+    assert.equal(mesma.faixaRegistrada, 'alerta');
+    assert.equal(mesma.dispararia, false, 'já está nessa faixa');
+    const sobe = await ctx.service.simulate({ metros: 14.1 });
+    assert.equal(sobe.dispararia, true);
+    await assert.rejects(ctx.service.simulate({ metros: -3 }), (e) => e.code === 'INVALID_METERS');
+    await assert.rejects(ctx.service.simulate({ metros: 'x' }), (e) => e.code === 'INVALID_METERS');
+});
+
+test('adminSummary: junta inscritos, estado, nível real e configuração', async () => {
+    const ctx = setup();
+    await subscribeAndConfirm(ctx, 'a@b.com', ['alerta']);
+    await ctx.service.subscribe({ email: 'p@b.com', consent: true });
+    const s = await ctx.service.adminSummary();
+    assert.deepEqual(s.inscritos, { ativos: 1, pendentes: 1, cancelados: 0 });
+    assert.equal(s.cotas.length, 3);
+    assert.equal(s.nivelReal.metros, 10);
+    assert.equal(s.config.emailConfigurado, true);
+    assert.equal(s.config.maxEmailsPorDia, 80);
+    assert.equal(s.estado, null);
+    assert.equal(JSON.stringify(s).includes('re_'), false, 'sem chaves no resumo');
 });

@@ -61,6 +61,7 @@ class RioAlertService {
             confirmCooldownMs: 60 * 1000,
             maxEventAttempts: 6,
             pendingMaxAgeMs: 7 * 24 * 3600 * 1000, // inscrição não confirmada em 7 dias é apagada
+            maxTestsPerDay: 20,                    // e-mails de teste do painel admin (gastam a cota do provedor)
             ...options
         };
     }
@@ -218,7 +219,7 @@ class RioAlertService {
         return { subject: 'Confirme seus alertas do Rio Acre - CamRB', text, html };
     }
 
-    _buildAlertMessage(sub, event) {
+    _buildAlertMessage(sub, event, { test = false } = {}) {
         const level = this.levels().find((l) => l.id === event.level);
         const unsubPage = this.unsubscribePageUrl(sub.id);
         const unsubPost = this.unsubscribePostUrl(sub.id);
@@ -227,7 +228,15 @@ class RioAlertService {
             ? `Rio Acre acima da cota de transbordamento (${fmtMeters(level.cota)} m)`
             : `Rio Acre acima da cota de ${level.nome.toLowerCase()} (${fmtMeters(level.cota)} m)`;
 
+        const testNoticeText = test
+            ? ['[E-MAIL DE TESTE] Enviado pelo painel de administração do CamRB. Nenhum alerta real foi disparado e nenhum inscrito recebeu esta mensagem.', '']
+            : [];
+        const testNoticeHtml = test
+            ? `<p style="margin:0 0 16px;padding:10px 12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;font-size:13px;line-height:1.4;color:#92400e;"><strong>E-mail de teste.</strong> Enviado pelo painel de administração do CamRB para demonstração. Nenhum alerta real foi disparado e nenhum inscrito recebeu esta mensagem.</p>`
+            : '';
+
         const text = [
+            ...testNoticeText,
             headline,
             '',
             `Nível atual: ${fmtMeters(event.metros)} m (leitura de ${event.dataLeitura || 'agora há pouco'}).`,
@@ -243,7 +252,7 @@ class RioAlertService {
         const color = event.level === 'transbordamento' ? '#dc2626' : event.level === 'alerta' ? '#ea580c' : '#d97706';
         const html = this._layout({
             title: `<span style="color:${color};">${escapeHtml(headline)}</span>`,
-            bodyHtml: `<p style="margin:0 0 4px;font-size:34px;font-weight:bold;">${fmtMeters(event.metros)} m</p>
+            bodyHtml: `${testNoticeHtml}<p style="margin:0 0 4px;font-size:34px;font-weight:bold;">${fmtMeters(event.metros)} m</p>
     <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">Leitura de ${escapeHtml(event.dataLeitura || 'agora há pouco')} · Estação Rio Branco · Fonte: ${escapeHtml(event.fonte || 'ANA')}</p>
     <p style="margin:0 0 24px;"><a href="${riverUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:10px;">Ver nível em tempo real</a></p>
     <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Aviso automático e informativo, baseado em dados da ANA. Para orientações oficiais, consulte a Defesa Civil (199) e o SGB/CPRM.</p>`,
@@ -251,7 +260,7 @@ class RioAlertService {
         });
 
         return {
-            subject: `${event.level === 'transbordamento' ? '🚨' : '⚠️'} ${headline}`,
+            subject: `${test ? '[TESTE] ' : ''}${event.level === 'transbordamento' ? '🚨' : '⚠️'} ${headline}`,
             text,
             html,
             headers: {
@@ -388,6 +397,164 @@ class RioAlertService {
 
         console.log(`[RIO_ALERT] Evento ${event.id}: ${sent} enviado(s), ${remaining} pendente(s).`);
         return { sent, remaining };
+    }
+
+    // ─── Painel de administração: prévia, teste e simulação ─────────────────────
+    _validEmail(value) {
+        const clean = String(value ?? '').trim().toLowerCase();
+        return clean && clean.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean) ? clean : null;
+    }
+
+    _levelOrThrow(level) {
+        const id = level || 'alerta';
+        if (!LEVEL_IDS.includes(id)) throw new AlertError(400, 'INVALID_LEVEL', 'Nível inválido. Use atencao, alerta ou transbordamento.');
+        return id;
+    }
+
+    _metersOrDefault(metros, levelId) {
+        if (metros === undefined || metros === null || metros === '') {
+            return Math.round((this.levels().find((l) => l.id === levelId).cota + 0.1) * 100) / 100;
+        }
+        const n = Number(String(metros).replace(',', '.'));
+        if (!Number.isFinite(n) || n < 0 || n > 30) {
+            throw new AlertError(400, 'INVALID_METERS', 'Informe um nível entre 0 e 30 metros.');
+        }
+        return Math.round(n * 100) / 100;
+    }
+
+    _sampleEvent(levelId, metros) {
+        return {
+            id: 'teste',
+            level: levelId,
+            metros,
+            dataLeitura: new Date(this._now()).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', dateStyle: 'short', timeStyle: 'short' }),
+            fonte: 'Simulação do painel de administração'
+        };
+    }
+
+    /** Mostra como o e-mail de alerta fica, sem enviar nada. */
+    previewAlert({ level, metros } = {}) {
+        const levelId = this._levelOrThrow(level);
+        const value = this._metersOrDefault(metros, levelId);
+        const sample = { id: this._idFor('voce@exemplo.com'), email: 'voce@exemplo.com' };
+        const message = this._buildAlertMessage(sample, this._sampleEvent(levelId, value), { test: true });
+        return { nivel: levelId, metros: value, assunto: message.subject, texto: message.text, html: message.html };
+    }
+
+    /**
+     * Envia UM e-mail de alerta de teste para o endereço informado (nunca para os inscritos).
+     * Tem limite diário porque gasta a cota do provedor de e-mail.
+     */
+    async sendTestAlert({ to, level, metros } = {}) {
+        const email = this._validEmail(to);
+        if (!email) throw new AlertError(400, 'INVALID_EMAIL', 'Digite um e-mail de destino válido.');
+        const levelId = this._levelOrThrow(level);
+        const value = this._metersOrDefault(metros, levelId);
+
+        if (!this._mail.isConfigured()) {
+            throw new AlertError(503, 'MAIL_NOT_CONFIGURED', 'O envio de e-mails não está configurado no servidor.');
+        }
+
+        const dayKey = new Date(this._now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+        if (!this._tests || this._tests.date !== dayKey) this._tests = { date: dayKey, count: 0 };
+        if (this._tests.count >= this._opts.maxTestsPerDay) {
+            throw new AlertError(429, 'TEST_LIMIT', `Limite de ${this._opts.maxTestsPerDay} e-mails de teste por dia atingido.`);
+        }
+
+        const sub = { id: this._idFor(email), email };
+        const message = this._buildAlertMessage(sub, this._sampleEvent(levelId, value), { test: true });
+        try {
+            await this._mail.sendMessage(email, message, { channel: 'alertas' });
+        } catch (error) {
+            console.error('[RIO_ALERT] Falha ao enviar e-mail de teste:', error.message);
+            throw new AlertError(502, 'MAIL_SEND_FAILED', 'Não foi possível enviar o e-mail de teste agora.');
+        }
+        this._tests.count++;
+        console.log(`[RIO_ALERT] E-mail de teste (${levelId}, ${value} m) enviado pelo painel admin.`);
+        return { ok: true, nivel: levelId, metros: value, assunto: message.subject, restantesHoje: this._opts.maxTestsPerDay - this._tests.count };
+    }
+
+    /**
+     * Simulador (a seco): o que o sistema decidiria se o rio estivesse neste nível.
+     * Não envia nada, não altera o estado dos alertas e não muda o nível mostrado no site.
+     */
+    async simulate({ metros } = {}) {
+        const value = this._metersOrDefault(metros === undefined ? 14.2 : metros, 'alerta');
+        const levels = this.levels();
+        const raw = this._levelFor(value);
+        const rank = (id) => (id === 'normal' ? -1 : this._levelRank(id));
+        const state = (await this._repo.getState()) || { level: 'normal' };
+        const active = await this._repo.listActiveSubscribers();
+        const nameOf = (id) => (id === 'normal' ? 'Normal (abaixo das cotas)' : levels.find((l) => l.id === id).nome);
+        const recipients = raw === 'normal' ? 0 : active.filter((s) => (s.niveis || DEFAULT_LEVELS).includes(raw)).length;
+        const wouldTrigger = rank(raw) > rank(state.level);
+        const minutes = Math.max(0, (this._opts.confirmationsNeeded - 1) * 5);
+
+        const steps = [`Nível simulado: ${fmtMeters(value)} m, que fica na faixa "${nameOf(raw)}".`];
+        if (raw === 'normal') {
+            steps.push('Está abaixo da cota de atenção: nenhum alerta é disparado.');
+        }
+        steps.push(`O sistema hoje está registrado na faixa "${nameOf(state.level)}".`);
+        if (wouldTrigger) {
+            steps.push(`Como subiu para uma faixa acima da registrada, o alerta "${nameOf(raw)}" seria disparado depois de ${this._opts.confirmationsNeeded} leituras seguidas acima da cota (cerca de ${minutes} min depois da primeira).`);
+            steps.push(`Receberiam o e-mail ${recipients} inscrito(s) ativo(s) que escolheram "${nameOf(raw)}", de ${active.length} ativo(s) no total.`);
+        } else if (raw !== 'normal') {
+            steps.push(`Essa faixa já está registrada (ou é menor): nenhum novo alerta seria enviado. O sistema só avisa na subida e só rearma depois que o rio cai ${Math.round(this._opts.hysteresisM * 100)} cm abaixo da cota.`);
+        }
+        steps.push('Simulação a seco: nada foi enviado aos inscritos e o nível exibido no site não foi alterado.');
+
+        return {
+            metros: value,
+            faixaSimulada: raw,
+            faixaSimuladaNome: nameOf(raw),
+            faixaRegistrada: state.level,
+            faixaRegistradaNome: nameOf(state.level),
+            dispararia: wouldTrigger,
+            destinatarios: recipients,
+            inscritosAtivos: active.length,
+            leiturasNecessarias: this._opts.confirmationsNeeded,
+            passos: steps
+        };
+    }
+
+    /** Números para o painel: inscritos, estado do disparador, nível real e configuração. */
+    async adminSummary() {
+        const counts = await this._repo.countByStatus();
+        const state = await this._repo.getState();
+
+        let real = null;
+        try {
+            const data = await this._rio.getNivelRioAcre();
+            real = {
+                metros: data?.nivel?.metros ?? null,
+                dataLeitura: data?.nivel?.dataLeitura || null,
+                fonte: data?.fonte || null,
+                desatualizado: Boolean(data?.frescor?.desatualizado)
+            };
+        } catch (_) { /* sem leitura agora */ }
+
+        return {
+            inscritos: counts,
+            cotas: this.levels(),
+            nivelReal: real,
+            estado: state ? {
+                faixa: state.level || 'normal',
+                enviadosHoje: state.sent?.count || 0,
+                ultimoEvento: state.event ? {
+                    nivel: state.event.level, metros: state.event.metros,
+                    dataLeitura: state.event.dataLeitura, concluido: Boolean(state.event.done)
+                } : null
+            } : null,
+            config: {
+                emailConfigurado: this._mail.isConfigured(),
+                remetentes: typeof this._mail.senders === 'function' ? this._mail.senders() : null,
+                maxEmailsPorDia: this._opts.maxEmailsPerDay,
+                maxTestesPorDia: this._opts.maxTestsPerDay,
+                leiturasNecessarias: this._opts.confirmationsNeeded,
+                histereseCm: Math.round(this._opts.hysteresisM * 100),
+                verificacaoACadaMin: 5
+            }
+        };
     }
 
     // ─── Limpeza ────────────────────────────────────────────────────────────────

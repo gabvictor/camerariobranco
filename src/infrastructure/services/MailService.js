@@ -89,6 +89,11 @@ class MailService {
         this._fromAlerts = (env.MAIL_FROM_ALERTAS || '').trim() || this._from;
     }
 
+    /** Remetentes em uso (para o painel admin). Nunca inclui chaves. */
+    senders() {
+        return { driver: this.driver, conta: this._from, alertas: this._fromAlerts };
+    }
+
     /** @param {'conta'|'alertas'} [channel] */
     _fromFor(channel) {
         return channel === 'alertas' ? this._fromAlerts : this._from;

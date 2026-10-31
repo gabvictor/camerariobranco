@@ -29,6 +29,18 @@ class FirebaseAlertSubscriberRepository {
         return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
 
+    async countByStatus() {
+        const snap = await this._col().select('status').get();
+        const out = { ativos: 0, pendentes: 0, cancelados: 0 };
+        snap.docs.forEach((d) => {
+            const status = d.get('status');
+            if (status === 'active') out.ativos++;
+            else if (status === 'pending') out.pendentes++;
+            else if (status === 'unsubscribed') out.cancelados++;
+        });
+        return out;
+    }
+
     async listPendingSubscribers() {
         const snap = await this._col().where('status', '==', 'pending').get();
         return snap.docs.map((d) => ({ id: d.id, ...d.data() }));

@@ -31,10 +31,63 @@ class AlertController {
         this.unsubscribePage = this.unsubscribePage.bind(this);
         this.unsubscribe = this.unsubscribe.bind(this);
         this.levels = this.levels.bind(this);
+        this.adminSummary = this.adminSummary.bind(this);
+        this.adminPreview = this.adminPreview.bind(this);
+        this.adminSimulate = this.adminSimulate.bind(this);
+        this.adminSendTest = this.adminSendTest.bind(this);
     }
 
     levels(req, res) {
         res.json({ niveis: this._service.levels() });
+    }
+
+    /** Responde erros do painel admin (mensagens próprias de AlertError ou erro genérico). */
+    _adminError(res, error, tag) {
+        if (error instanceof AlertError) {
+            return res.status(error.status).json({ error: error.message, code: error.code });
+        }
+        console.error(`[RIO_ALERT] ${tag}:`, error);
+        return res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+    }
+
+    /** GET /api/admin/alertas/resumo */
+    async adminSummary(req, res) {
+        try {
+            res.setHeader('Cache-Control', 'no-store');
+            res.json(await this._service.adminSummary());
+        } catch (error) {
+            this._adminError(res, error, 'Erro no resumo admin');
+        }
+    }
+
+    /** POST /api/admin/alertas/previa — mostra o e-mail sem enviar. */
+    adminPreview(req, res) {
+        try {
+            const { nivel, metros } = req.body || {};
+            res.json(this._service.previewAlert({ level: nivel, metros }));
+        } catch (error) {
+            this._adminError(res, error, 'Erro na prévia admin');
+        }
+    }
+
+    /** POST /api/admin/alertas/simular — decisão a seco para um nível do rio. */
+    async adminSimulate(req, res) {
+        try {
+            const { metros } = req.body || {};
+            res.json(await this._service.simulate({ metros }));
+        } catch (error) {
+            this._adminError(res, error, 'Erro na simulação admin');
+        }
+    }
+
+    /** POST /api/admin/alertas/teste — envia UM e-mail de teste para o endereço informado. */
+    async adminSendTest(req, res) {
+        try {
+            const { email, nivel, metros } = req.body || {};
+            res.json(await this._service.sendTestAlert({ to: email, level: nivel, metros }));
+        } catch (error) {
+            this._adminError(res, error, 'Erro no teste admin');
+        }
     }
 
     async subscribe(req, res) {

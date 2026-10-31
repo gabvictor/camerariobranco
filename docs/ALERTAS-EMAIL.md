@@ -94,3 +94,14 @@ firebase deploy --only firestore:rules
 - Estado do disparador: documento `system/rioAlertState` (nível atual e último evento).
 - Log do servidor: linhas `[RIO_ALERT] ...`.
 - Teste local sem enviar nada (aqui o `.env` é útil): `MAIL_DRIVER=console` e `SITE_BASE_URL=http://localhost:3001`, com o campo `resend.apiKey` do arquivo vazio; os e-mails aparecem no log.
+
+## 7. Painel de teste (admin): /admin/alertas
+
+Para mostrar a alguém (por exemplo, um professor) como o alerta funciona, sem esperar o rio subir. Só administradores acessam (aba **Alertas do Rio** no painel).
+
+- **Resumo:** nível real do rio, inscritos (ativos, aguardando confirmação, cancelados), faixa registrada no sistema, e-mails enviados hoje e remetentes em uso.
+- **Simulador do nível do rio:** arraste o nível (ou use os atalhos Normal, Atenção, Alerta, Transbordamento) e o painel explica o que o sistema decidiria: em que faixa cai, se dispararia alerta e para quantos inscritos. É uma simulação a seco: **não envia nada aos inscritos e não muda o nível mostrado no site**.
+- **Prévia do e-mail:** mostra o e-mail exatamente como é montado, com um aviso amarelo de "e-mail de teste".
+- **E-mail de teste:** envia **um** e-mail para o endereço que você digitar, pelo remetente de alertas, com `[TESTE]` no assunto. Nunca vai para os inscritos. Limite de 20 testes por dia (gasta a cota do provedor).
+
+Por que o simulador não altera o nível real do site: mudar o nível público mostraria um valor falso para todos e dispararia alertas de verdade para pessoas reais, o que é perigoso num tema de enchente.
