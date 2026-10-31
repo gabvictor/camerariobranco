@@ -65,3 +65,6 @@ Thumbs.db
 
 # Fotos das câmeras geradas pelos alertas do rio (criadas em tempo de execução)
 public/uploads/alertas/
+
+__pycache__/
+*.pyc

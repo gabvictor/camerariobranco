@@ -12,7 +12,8 @@ Ordem das fontes (da melhor para a pior):
 Regras importantes deste módulo:
     * NUNCA inventa leitura. Se não há dado real, o erro é explícito.
     * Todo resultado leva a idade da leitura ("frescor") e um sinal de desatualizado.
-    * A previsão é só uma extrapolação da tendência recente (não é modelo hidrológico).
+    * A previsão usa o nível das estações a montante (Capixaba, Xapuri) quando elas respondem e, sem elas,
+      cai para a extrapolação da tendência recente. Não é modelo hidrológico nem previsão oficial.
 
 Configuração por variáveis de ambiente:
     ANA_HIDROWEB_USUARIO / ANA_HIDROWEB_SENHA   credenciais da HidroWeb (ou "hidroWebANA" no serviceAccountKey.json)
@@ -85,6 +86,19 @@ ESTACAO = {
     "operadora": "SGB-CPRM",
 }
 
+# Estações telemétricas da ANA no Rio Acre, a montante de Rio Branco (códigos conferidos no inventário da HidroWeb
+# em 31/10/2026). "atraso_ref_h" é o tempo de viagem da onda de cheia até Rio Branco, medido em 03-31/10/2026
+# (correlação 0,97 em Capixaba e Xapuri); é só o ponto de partida: com dados variados o serviço reajusta.
+# Brasiléia (13470000) fica de fora: transmite poucas leituras (223 em 28 dias).
+ESTACOES_MONTANTE = (
+    {"codigo": "13568000", "nome": "Capixaba", "atraso_ref_h": 26},
+    {"codigo": "13550000", "nome": "Xapuri", "atraso_ref_h": 62},
+    {"codigo": "13445000", "nome": "Ponte Brasil-Peru", "atraso_ref_h": 122},
+)
+ATRASO_MIN_H, ATRASO_MAX_H = 6, 168
+MONTANTE_CORR_MIN = 0.80      # abaixo disso a estação não explica o nível de Rio Branco: não é usada
+MONTANTE_FRESCOR_H = 6        # leitura de montante mais velha que isso é ignorada
+
 # Cotas oficiais (relatório SAH/SGB da bacia do Rio Acre): atenção 12,5 m, alerta 13,5 m,
 # inundação/transbordamento 14,0 m.
 COTA_ATENCAO = 12.50
@@ -93,16 +107,21 @@ COTA_TRANSBORDAMENTO = 14.00
 
 # Valores de REFERÊNCIA exibidos como contexto. Não alimentam nenhum cálculo de previsão.
 # - Recorde de cheia: 18,40 m em 04/03/2015 (Portal Amazônia, "maiores enchentes de Rio Branco desde 1971").
-# - Recorde de seca: 1,23 m em 21/09/2024 (valor que já estava no site; o boletim do SGB de 20/09/2024
-#   ainda listava 1,24 m em 2022 como mínima, então CONFIRA com o SGB antes de divulgar).
+# - Menor nível: 1,21 m em 28/09/2022, o mínimo da telemetria da ANA na estação 13600002 em 2021-2025
+#   (conferido na HidroWeb em 31/10/2026; qualidade da leitura "0", ou seja, não marcada como ruim). O valor
+#   antigo do site, 1,23 m em 21/09/2024, também aparece na série, mas não é o menor. A série convencional
+#   anterior a 2021 não foi consultada: não é um recorde histórico absoluto.
 # - Médias mensais: valores aproximados que já estavam no site; sem fonte citada. Tratar como indicativo.
 RECORDE_CHEIA = {"nivel": 18.40, "data": "04/03/2015"}
-RECORDE_SECA = {"nivel": 1.23, "data": "21/09/2024"}
+RECORDE_SECA = {"nivel": 1.21, "data": "28/09/2022"}
+# - Médias mensais: média, nos anos 2021-2025, das médias mensais da telemetria da ANA (13600002), contando só
+#   os meses com ao menos 1200 leituras (de 3 a 5 anos por mês). Calculadas em 31/10/2026; só 5 anos, então
+#   são uma referência recente e não uma climatologia de longo prazo.
 CLIMATOLOGIA = {
-    1: (9.50, "Início da Cheia"), 2: (11.80, "Pico de Cheias"), 3: (12.20, "Pico de Cheias"),
-    4: (9.80, "Início da Descida"), 5: (6.50, "Transição p/ Seca"), 6: (3.80, "Estiagem"),
-    7: (2.50, "Seca Típica"), 8: (1.80, "Seca Severa"), 9: (1.60, "Mínima do Ano"),
-    10: (1.95, "Transição p/ Chuvas"), 11: (4.20, "Elevação das Águas"), 12: (7.10, "Inverno Amazônico"),
+    1: (7.83, "Início da Cheia"), 2: (10.95, "Pico de Cheias"), 3: (11.40, "Pico de Cheias"),
+    4: (8.67, "Início da Descida"), 5: (4.72, "Transição p/ Seca"), 6: (2.98, "Estiagem"),
+    7: (2.16, "Seca Típica"), 8: (1.72, "Seca Severa"), 9: (1.54, "Mínima do Ano"),
+    10: (2.31, "Transição p/ Chuvas"), 11: (2.78, "Elevação das Águas"), 12: (6.59, "Inverno Amazônico"),
 }
 MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
          "Setembro", "Outubro", "Novembro", "Dezembro"]
@@ -448,11 +467,13 @@ class LegacyAnaClient:
 class RioAcreService:
     station = ESTACAO
 
-    def __init__(self, hidroweb: HidroWebClient | None = None, legacy: LegacyAnaClient | None = None, clock=None):
+    def __init__(self, hidroweb: HidroWebClient | None = None, legacy: LegacyAnaClient | None = None, clock=None,
+                 montante=ESTACOES_MONTANTE):
+        self.montante = tuple(montante)
         self.hidroweb = hidroweb or HidroWebClient()
         self.legacy = legacy or LegacyAnaClient()
         self._clock = clock or (lambda: datetime.now(RB_TZ))
-        self._cache: dict[int, dict] = {}
+        self._cache: dict[tuple[str, int], dict] = {}
         self._lock = threading.RLock()
 
     # --- carregamento de séries ---------------------------------------------------
@@ -478,9 +499,10 @@ class RioAcreService:
             unique[r["dt"]] = r
         return [unique[k] for k in sorted(unique)]
 
-    def _load_series(self, dias: int, ttl: int) -> dict:
+    def _load_series(self, dias: int, ttl: int, codigo: str | None = None, so_hidroweb: bool = False) -> dict:
         dias = max(1, int(dias))
-        key = self._bucket(dias)
+        codigo = codigo or self.station["codigo"]
+        key = (codigo, self._bucket(dias))
         with self._lock:
             now = time.time()
             entry = self._cache.get(key)
@@ -489,8 +511,10 @@ class RioAcreService:
 
             errors = []
             for fonte, client in self._sources():
+                if so_hidroweb and client is not self.hidroweb:
+                    continue
                 try:
-                    readings = self._clean(client.readings(self.station["codigo"], key))
+                    readings = self._clean(client.readings(codigo, key[1]))
                     if not readings:
                         raise RuntimeError("fonte respondeu sem leituras válidas")
                     entry = {"readings": readings, "fonte": fonte, "fetched": now}
@@ -688,6 +712,137 @@ class RioAcreService:
         std = math.sqrt(sum(e * e for e in resid) / max(n - 2, 1))
         return slope, std
 
+    # --- nível a montante ---------------------------------------------------------
+    @staticmethod
+    def _horaria(readings: list[dict]) -> dict:
+        """Média por hora cheia: {início da hora: nível}."""
+        acc: dict[datetime, list[float]] = {}
+        for r in readings:
+            acc.setdefault(r["dt"].replace(minute=0, second=0, microsecond=0), []).append(r["nivel_m"])
+        return {k: sum(v) / len(v) for k, v in acc.items()}
+
+    @staticmethod
+    def _em(horaria: dict, t: datetime) -> float | None:
+        """Nível na hora de `t`, suavizado com as horas vizinhas (some o ruído de leitura a leitura)."""
+        base = t.replace(minute=0, second=0, microsecond=0)
+        vals = [horaria[k] for k in (base - timedelta(hours=1), base, base + timedelta(hours=1)) if k in horaria]
+        return sum(vals) / len(vals) if vals else None
+
+    @staticmethod
+    def _correlacao(xs: list[float], ys: list[float]) -> float:
+        n = len(xs)
+        mx, my = sum(xs) / n, sum(ys) / n
+        sx = math.sqrt(sum((a - mx) ** 2 for a in xs))
+        sy = math.sqrt(sum((b - my) ** 2 for b in ys))
+        return sum((a - mx) * (b - my) for a, b in zip(xs, ys)) / (sx * sy) if sx and sy else 0.0
+
+    def _ajustar_montante(self, est: dict, rb_h: dict, up_h: dict) -> dict | None:
+        """Descobre o atraso e a inclinação entre a estação a montante e Rio Branco (últimos 30 dias)."""
+        def pares(lag):
+            xs, ys = [], []
+            for k, v in up_h.items():
+                y = rb_h.get(k + timedelta(hours=lag))
+                if y is not None:
+                    xs.append(v)
+                    ys.append(y)
+            return xs, ys
+
+        ref = est["atraso_ref_h"]
+        amplitude = max(up_h.values()) - min(up_h.values())
+        variada = amplitude >= 0.5          # sem variação não dá para medir atraso: fica o de referência
+        atraso, refinado = ref, False
+        if variada:
+            melhor = None
+            for lag in range(max(ATRASO_MIN_H, ref - 24), min(ATRASO_MAX_H, ref + 24) + 1):
+                xs, ys = pares(lag)
+                if len(xs) >= 150:
+                    c = self._correlacao(xs, ys)
+                    if melhor is None or c > melhor[0]:
+                        melhor = (c, lag)
+            if melhor and melhor[0] >= 0.9:
+                atraso, refinado = melhor[1], True
+        xs, ys = pares(atraso)
+        if len(xs) < 150:
+            return None
+        corr = self._correlacao(xs, ys)
+        inclinacao = 1.0
+        if variada and corr >= 0.9:
+            mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+            var = sum((x - mx) ** 2 for x in xs)
+            inclinacao = min(1.5, max(0.5, sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / var)) if var else 1.0
+        usavel = (not variada) or corr >= MONTANTE_CORR_MIN
+        return {"atraso": atraso, "inclinacao": inclinacao, "correlacao": round(corr, 3),
+                "calibrada": bool(variada and refinado), "usavel": usavel}
+
+    def _estimar_montante(self, est: dict, aj: dict, rb_h: dict, up_h: dict, agora: datetime, horas: int) -> dict | None:
+        """Projeta Rio Branco em `horas` a partir do que a estação a montante já registrou."""
+        if aj["atraso"] < horas:
+            return None                      # a onda ainda nem chegou à estação: não há o que ler
+        passo = timedelta(hours=1)
+        topo = max(up_h)
+        t_ref = agora.replace(minute=0, second=0, microsecond=0)
+
+        def prever(t0):
+            rb0 = self._em(rb_h, t0)
+            alvo_up = self._em(up_h, t0 + timedelta(hours=horas - aj["atraso"]))
+            base_up = self._em(up_h, t0 - timedelta(hours=aj["atraso"]))
+            if rb0 is None or alvo_up is None or base_up is None:
+                return None
+            return rb0, rb0 + aj["inclinacao"] * (alvo_up - base_up)
+
+        # Retroteste: o mesmo método aplicado a cada hora do passado, comparado com o que de fato aconteceu.
+        erros, erros_persist = [], []
+        for t0 in sorted(rb_h):
+            real = self._em(rb_h, t0 + timedelta(hours=horas))
+            if real is None or t0 + timedelta(hours=horas) > max(rb_h):
+                continue
+            pr = prever(t0)
+            if pr:
+                erros.append(pr[1] - real)
+                erros_persist.append(pr[0] - real)
+        if len(erros) < 48:
+            return None
+        rms = math.sqrt(sum(e * e for e in erros) / len(erros))
+        mae = sum(abs(e) for e in erros) / len(erros)
+        mae_persist = sum(abs(e) for e in erros_persist) / len(erros_persist)
+
+        if t_ref + timedelta(hours=horas - aj["atraso"]) > topo + passo:
+            return None
+        pr = prever(t_ref)
+        if not pr:
+            return None
+        rb0, alvo = pr
+        return {"nivel": max(0.0, alvo), "rb0": rb0, "rms": rms, "mae": mae, "mae_persistencia": mae_persist,
+                "amostras": len(erros)}
+
+    def _analise_montante(self, rb_readings: list[dict], agora: datetime) -> list[dict]:
+        """Ajusta cada estação a montante. Estação que não responde ou não serve é simplesmente ignorada."""
+        if not self.montante:
+            return []
+        rb_h = self._horaria(rb_readings)
+        saida = []
+        for est in self.montante:
+            try:
+                serie = self._load_series(30, NIVEL_TTL_SEC, codigo=est["codigo"], so_hidroweb=True)
+            except DadosIndisponiveis as exc:
+                logger.info("Montante %s indisponível: %s", est["nome"], exc)
+                continue
+            if serie["stale_cache"]:
+                continue
+            leituras = serie["readings"]
+            idade_h = (agora - leituras[-1]["dt"]).total_seconds() / 3600
+            if idade_h > MONTANTE_FRESCOR_H:
+                continue
+            up_h = self._horaria(leituras)
+            aj = self._ajustar_montante(est, rb_h, up_h)
+            if not aj:
+                continue
+            ultimas24 = [r for r in leituras if r["dt"] > leituras[-1]["dt"] - timedelta(hours=24)]
+            saida.append({"estacao": est, "ajuste": aj, "up_h": up_h, "rb_h": rb_h,
+                          "nivel": leituras[-1]["nivel_m"],
+                          "variacao24h": round(leituras[-1]["nivel_m"] - ultimas24[0]["nivel_m"], 2)})
+        return saida
+
     def get_previsao(self) -> dict:
         nivel = self.get_nivel()
         series = self._load_series(2, NIVEL_TTL_SEC)
@@ -715,7 +870,7 @@ class RioAcreService:
                 "diferencaMedia": ("+" if diff_media > 0 else "") + f"{diff_media:.2f} m".replace(".", ","),
                 "recordeCheia": RECORDE_CHEIA,
                 "recordeSeca": RECORDE_SECA,
-                "aviso": "Médias mensais aproximadas, sem fonte oficial citada: use apenas como referência.",
+                "aviso": "Médias de 2021-2025 calculadas da telemetria da ANA: referência recente, não climatologia de longo prazo.",
             },
             "climatologiaAnual": [
                 {"mes": MESES[i][:3], "nome": MESES[i], "media": CLIMATOLOGIA[i + 1][0], "tipo": CLIMATOLOGIA[i + 1][1]}
@@ -750,12 +905,58 @@ class RioAcreService:
 
         p24, p48, p7d = projetar(24), projetar(48), projetar(168)
         p7d["tendencia"] += " (baixa confiança)"
+        for p in (p24, p48, p7d):
+            p["metodo"] = "tendencia"
+
+        # Nível a montante: onde a onda de cheia já passou, o que vem para Rio Branco já está medido.
+        try:
+            analises = self._analise_montante(self._load_series(30, HISTORICO_TTL_SEC)["readings"], latest["dt"])
+        except DadosIndisponiveis:
+            analises = []
+        usadas: dict[str, list[str]] = {}
+        for horas, proj, rotulo in ((24, p24, "24h"), (48, p48, "48h")):
+            candidatas = sorted((a for a in analises if a["ajuste"]["usavel"] and a["ajuste"]["atraso"] >= horas),
+                                key=lambda a: a["ajuste"]["atraso"])
+            for a in candidatas:
+                est = self._estimar_montante(a["estacao"], a["ajuste"], a["rb_h"], a["up_h"], latest["dt"], horas)
+                if not est:
+                    continue
+                delta = round(est["nivel"] - est["rb0"], 2)
+                alvo = round(max(0.0, nivel_atual + delta), 2)
+                faixa = max(0.05, 2 * est["rms"])
+                proj.update({
+                    "nivel": alvo, "delta": ("+" if delta > 0 else "") + f"{delta:.2f} m".replace(".", ","),
+                    "min": round(max(0.0, alvo - faixa), 2), "max": round(alvo + faixa, 2),
+                    "tendencia": "Elevação" if delta > 0.03 else "Queda" if delta < -0.03 else "Estabilidade",
+                    "_delta": delta, "metodo": "montante", "estacao": a["estacao"]["nome"],
+                    "erroTipico": round(est["mae"], 2), "erroPersistencia": round(est["mae_persistencia"], 2),
+                })
+                usadas.setdefault(a["estacao"]["nome"], []).append(rotulo)
+                break
         direcao = p24["tendencia"]
         icone, cor = {"Elevação": ("trending-up", "amber"), "Queda": ("trending-down", "blue")}.get(
             direcao, ("minus", "emerald"))
         delta24 = round(nivel_atual - janela[0]["nivel_m"], 2)
         for p in (p24, p48, p7d):
             p.pop("_delta")
+
+        base["montante"] = [
+            {"nome": a["estacao"]["nome"], "codigo": a["estacao"]["codigo"], "nivel": round(a["nivel"], 2),
+             "variacao24h": a["variacao24h"], "atrasoHoras": a["ajuste"]["atraso"],
+             "correlacao": a["ajuste"]["correlacao"], "calibrada": a["ajuste"]["calibrada"],
+             "usadaEm": usadas.get(a["estacao"]["nome"], [])}
+            for a in analises
+        ]
+        trecho_montante = ""
+        if usadas:
+            nomes = " e ".join(sorted(usadas))
+            base["aviso"] = (f"Combina o nível já medido a montante ({nomes}), que chega a Rio Branco em cerca de 1 a 3 dias, "
+                             f"com a tendência das últimas 24 h. Não considera chuva prevista e NÃO substitui os alertas "
+                             f"do SGB/CPRM e da Defesa Civil (199).")
+            subindo = [a for a in analises if a["estacao"]["nome"] in usadas and a["variacao24h"] > 0.15]
+            trecho_montante = (
+                " A montante, " + ("o nível está subindo em " + ", ".join(a["estacao"]["nome"] for a in subindo)
+                                    if subindo else "não há subida relevante nas últimas 24 h") + ".")
 
         base.update({
             "disponivel": True,
@@ -765,8 +966,9 @@ class RioAcreService:
                 f"Cota atual de {fmt_num(nivel_atual)} m, {fmt_num(abs(diff_media))} m "
                 f"{'acima' if diff_media > 0 else 'abaixo'} da média de referência de {MESES[mes - 1]} "
                 f"({fmt_num(media_mes)} m, período de {tipo_mes.lower()}). Variação medida nas últimas 24 h: "
-                f"{'+' if delta24 > 0 else ''}{fmt_num(delta24)} m. As projeções acima são extrapolação dessa "
-                f"tendência e perdem confiança com o tempo; para alertas oficiais consulte o SGB/CPRM e a Defesa Civil (199)."),
+                f"{'+' if delta24 > 0 else ''}{fmt_num(delta24)} m.{trecho_montante} As projeções de 24 h e 48 h usam o que já foi medido a montante "
+                f"quando disponível; a de 7 dias é só extrapolação da tendência e tem baixa confiança. Para alertas oficiais "
+                f"consulte o SGB/CPRM e a Defesa Civil (199)."),
         })
         return base
 

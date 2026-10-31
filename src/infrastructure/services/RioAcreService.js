@@ -19,15 +19,15 @@ const RIO_ACRE_STATION = {
 };
 
 // Valores de REFERÊNCIA (não alimentam a estimativa de tendência). Mesmas fontes/avisos do rio_service.py:
-// cheia recorde 18,40 m em 04/03/2015 (Portal Amazônia); seca 1,23 m em 21/09/2024 (conferir com o SGB);
-// médias mensais aproximadas, sem fonte oficial citada.
+// cheia recorde 18,40 m em 04/03/2015 (Portal Amazônia); menor nível 1,21 m em 28/09/2022 (telemetria ANA 2021-2025);
+// médias mensais 2021-2025 calculadas da telemetria da ANA (ver rio_service.py).
 const RECORDE_CHEIA = { nivel: 18.40, data: '04/03/2015' };
-const RECORDE_SECA = { nivel: 1.23, data: '21/09/2024' };
+const RECORDE_SECA = { nivel: 1.21, data: '28/09/2022' };
 const CLIMATOLOGIA = {
-    1: [9.50, 'Início da Cheia'], 2: [11.80, 'Pico de Cheias'], 3: [12.20, 'Pico de Cheias'],
-    4: [9.80, 'Início da Descida'], 5: [6.50, 'Transição p/ Seca'], 6: [3.80, 'Estiagem'],
-    7: [2.50, 'Seca Típica'], 8: [1.80, 'Seca Severa'], 9: [1.60, 'Mínima do Ano'],
-    10: [1.95, 'Transição p/ Chuvas'], 11: [4.20, 'Elevação das Águas'], 12: [7.10, 'Inverno Amazônico']
+    1: [7.83, 'Início da Cheia'], 2: [10.95, 'Pico de Cheias'], 3: [11.40, 'Pico de Cheias'],
+    4: [8.67, 'Início da Descida'], 5: [4.72, 'Transição p/ Seca'], 6: [2.98, 'Estiagem'],
+    7: [2.16, 'Seca Típica'], 8: [1.72, 'Seca Severa'], 9: [1.54, 'Mínima do Ano'],
+    10: [2.31, 'Transição p/ Chuvas'], 11: [2.78, 'Elevação das Águas'], 12: [6.59, 'Inverno Amazônico']
 };
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const RB_OFFSET_MS = 5 * 3600 * 1000; // Acre = UTC-5 o ano todo

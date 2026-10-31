@@ -655,6 +655,9 @@ async function fetchRioPrevisao() {
             if (elTend) elTend.textContent = p7d.tendencia;
         }
 
+        const elAviso = document.getElementById('prev-aviso');
+        if (elAviso && data.aviso) elAviso.textContent = data.aviso;
+
         // 3. Diagnóstico Técnico
         const elDiag = document.getElementById('prev-diagnostico');
         if (elDiag && data.diagnostico) {

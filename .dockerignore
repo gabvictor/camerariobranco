@@ -25,3 +25,6 @@ scratch
 
 public/uploads/alertas
 public/uploads/alertas/**
+
+__pycache__/
+*.pyc

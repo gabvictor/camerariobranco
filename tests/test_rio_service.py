@@ -2,6 +2,7 @@
 
 Rodar:  python -m unittest discover -s tests -v
 """
+import math
 import os
 import sys
 import unittest
@@ -44,9 +45,23 @@ class Fake:
         return list(self.readings_)
 
 
-def servico(hw=None, lg=None, agora=AGORA):
+def servico(hw=None, lg=None, agora=AGORA, montante=()):
     return RioAcreService(hidroweb=hw or Fake(disponivel=False), legacy=lg or Fake(erro=RuntimeError("fora")),
-                          clock=lambda: agora)
+                          clock=lambda: agora, montante=montante)
+
+
+class FakePorCodigo(Fake):
+    """Devolve uma série diferente para cada estação (a de Rio Branco e as de montante)."""
+
+    def __init__(self, series, erro_em=()):
+        super().__init__(disponivel=True)
+        self.series, self.erro_em = series, set(erro_em)
+
+    def readings(self, codigo, dias):
+        self.chamadas += 1
+        if codigo in self.erro_em:
+            raise RuntimeError("estação fora do ar")
+        return list(self.series[codigo])
 
 
 class Datas(unittest.TestCase):
@@ -197,6 +212,76 @@ class Previsao(unittest.TestCase):
     def test_indisponivel_propaga_erro(self):
         with self.assertRaises(DadosIndisponiveis):
             servico(Fake(erro=RuntimeError("a")), Fake(erro=RuntimeError("b"))).get_previsao()
+
+
+ATRASO = 26                       # a onda leva 26 h de "Capixaba" até Rio Branco
+CAPIXABA = {"codigo": "CAP", "nome": "Capixaba", "atraso_ref_h": ATRASO}
+
+
+def _onda(t, centro, largura_h=30.0, altura=2.5):
+    return altura * math.exp(-(((t - centro).total_seconds() / 3600) / largura_h) ** 2)
+
+
+def _series_com_onda(subindo_agora: bool):
+    """30 dias de passo de 30 min. Duas ondas a montante; Rio Branco repete a de montante ATRASO h depois.
+    Com subindo_agora, uma terceira onda começou a montante há poucas horas e ainda não chegou a Rio Branco."""
+    inicio, fim = AGORA - timedelta(days=30), AGORA - timedelta(minutes=10)
+    ondas = [AGORA - timedelta(days=22), AGORA - timedelta(days=11)]
+    if subindo_agora:
+        ondas.append(AGORA + timedelta(hours=4))
+    def montante(t):
+        return 1.5 + sum(_onda(t, c) for c in ondas)
+    up, rb, t = [], [], inicio
+    while t <= fim:
+        up.append(leitura(t, round(montante(t), 3)))
+        rb.append(leitura(t, round(montante(t - timedelta(hours=ATRASO)) + 0.4, 3)))
+        t += timedelta(minutes=30)
+    return up, rb
+
+
+class PrevisaoMontante(unittest.TestCase):
+    def _servico(self, subindo, erro_em=()):
+        up, rb = _series_com_onda(subindo)
+        hw = FakePorCodigo({rs.ESTACAO["codigo"]: rb, "CAP": up}, erro_em=erro_em)
+        return servico(hw=hw, montante=(CAPIXABA,))
+
+    def test_onda_a_montante_antecipa_a_subida_em_rio_branco(self):
+        p = self._servico(subindo=True).get_previsao()
+        p24 = p["projecoes"]["24h"]
+        self.assertEqual(p24["metodo"], "montante")
+        self.assertEqual(p24["estacao"], "Capixaba")
+        self.assertEqual(p24["tendencia"], "Elevação")
+        self.assertGreater(p24["nivel"], p["nivelAtual"] + 0.5)
+        self.assertEqual(p["projecoes"]["7d"]["metodo"], "tendencia")      # ninguém a montante cobre 7 dias
+        self.assertEqual(p["projecoes"]["48h"]["metodo"], "tendencia")     # nem 48 h: Capixaba só alcança ~26 h
+        info = p["montante"][0]
+        self.assertEqual((info["nome"], info["usadaEm"]), ("Capixaba", ["24h"]))
+        self.assertAlmostEqual(info["atrasoHoras"], ATRASO, delta=2)
+        self.assertIn("Capixaba", p["aviso"])
+        self.assertIn("199", p["aviso"])
+
+    def test_sem_onda_a_montante_a_projecao_fica_estavel(self):
+        p = self._servico(subindo=False).get_previsao()
+        self.assertEqual(p["projecoes"]["24h"]["metodo"], "montante")
+        self.assertEqual(p["projecoes"]["24h"]["tendencia"], "Estabilidade")
+
+    def test_retroteste_erra_menos_que_repetir_o_nivel_de_hoje(self):
+        p24 = self._servico(subindo=False).get_previsao()["projecoes"]["24h"]
+        self.assertLess(p24["erroTipico"], p24["erroPersistencia"])
+
+    def test_estacao_fora_do_ar_cai_para_a_tendencia(self):
+        p = self._servico(subindo=True, erro_em=("CAP",)).get_previsao()
+        self.assertTrue(p["disponivel"])
+        self.assertEqual(p["montante"], [])
+        self.assertEqual({v["metodo"] for v in p["projecoes"].values()}, {"tendencia"})
+        self.assertNotIn("Capixaba", p["aviso"])
+
+    def test_leitura_velha_a_montante_e_ignorada(self):
+        up, rb = _series_com_onda(True)
+        velha = [r for r in up if r["dt"] < AGORA - timedelta(hours=12)]
+        hw = FakePorCodigo({rs.ESTACAO["codigo"]: rb, "CAP": velha})
+        p = servico(hw=hw, montante=(CAPIXABA,)).get_previsao()
+        self.assertEqual(p["montante"], [])
 
 
 class Credenciais(unittest.TestCase):
