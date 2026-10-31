@@ -94,6 +94,7 @@ const FirebaseVisitorSessionRepository = require('./src/infrastructure/database/
 const AlertController = require('./src/presentation/http/controllers/AlertController');
 const RioAlertService = require('./src/application/services/RioAlertService');
 const CameraSnapshotService = require('./src/infrastructure/services/CameraSnapshotService');
+const RiverChartService = require('./src/infrastructure/services/RiverChartService');
 const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
 // ─── Helper: SSR Theme Inlining (Zero Flash Visual de Tema) ───────────────────
@@ -159,11 +160,17 @@ const rioCameraSnapshots = new CameraSnapshotService({
     dir: path.join(PUBLIC_FOLDER, 'uploads', 'alertas'),
     minKb: CONFIG.MIN_IMAGE_SIZE_KB
 });
+const rioChart = new RiverChartService({
+    rioService: rioAcreService,
+    baseUrl: process.env.SITE_BASE_URL || 'https://camerasriobranco.com.br',
+    dir: path.join(PUBLIC_FOLDER, 'uploads', 'alertas')
+});
 const rioAlertService = new RioAlertService({
     repo: new FirebaseAlertSubscriberRepository(db),
     mailService,
     rioService: rioAcreService,
     cameras: rioCameraSnapshots,
+    chart: rioChart,
     tokenSecret: KEY_FILE_CONFIG.tokenSecret,
     baseUrl: process.env.SITE_BASE_URL
 });
