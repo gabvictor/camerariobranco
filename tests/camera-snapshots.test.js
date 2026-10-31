@@ -251,3 +251,51 @@ test('prévia e e-mail de teste mostram as fotos e dizem quais câmeras entraram
     assert.match(ctx.sent[0].subject, /^\[TESTE\]/);
     assert.equal(cameras.calls.length, 1, 'prévia + teste seguidos reaproveitam as mesmas fotos por 1 minuto');
 });
+
+// ─── Regressão: o status vem do CACHE DA VARREDURA, não do cadastro ─────────
+// O cadastro do Firestore (cameraRepo.getCached) NÃO tem campo `status`. Uma versão anterior tratava "sem status"
+// como offline e nunca colocava foto nenhuma no e-mail de alerta real.
+const CameraCache = require('../src/application/services/CameraCache');
+
+test('cadastro sem status (formato real do Firestore) não é tratado como offline', async () => {
+    const { svc, http } = makeSvc({
+        cams: [{ codigo: '001334', nome: 'De Olho no Rio' }, { codigo: '001426', nome: 'Régua' }], // sem `status`
+        responses: { '001334': { data: jpeg(80) }, '001426': { data: jpeg(80) } }
+    });
+    const r = await svc.capture();
+    assert.equal(r.images.length, 2, 'status desconhecido: tenta buscar a foto');
+    assert.equal(http.calls.length, 2);
+});
+
+test('com o cache real da varredura: só a câmera online entra e a offline nem é consultada', async () => {
+    const cache = new CameraCache();
+    cache.update(
+        [{ codigo: '001334', status: 'online' }, { codigo: '001426', status: 'offline' }],
+        [{ codigo: '001334', nome: 'De Olho no Rio' }, { codigo: '001426', nome: 'Régua' }]
+    );
+    const fsp = makeFs();
+    const http = makeHttp({ '001334': { data: jpeg(80) }, '001426': { data: jpeg(80) } });
+    // o cadastro aqui não tem status, igual ao de verdade; quem manda é o cache
+    const svc = new CameraSnapshotService({ http, cameraCache: cache, cameraRepo: repoWith([{ codigo: '001426', nome: 'Régua' }]),
+        codes: ['001334', '001426'], baseUrl: BASE, dir: '/x', minKb: 25, fsp });
+    const r = await svc.capture();
+    assert.deepEqual(r.images.map((i) => [i.code, i.name]), [['001334', 'De Olho no Rio']]);
+    assert.deepEqual(r.skipped, [{ code: '001426', name: 'Régua', reason: 'offline' }]);
+    assert.equal(http.calls.length, 1);
+});
+
+test('o cache vale mais que o cadastro quando os dois conhecem a câmera', async () => {
+    const cache = new CameraCache();
+    cache.update([{ codigo: '001334', status: 'offline' }], [{ codigo: '001334', nome: 'De Olho no Rio' }]);
+    const svc = new CameraSnapshotService({ http: makeHttp({ '001334': { data: jpeg(80) } }), cameraCache: cache,
+        cameraRepo: repoWith([{ codigo: '001334', nome: 'Nome antigo', status: 'online' }]), codes: ['001334'], baseUrl: BASE, dir: '/x', fsp: makeFs() });
+    const r = await svc.capture();
+    assert.equal(r.images.length, 0);
+    assert.equal(r.skipped[0].reason, 'offline');
+});
+
+test('o servidor entrega o cache da varredura ao serviço de fotos (guarda contra o erro de ligação)', () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'server.js'), 'utf8');
+    const block = src.slice(src.indexOf('new CameraSnapshotService({'), src.indexOf('new CameraSnapshotService({') + 400);
+    assert.match(block, /\bcameraCache\b/, 'server.js precisa passar cameraCache para o CameraSnapshotService');
+});

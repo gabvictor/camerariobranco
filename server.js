@@ -152,6 +152,7 @@ const emailVerificationCtrl = new EmailVerificationController(emailVerificationS
 // Alertas do Rio Acre por e-mail (opt-in com confirmação e cancelamento)
 const rioCameraSnapshots = new CameraSnapshotService({
     http: axios,
+    cameraCache, // status online/offline vem da varredura (o cadastro do Firestore não tem status)
     cameraRepo,
     codes: (process.env.RIO_ALERT_CAMERAS || '001334,001426').split(',').map((c) => c.trim()).filter(Boolean),
     baseUrl: process.env.SITE_BASE_URL || 'https://camerasriobranco.com.br',

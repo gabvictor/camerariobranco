@@ -17,13 +17,15 @@ class CameraSnapshotService {
     /**
      * @param {object} deps
      * @param {{ get: Function }} deps.http                axios (ou equivalente)
-     * @param {{ getCached: Function }} [deps.cameraRepo]  para saber se a câmera está online e seu nome
+     * @param {{ findByCode: Function }} [deps.cameraCache] cache da varredura: é AQUI que mora o status online/offline
+     * @param {{ getCached: Function }} [deps.cameraRepo]  cadastro (só nome e dados fixos, sem status); usado se faltar o cache
      * @param {string[]} deps.codes                        câmeras do rio, em ordem de exibição
      * @param {string} deps.baseUrl                        endereço público do site
      * @param {string} deps.dir                            pasta onde as fotos ficam (servida em /uploads/alertas)
      */
-    constructor({ http, cameraRepo, codes, baseUrl, dir, minKb = 25, timeoutMs = 6000, maxBytes = 1.5 * 1024 * 1024, now, fsp }) {
+    constructor({ http, cameraCache, cameraRepo, codes, baseUrl, dir, minKb = 25, timeoutMs = 6000, maxBytes = 1.5 * 1024 * 1024, now, fsp }) {
         this._http = http;
+        this._cache = cameraCache;
         this._repo = cameraRepo;
         this._codes = (codes || []).map(String);
         this._baseUrl = String(baseUrl || '').replace(/\/+$/, '');
@@ -38,9 +40,12 @@ class CameraSnapshotService {
     _camera(code) {
         let cam = null;
         try {
-            cam = this._repo && this._repo.getCached ? this._repo.getCached().find((c) => String(c.codigo) === code) : null;
-        } catch (_) { /* sem cache: tenta mesmo assim */ }
-        return cam ? { known: true, online: cam.status === 'online', name: cam.nome } : { known: false };
+            if (this._cache && this._cache.findByCode) cam = this._cache.findByCode(code);
+            if (!cam && this._repo && this._repo.getCached) cam = this._repo.getCached().find((c) => String(c.codigo) === code);
+        } catch (_) { /* sem informação: tenta mesmo assim */ }
+        // Só pula quando a câmera está EXPLICITAMENTE offline. Status ausente = desconhecido: tenta buscar a foto,
+        // e a checagem da imagem já descarta a "câmera fora do ar" da prefeitura.
+        return cam ? { known: true, online: cam.status !== 'offline', name: cam.nome } : { known: false };
     }
 
     /**
