@@ -200,9 +200,38 @@ class Previsao(unittest.TestCase):
 
 
 class Credenciais(unittest.TestCase):
+    """Testes isolados: rodam numa pasta vazia e nunca leem o serviceAccountKey.json real de quem testa."""
+
+    def _isolado(self, ambiente, arquivo=None):
+        """Roda credentials() numa pasta temporária; `arquivo` vira o serviceAccountKey.json dela."""
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            caminho = os.path.join(tmp, "serviceAccountKey.json")
+            if arquivo is not None:
+                with open(caminho, "w", encoding="utf-8") as f:
+                    json.dump(arquivo, f)
+            ambiente = {**ambiente, "FIREBASE_SERVICE_ACCOUNT_PATH": caminho}
+            antes = os.getcwd()
+            os.chdir(tmp)
+            try:
+                with mock.patch.dict(os.environ, ambiente, clear=True):
+                    return HidroWebClient.credentials()
+            finally:
+                os.chdir(antes)
+
     def test_credenciais_por_ambiente(self):
-        with mock.patch.dict(os.environ, {"ANA_HIDROWEB_USUARIO": " u ", "ANA_HIDROWEB_SENHA": "s"}):
-            self.assertEqual(HidroWebClient.credentials(), ("u", "s"))
+        env = {"ANA_HIDROWEB_USUARIO": " u ", "ANA_HIDROWEB_SENHA": "s"}
+        self.assertEqual(self._isolado(env), ("u", "s"))
+
+    def test_arquivo_da_chave_tem_prioridade_sobre_o_ambiente(self):
+        env = {"ANA_HIDROWEB_USUARIO": "do-ambiente", "ANA_HIDROWEB_SENHA": "senha-env"}
+        arquivo = {"hidroWebANA": {"usuario": "do-arquivo", "senha": "senha-arq"}}
+        self.assertEqual(self._isolado(env, arquivo), ("do-arquivo", "senha-arq"))
+
+    def test_ambiente_completa_quando_o_arquivo_nao_tem_credenciais(self):
+        env = {"ANA_HIDROWEB_USUARIO": "u", "ANA_HIDROWEB_SENHA": "s"}
+        self.assertEqual(self._isolado(env, {"project_id": "x"}), ("u", "s"))
 
     def test_sem_credenciais(self):
         with mock.patch.dict(os.environ, {}, clear=True), mock.patch("builtins.open", side_effect=OSError):
