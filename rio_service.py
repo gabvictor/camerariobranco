@@ -37,6 +37,7 @@ import os
 import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -475,6 +476,12 @@ class RioAcreService:
         self._clock = clock or (lambda: datetime.now(RB_TZ))
         self._cache: dict[tuple[str, int], dict] = {}
         self._lock = threading.RLock()
+        self._key_locks: dict[tuple[str, int], threading.RLock] = {}
+
+    def _lock_for(self, key):
+        """Uma trava por estação/período: estações diferentes buscam em paralelo, a mesma não busca duas vezes."""
+        with self._lock:
+            return self._key_locks.setdefault(key, threading.RLock())
 
     # --- carregamento de séries ---------------------------------------------------
     def _now(self) -> datetime:
@@ -503,7 +510,7 @@ class RioAcreService:
         dias = max(1, int(dias))
         codigo = codigo or self.station["codigo"]
         key = (codigo, self._bucket(dias))
-        with self._lock:
+        with self._lock_for(key):
             now = time.time()
             entry = self._cache.get(key)
             if entry and now - entry["fetched"] < ttl:
@@ -820,12 +827,21 @@ class RioAcreService:
         if not self.montante:
             return []
         rb_h = self._horaria(rb_readings)
-        saida = []
-        for est in self.montante:
+
+        def buscar(est):
             try:
-                serie = self._load_series(30, NIVEL_TTL_SEC, codigo=est["codigo"], so_hidroweb=True)
+                return self._load_series(30, NIVEL_TTL_SEC, codigo=est["codigo"], so_hidroweb=True)
             except DadosIndisponiveis as exc:
                 logger.info("Montante %s indisponível: %s", est["nome"], exc)
+                return None
+
+        # As consultas à ANA são o trecho lento (segundos cada); em paralelo, o tempo é o da mais lenta.
+        with ThreadPoolExecutor(max_workers=len(self.montante)) as pool:
+            series = list(pool.map(buscar, self.montante))
+
+        saida = []
+        for est, serie in zip(self.montante, series):
+            if serie is None:
                 continue
             if serie["stale_cache"]:
                 continue

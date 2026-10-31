@@ -86,12 +86,12 @@ class RioAcreService {
     }
 
     // ─── Motor Python (opcional) ────────────────────────────────────────────────────
-    _fetchFromPython(action = 'nivel', dias = 30) {
+    _fetchFromPython(action = 'nivel', dias = 30, timeoutMs = 25000) {
         return new Promise((resolve, reject) => {
             const scriptPath = path.resolve(process.cwd(), 'rio_service.py');
             const args = [scriptPath, '--action', action, '--dias', String(dias)];
             const pythonBin = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
-            execFile(pythonBin, args, { timeout: 25000 }, (error, stdout, stderr) => {
+            execFile(pythonBin, args, { timeout: timeoutMs }, (error, stdout, stderr) => {
                 if (error) return reject(new Error(`Erro Python: ${error.message} ${stdout || stderr || ''}`.trim()));
                 try { resolve(JSON.parse(stdout.trim())); } catch { reject(new Error('Saída do Python não é JSON válido')); }
             });
@@ -210,7 +210,7 @@ class RioAcreService {
 
         if (this.enablePythonEngine) {
             try {
-                const py = await this._fetchFromPython('previsao');
+                const py = await this._fetchFromPython('previsao', 30, 60000); // consulta também as estações a montante
                 if (py && py.tipo === 'estimativa-de-tendencia') {
                     this._previsaoCache = py;
                     this._lastPrevisaoFetchTime = now;
