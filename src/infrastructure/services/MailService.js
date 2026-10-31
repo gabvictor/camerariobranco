@@ -153,6 +153,7 @@ class MailService {
 
     async _sendViaResend(to, message, from = this._from) {
         const extraHeaders = message.headers && Object.keys(message.headers).length ? { headers: message.headers } : {};
+        const replyTo = message.replyTo ? { reply_to: message.replyTo } : {};
         const response = await this._fetch(this._resendUrl, {
             method: 'POST',
             headers: {
@@ -165,6 +166,7 @@ class MailService {
                 subject: message.subject,
                 html: message.html,
                 text: message.text,
+                ...replyTo,
                 ...extraHeaders
             }),
             signal: AbortSignal.timeout(15000)
@@ -258,6 +260,7 @@ ${message.text}
             subject: message.subject,
             text: message.text,
             html: message.html,
+            replyTo: message.replyTo,
             headers: message.headers
         });
     }

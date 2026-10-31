@@ -6,6 +6,7 @@ const CONSENT_VERSION = '2026-10';
 const LEVEL_IDS = ['atencao', 'alerta', 'transbordamento'];
 const DEFAULT_LEVELS = ['alerta', 'transbordamento'];
 
+const REPLY_TO = 'suportecamrb@gmail.com'; // respostas ao alerta chegam a uma pessoa, não a um endereço sem caixa
 const escapeHtml = (value) => String(value ?? '').replace(/[<>&'"]/g, (c) => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&#39;', '"': '&quot;'
 }[c]));
@@ -185,15 +186,32 @@ class RioAlertService {
     }
 
     // ─── Mensagens ──────────────────────────────────────────────────────────────
-    _layout({ title, bodyHtml, footerHtml }) {
+    _layout({ title, bodyHtml, footerHtml, preheader = '', accent = '#4f46e5' }) {
+        // O "preheader" é a linha cinza que a caixa de entrada mostra ao lado do assunto; fica escondido no corpo.
+        const pre = preheader
+            ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f3f4f6;font-size:1px;line-height:1px;">${escapeHtml(preheader)}${'&nbsp;&zwnj;'.repeat(40)}</div>`
+            : '';
         return `<!DOCTYPE html>
 <html lang="pt-BR">
-<body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e5e7eb;">
-    <h1 style="margin:0 0 12px;font-size:20px;">${title}</h1>
-    ${bodyHtml}
-  </div>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<title>CamRB</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+${pre}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;"><tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:480px;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb;border-top:5px solid ${accent};">
+    <tr><td style="padding:28px 32px 32px;">
+      <p style="margin:0 0 14px;font-size:12px;font-weight:bold;letter-spacing:1px;color:#6b7280;">CAMRB · RIO BRANCO</p>
+      <h1 style="margin:0 0 14px;font-size:20px;line-height:1.3;">${title}</h1>
+      ${bodyHtml}
+    </td></tr>
+  </table>
   <p style="max-width:480px;margin:16px auto 0;font-size:12px;line-height:1.5;color:#6b7280;text-align:center;">${footerHtml}</p>
+</td></tr></table>
 </body>
 </html>`;
     }
@@ -271,22 +289,31 @@ class RioAlertService {
         ].join('\n');
 
         const color = event.level === 'transbordamento' ? '#dc2626' : event.level === 'alerta' ? '#ea580c' : '#d97706';
+        const delta = event.metros - level.cota;
+        const preheader = `O rio está em ${fmtMeters(event.metros)} m, ${fmtMeters(Math.abs(delta))} m acima da cota. Veja as fotos das câmeras e como o rio andou nos últimos 7 dias.`;
+        const button = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;"><tr><td bgcolor="#4f46e5" style="border-radius:10px;background:#4f46e5;"><a href="${riverUrl}" style="display:inline-block;padding:13px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:10px;">Ver nível em tempo real</a></td></tr></table>`;
         const html = this._layout({
+            accent: color,
+            preheader,
             title: `<span style="color:${color};">${escapeHtml(headline)}</span>`,
             bodyHtml: `${testNoticeHtml}<p style="margin:0 0 4px;font-size:34px;font-weight:bold;">${fmtMeters(event.metros)} m</p>
     <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">Leitura de ${escapeHtml(event.dataLeitura || 'agora há pouco')} · Estação Rio Branco · Fonte: ${escapeHtml(event.fonte || 'ANA')}</p>
-    ${imagesHtml}${chartHtml}<p style="margin:0 0 24px;"><a href="${riverUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:10px;">Ver nível em tempo real</a></p>
+    ${imagesHtml}${chartHtml}${button}
     <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Aviso automático e informativo, baseado em dados da ANA. Para orientações oficiais, consulte a Defesa Civil (199) e o SGB/CPRM.</p>`,
-            footerHtml: `Você recebe este e-mail porque pediu alertas do Rio Acre no CamRB.<br><a href="${unsubPage}" style="color:#6b7280;">Deixar de receber</a>`
+            footerHtml: `Você recebe este e-mail porque ${escapeHtml(sub.email || 'este endereço')} pediu alertas do Rio Acre no CamRB.<br><a href="${unsubPage}" style="color:#6b7280;">Deixar de receber</a> · <a href="${this._baseUrl}/termos" style="color:#6b7280;">Termos e privacidade</a><br>CamRB · Rio Branco - AC`
         });
 
         return {
-            subject: `${test ? '[TESTE] ' : ''}${event.level === 'transbordamento' ? '🚨' : '⚠️'} ${headline}`,
+            // O nível já vem no assunto: dá para ler o essencial sem abrir o e-mail.
+            subject: `${test ? '[TESTE] ' : ''}${event.level === 'transbordamento' ? '🚨' : '⚠️'} Rio Acre em ${fmtMeters(event.metros)} m: ${headline.replace(/^Rio Acre /, '')}`,
             text,
             html,
+            replyTo: REPLY_TO,
             headers: {
                 'List-Unsubscribe': `<${unsubPost}>`,
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                // Um identificador por evento evita que o Gmail junte alertas diferentes numa só conversa
+                'X-Entity-Ref-ID': `${event.id}-${sub.id}`
             }
         };
     }

@@ -127,3 +127,37 @@ test('a prévia do painel inclui o gráfico e falha no gráfico não derruba o e
         assert.equal(prev2.grafico, null);
     } finally { console.error = orig; }
 });
+
+// ─── Entrega do e-mail de alerta ────────────────────────────────────────────
+test('o assunto já traz o nível e a cota, e o e-mail leva resposta, preheader e identificador próprio', () => {
+    const svc = makeAlertService(null);
+    const msg = svc._buildAlertMessage({ id: 's1', email: 'maria@exemplo.com' }, EVENTO, {});
+    assert.equal(msg.subject, '⚠️ Rio Acre em 13,60 m: acima da cota de alerta (13,50 m)');
+    assert.equal(msg.replyTo, 'suportecamrb@gmail.com');
+    assert.equal(msg.headers['X-Entity-Ref-ID'], 'teste-s1');
+    assert.match(msg.html, /display:none;max-height:0;overflow:hidden[^>]*>O rio está em 13,60 m, 0,10 m acima da cota\./);
+    assert.match(msg.html, /<meta name="viewport"/);
+    assert.match(msg.html, /border-top:5px solid #ea580c/);                    // faixa na cor do nível
+    assert.match(msg.html, /Você recebe este e-mail porque maria@exemplo\.com pediu alertas/);
+    assert.match(msg.html, /<table role="presentation"[^>]*><tr><td bgcolor="#4f46e5"/); // botão que funciona no Outlook
+    assert.match(svc._buildAlertMessage({ id: 's1', email: 'a@b.com' }, EVENTO, { test: true }).subject, /^\[TESTE\] ⚠️ Rio Acre em 13,60 m/);
+});
+
+test('o e-mail de confirmação continua usando o mesmo modelo, sem preheader de alerta', () => {
+    const msg = makeAlertService(null)._buildConfirmMessage('s1', ['alerta']);
+    assert.match(msg.html, /Confirmar alertas/);
+    assert.ok(!msg.html.includes('display:none;max-height:0'));
+});
+
+test('o MailService repassa o Reply-To ao Resend', async () => {
+    const MailService = require('../src/infrastructure/services/MailService');
+    const pedidos = [];
+    const mail = new MailService({ RESEND_API_KEY: 're_teste', MAIL_FROM: 'CamRB <no-reply@exemplo.com>' }, {
+        fetchImpl: async (url, init) => { pedidos.push(JSON.parse(init.body)); return { ok: true }; }
+    });
+    await mail.sendMessage('x@y.com', { subject: 's', text: 't', html: '<p>t</p>', replyTo: 'ajuda@exemplo.com', headers: { A: 'b' } }, { channel: 'alertas' });
+    await mail.sendMessage('x@y.com', { subject: 's', text: 't', html: '<p>t</p>' });
+    assert.equal(pedidos[0].reply_to, 'ajuda@exemplo.com');
+    assert.deepEqual(pedidos[0].headers, { A: 'b' });
+    assert.ok(!('reply_to' in pedidos[1]));
+});
