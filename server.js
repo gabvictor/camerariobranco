@@ -1309,7 +1309,13 @@ async function bootstrap() {
     // 6. Inicia agendador de varreduras e timelapse
     scheduler.start();
     timelapseScheduler.start();
-    rioAlertService.start();
+    // Disparador automático de alertas: desligue (ALERTAS_AUTOMATICOS=false) em cópias de teste que usam o mesmo
+    // banco e a mesma chave de e-mail do site real, senão dois servidores poderiam avisar as mesmas pessoas duas vezes.
+    if (process.env.ALERTAS_AUTOMATICOS === 'false') {
+        console.log('[RIO_ALERT] Disparo automático de alertas DESLIGADO neste servidor (ALERTAS_AUTOMATICOS=false).');
+    } else {
+        rioAlertService.start();
+    }
     visitors.start();
 
     const shutdown = async (signal) => {
