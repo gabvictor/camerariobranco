@@ -2,6 +2,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const axios = require('axios');
 const HidroWebService = require('./HidroWebService');
+const Upstream = require('../../domain/UpstreamForecast');
 const { formatRioBrancoDateTime, getRioBrancoDateStr } = require('../../utils/dateUtils');
 
 /**
@@ -83,6 +84,8 @@ class RioAcreService {
         this._historicoCache = {};
         this._previsaoCache = null;
         this._lastPrevisaoFetchTime = 0;
+        this._serie30Cache = new Map();   // código da estação → { at, readings }
+        this.estacoesMontante = options.estacoesMontante || Upstream.ESTACOES_MONTANTE;
     }
 
     // ─── Motor Python (opcional) ────────────────────────────────────────────────────
@@ -224,7 +227,11 @@ class RioAcreService {
         const nivel = await this.getNivelRioAcre(); // lança DadosIndisponiveisError se não há dado real
         let hist = null;
         try { hist = await this.getHistoricoRioAcre(2); } catch (_) { /* segue sem histórico */ }
-        const result = this._calcularPrevisao(nivel, hist);
+        let montante = [];
+        try { montante = await this._analiseMontante(nivel.nivel.timestamp); } catch (err) {
+            console.warn('[RioAcreService] Nível a montante indisponível, usando só a tendência:', err.message);
+        }
+        const result = this._calcularPrevisao(nivel, hist, montante);
         this._previsaoCache = result;
         this._lastPrevisaoFetchTime = now;
         return result;
@@ -237,7 +244,7 @@ class RioAcreService {
         return { riscoInundacao: `${fmt(this.cotaAlerta - n)} m abaixo da cota de alerta`, statusRisco: 'Abaixo das cotas de atenção', corRisco: 'emerald' };
     }
 
-    _calcularPrevisao(nivelData, hist) {
+    _calcularPrevisao(nivelData, hist, montante = []) {
         const nivelAtual = nivelData.nivel.metros;
         const rb = new Date(Date.now() - RB_OFFSET_MS);
         const mes = rb.getUTCMonth() + 1;
@@ -259,7 +266,7 @@ class RioAcreService {
                 diferencaMedia: `${diffMedia > 0 ? '+' : ''}${diffMedia.toFixed(2).replace('.', ',')} m`,
                 recordeCheia: RECORDE_CHEIA,
                 recordeSeca: RECORDE_SECA,
-                aviso: 'Médias mensais aproximadas, sem fonte oficial citada: use apenas como referência.'
+                aviso: 'Médias de 2021-2025 calculadas da telemetria da ANA: referência recente, não climatologia de longo prazo.'
             },
             climatologiaAnual: MESES.map((nome, i) => ({ mes: nome.slice(0, 3), nome, media: CLIMATOLOGIA[i + 1][0], tipo: CLIMATOLOGIA[i + 1][1] })),
             ...this._situacao(nivelAtual)
@@ -304,16 +311,99 @@ class RioAcreService {
         };
         const p24 = projetar(24), p48 = projetar(48), p7d = projetar(168);
         p7d.tendencia += ' (baixa confiança)';
+        for (const p of [p24, p48, p7d]) p.metodo = 'tendencia';
+
+        // Nível a montante: onde a onda de cheia já passou, o que vem para Rio Branco já está medido.
+        const usadas = {};
+        for (const [horas, proj, rotulo] of [[24, p24, '24h'], [48, p48, '48h']]) {
+            const candidatas = montante.filter((a) => a.ajuste.usavel && a.ajuste.atraso >= horas)
+                .sort((a, b) => a.ajuste.atraso - b.ajuste.atraso);
+            for (const a of candidatas) {
+                const est = Upstream.estimar(a.ajuste, a.rbH, a.upH, a.agoraMs, horas);
+                if (!est) continue;
+                const delta = Number((est.nivel - est.rb0).toFixed(2));
+                const alvo = Number(Math.max(0, nivelAtual + delta).toFixed(2));
+                const faixa = Math.max(0.05, 2 * est.rms);
+                Object.assign(proj, {
+                    nivel: alvo,
+                    delta: `${delta > 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} m`,
+                    min: Number(Math.max(0, alvo - faixa).toFixed(2)),
+                    max: Number((alvo + faixa).toFixed(2)),
+                    tendencia: delta > 0.03 ? 'Elevação' : delta < -0.03 ? 'Queda' : 'Estabilidade',
+                    metodo: 'montante', estacao: a.estacao.nome,
+                    erroTipico: Number(est.mae.toFixed(2)), erroPersistencia: Number(est.maePersistencia.toFixed(2))
+                });
+                (usadas[a.estacao.nome] = usadas[a.estacao.nome] || []).push(rotulo);
+                break;
+            }
+        }
         const [icone, cor] = ({ 'Elevação': ['trending-up', 'amber'], 'Queda': ['trending-down', 'blue'] })[p24.tendencia] || ['minus', 'emerald'];
         const delta24 = Number((nivelAtual - ys[0]).toFixed(2));
 
+        const nomesUsados = Object.keys(usadas).sort();
+        let trechoMontante = '';
+        const montanteInfo = montante.map((a) => ({
+            nome: a.estacao.nome, codigo: a.estacao.codigo, nivel: Number(a.nivel.toFixed(2)), variacao24h: a.variacao24h,
+            atrasoHoras: a.ajuste.atraso, correlacao: a.ajuste.correlacao, calibrada: a.ajuste.calibrada,
+            usadaEm: usadas[a.estacao.nome] || []
+        }));
+        if (nomesUsados.length) {
+            base.aviso = `Combina o nível já medido a montante (${nomesUsados.join(' e ')}), que chega a Rio Branco em cerca de 1 a 3 dias, com a tendência das últimas 24 h. Não considera chuva prevista e NÃO substitui os alertas do SGB/CPRM e da Defesa Civil (199).`;
+            const subindo = montante.filter((a) => usadas[a.estacao.nome] && a.variacao24h > 0.15).map((a) => a.estacao.nome);
+            trechoMontante = ` A montante, ${subindo.length ? `o nível está subindo em ${subindo.join(', ')}` : 'não há subida relevante nas últimas 24 h'}.`;
+        }
+
         return {
             ...base,
+            montante: montanteInfo,
             disponivel: true,
             direcaoPrevisao: p24.tendencia, iconeDirecao: icone, corDirecao: cor,
             projecoes: { '24h': p24, '48h': p48, '7d': p7d },
-            diagnostico: `Cota atual de ${fmt(nivelAtual)} m, ${fmt(Math.abs(diffMedia))} m ${diffMedia > 0 ? 'acima' : 'abaixo'} da média de referência de ${MESES[mes - 1]} (${fmt(mediaMes)} m, período de ${tipoMes.toLowerCase()}). Variação medida nas últimas 24 h: ${delta24 > 0 ? '+' : ''}${fmt(delta24)} m. As projeções acima são extrapolação dessa tendência e perdem confiança com o tempo; para alertas oficiais consulte o SGB/CPRM e a Defesa Civil (199).`
+            diagnostico: `Cota atual de ${fmt(nivelAtual)} m, ${fmt(Math.abs(diffMedia))} m ${diffMedia > 0 ? 'acima' : 'abaixo'} da média de referência de ${MESES[mes - 1]} (${fmt(mediaMes)} m, período de ${tipoMes.toLowerCase()}). Variação medida nas últimas 24 h: ${delta24 > 0 ? '+' : ''}${fmt(delta24)} m.${trechoMontante} As projeções de 24 h e 48 h usam o que já foi medido a montante quando disponível; a de 7 dias é só extrapolação da tendência e tem baixa confiança. Para alertas oficiais consulte o SGB/CPRM e a Defesa Civil (199).`
         };
+    }
+
+    // ─── Nível a montante ───────────────────────────────────────────────────────────
+    /** Série de 30 dias de uma estação (só HidroWeb), guardada por 10 min. Devolve null se não houver dado. */
+    async _serie30(codigo) {
+        const hit = this._serie30Cache.get(codigo);
+        if (hit && Date.now() - hit.at < this._cacheTtlMs) return hit.readings;
+        try {
+            const items = await this.hidroWebService.consultarSerieTelemetricaAdotada({
+                codigosEstacoes: codigo, tipoFiltroData: 'DATA_LEITURA', rangeIntervalo: 'DIAS_30'
+            });
+            const readings = this._cleanReadings(this._parseHidroWebReadings(items || []));
+            if (!readings.length) throw new Error('nenhuma leitura com cota válida');
+            this._serie30Cache.set(codigo, { at: Date.now(), readings });
+            return readings;
+        } catch (err) {
+            console.warn(`[RioAcreService] Série de 30 dias da estação ${codigo} indisponível: ${err.message}`);
+            return null; // sem a série, a estação simplesmente não entra na estimativa
+        }
+    }
+
+    /** Ajusta cada estação a montante contra Rio Branco. Estação que não responde ou não serve é ignorada. */
+    async _analiseMontante(agoraMs) {
+        if (!this.estacoesMontante.length) return [];
+        const [rb, ...ups] = await Promise.all([this._serie30(this.station.codigo), ...this.estacoesMontante.map((e) => this._serie30(e.codigo))]);
+        if (!rb) return [];
+        const rbH = Upstream.horaria(rb);
+        const saida = [];
+        this.estacoesMontante.forEach((estacao, i) => {
+            const leituras = ups[i];
+            if (!leituras) return;
+            const ultima = leituras[leituras.length - 1];
+            if ((agoraMs - ultima.timestamp) / Upstream.HOUR > Upstream.FRESCOR_MAX_H) return;
+            const upH = Upstream.horaria(leituras);
+            const ajuste = Upstream.ajustar({ atrasoRefH: estacao.atrasoRefH }, rbH, upH);
+            if (!ajuste) return;
+            const ref24 = leituras.find((r) => r.timestamp > ultima.timestamp - 24 * Upstream.HOUR);
+            saida.push({
+                estacao, ajuste, rbH, upH, agoraMs, nivel: ultima.nivelM,
+                variacao24h: Number((ultima.nivelM - ref24.nivelM).toFixed(2))
+            });
+        });
+        return saida;
     }
 
     // ─── Fontes de dados ────────────────────────────────────────────────────────────
