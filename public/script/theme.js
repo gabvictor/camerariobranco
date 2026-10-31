@@ -568,6 +568,37 @@
         window.addEventListener('pagehide', cleanupPresence);
     }
 
+    // ─── Identificação da aba e aviso de segundo plano (perfil de visitantes) ──
+    // O tempo com a aba escondida não é contado como "tempo no site".
+    function camrbTabId() {
+        try {
+            let tabId = sessionStorage.getItem('camrb_tab_id');
+            if (!tabId) {
+                tabId = 'tab_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
+                sessionStorage.setItem('camrb_tab_id', tabId);
+            }
+            return tabId;
+        } catch (_) {
+            return '';
+        }
+    }
+    window.camrbTabId = camrbTabId;
+
+    function initVisibilityBeacon() {
+        if (window.location.pathname.toLowerCase().startsWith('/embed')) return;
+        const send = () => {
+            const tabId = camrbTabId();
+            if (!tabId || !navigator.sendBeacon) return;
+            try {
+                const body = JSON.stringify({ tabId: tabId, hidden: document.visibilityState === 'hidden' });
+                navigator.sendBeacon('/api/presence/visibility', new Blob([body], { type: 'application/json' }));
+            } catch (_) { /* sem suporte: o tempo só não desconta o segundo plano */ }
+        };
+        document.addEventListener('visibilitychange', send);
+        send(); // estado inicial desta página (corrige o "escondido" deixado pela página anterior)
+    }
+    initVisibilityBeacon();
+
     initGlobalPresence();
 
     // ─── Rastreamento Universal de Origem & Tráfego ──────────────────────────────

@@ -353,7 +353,12 @@
                     errorOverlay.classList.add('visible');
                 };
 
-                feed.src = `/stream/camera/${cameraId}?t=${Date.now()}`;
+                let embedTab = '';
+                try {
+                    embedTab = sessionStorage.getItem('camrb_tab_id') || ('embed_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36));
+                    sessionStorage.setItem('camrb_tab_id', embedTab);
+                } catch (_) {}
+                feed.src = `/stream/camera/${cameraId}?t=${Date.now()}${embedTab ? `&tabId=${encodeURIComponent(embedTab)}` : ''}`;
             }
 
             // ── 6. Retry button ─────────────────────────────────────────────

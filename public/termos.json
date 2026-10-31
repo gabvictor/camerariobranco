@@ -1,5 +1,5 @@
 {
-  "version": 3.1,
+  "version": 3.2,
   "lastUpdated": "Outubro de 2026",
   "content": [
     {
@@ -137,6 +137,11 @@
       "type": "listItem",
       "boldPrefix": "Conta de Usuário:",
       "text": "Caso você opte por criar uma conta (via e-mail ou login social seguro do Google), guardamos apenas seu nome/apelido, e-mail e lista de câmeras favoritas. Seus dados nunca são vendidos ou repassados a empresas terceiras."
+    },
+    {
+      "type": "listItem",
+      "boldPrefix": "Estatísticas de Uso (sem identificar você):",
+      "text": "para melhorar o site, medimos quanto tempo as visitas ficam abertas, quais páginas são mais usadas e quais câmeras são mais assistidas. Cada visita é reconhecida apenas pela aba do navegador, sem cookies adicionais, sem o seu e-mail e com o IP mascarado; robôs e buscadores não são contados. O tempo não conta enquanto a aba está em segundo plano. Os perfis detalhados de visita são apagados automaticamente em até 30 dias, e o resumo diário guarda apenas totais. Se você estiver logado, o administrador do site pode ver o seu apelido (nunca o e-mail) nessa visita. A base legal é o legítimo interesse em manter e melhorar o serviço (art. 7º, IX, da LGPD), e você pode se opor a qualquer momento pelo e-mail de suporte."
     },
     {
       "type": "listItem",

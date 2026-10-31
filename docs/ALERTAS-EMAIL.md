@@ -105,3 +105,14 @@ Para mostrar a alguém (por exemplo, um professor) como o alerta funciona, sem e
 - **E-mail de teste:** envia **um** e-mail para o endereço que você digitar, pelo remetente de alertas, com `[TESTE]` no assunto. Nunca vai para os inscritos. Limite de 20 testes por dia (gasta a cota do provedor).
 
 Por que o simulador não altera o nível real do site: mudar o nível público mostraria um valor falso para todos e dispararia alertas de verdade para pessoas reais, o que é perigoso num tema de enchente.
+
+## 8. Fotos das câmeras do rio no e-mail
+
+O alerta leva a foto das câmeras do rio **que estiverem online** (padrão: Passarela Joaquim Macedo `001334` e Ponte Metálica `001426`):
+- as duas online: as duas fotos; só uma online: só ela; as duas fora do ar: o e-mail sai sem fotos;
+- câmera fora do ar, ou com imagem inválida, nunca entra;
+- a foto é tirada **uma vez por alerta**, quando ele sai, e salva em `public/uploads/alertas/`. Todos os inscritos veem a mesma foto daquele momento (uma imagem "ao vivo" aberta dias depois mostraria o rio de outro dia);
+- fotos com mais de 30 dias são apagadas automaticamente;
+- a prévia e o e-mail de teste do painel (`/admin/alertas`) também mostram as fotos e explicam quais câmeras entraram ou ficaram de fora.
+
+Para trocar as câmeras, defina `RIO_ALERT_CAMERAS` (códigos separados por vírgula), por exemplo `001334,001426`.

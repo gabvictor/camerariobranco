@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="/assets/icone.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icone.png">
+
+    <title>Perfis de Visitantes - Painel CamRB</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/script/theme.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #content-wrapper { display: none; }
+        .num { font-variant-numeric: tabular-nums; }
+        .hbar { height: 6px; border-radius: 999px; background: #6366f1; min-width: 2px; }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Acesso negado -->
+    <div id="access-denied" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-8 h-8 text-red-600 dark:text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">Esta área é exclusiva para administradores autenticados.</p>
+            <div class="flex flex-col gap-3">
+                <button id="login-trigger" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20">
+                    Fazer Login como Admin
+                </button>
+                <a href="/" class="py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors">
+                    Voltar para Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="content-wrapper">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+            <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="users" class="w-6 h-6"></i></div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Perfis de Visitantes</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Quanto tempo cada pessoa ficou, o que visitou e quais câmeras assistiu.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="toggle-theme" title="Alternar tema" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95">
+                        <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    </button>
+                    <a href="/" title="Ver Site" class="px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-sm font-semibold">
+                        <i data-lucide="external-link" class="w-4 h-4"></i><span class="hidden sm:inline">Ver Site</span>
+                    </a>
+                    <button id="nav-logout-btn" title="Sair" class="p-2.5 rounded-xl bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Abas do admin -->
+            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard</a>
+                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap"><i data-lucide="users" class="w-4 h-4"></i> Visitantes</a>
+                <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego</a>
+                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC</a>
+                <a href="/admin" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config</a>
+                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras</a>
+                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor</a>
+                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes</a>
+                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="message-square" class="w-4 h-4"></i> Comentários</a>
+                <a href="/admin/alertas" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="bell-ring" class="w-4 h-4"></i> Alertas do Rio</a>
+            </nav>
+
+            <!-- Período -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Resumo do período</h2>
+                <div class="inline-flex rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1" id="periodo" role="group" aria-label="Período">
+                    <button type="button" data-d="1" class="periodo-btn px-3 py-1.5 rounded-lg text-xs font-bold">Hoje</button>
+                    <button type="button" data-d="7" class="periodo-btn px-3 py-1.5 rounded-lg text-xs font-bold">7 dias</button>
+                    <button type="button" data-d="30" class="periodo-btn px-3 py-1.5 rounded-lg text-xs font-bold">30 dias</button>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <section class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8" aria-label="Indicadores">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Visitas</p><p id="k-sessoes" class="text-2xl font-black num">--</p></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Tempo médio</p><p id="k-media" class="text-2xl font-black num">--</p></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Saíram em &lt; 10 s</p><p id="k-saida" class="text-2xl font-black num">--</p></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Assistiram câmera</p><p id="k-camera" class="text-2xl font-black num">--</p></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Páginas por visita</p><p id="k-paginas" class="text-2xl font-black num">--</p></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Logados</p><p id="k-logados" class="text-2xl font-black num">--</p></div>
+            </section>
+
+            <!-- Ao vivo -->
+            <section class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 mb-8" aria-labelledby="aovivo-titulo">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
+                        <h2 id="aovivo-titulo" class="text-lg font-bold text-gray-900 dark:text-white">Ao vivo agora <span id="aovivo-qtd" class="text-sm font-semibold text-gray-500 dark:text-gray-400">(0)</span></h2>
+                    </div>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400">Atualiza a cada 5 segundos. O tempo não conta quando a aba está em segundo plano.</p>
+                </div>
+                <div id="aovivo-lista" class="space-y-3"><p class="text-sm text-gray-500 dark:text-gray-400">Carregando...</p></div>
+            </section>
+
+            <!-- Rankings -->
+            <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 xl:col-span-2">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Câmeras mais assistidas</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Por tempo total de visualização no período.</p>
+                    <div id="rank-cameras" class="space-y-3"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Páginas por tempo</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Onde as pessoas passam mais tempo.</p>
+                    <div id="rank-paginas" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 xl:col-span-2">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Horários de maior movimento</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Visitas por hora do dia (horário de Rio Branco).</p>
+                    <div id="grafico-horas" class="flex items-end gap-1 h-36" role="img" aria-label="Visitas por hora"></div>
+                    <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mt-1 num"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Dispositivos</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Com que aparelho acessam.</p>
+                    <div id="rank-dispositivos" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <!-- Histórico de perfis -->
+            <section class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 mb-8" aria-labelledby="hist-titulo">
+                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+                    <div>
+                        <h2 id="hist-titulo" class="text-lg font-bold text-gray-900 dark:text-white">Perfis de visitas</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Clique em uma linha para ver as páginas e câmeras daquela visita. Só entram visitas com pelo menos 20 s, câmera assistida ou login.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer"><input id="f-camera" type="checkbox" class="accent-indigo-600"> Só com câmera</label>
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer"><input id="f-logados" type="checkbox" class="accent-indigo-600"> Só logados</label>
+                        <label class="inline-flex items-center gap-1.5">Mínimo
+                            <select id="f-min" class="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                <option value="0">sem mínimo</option><option value="30">30 s</option><option value="60">1 min</option><option value="300">5 min</option><option value="900">15 min</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-900/60 text-xs text-gray-500 dark:text-gray-400">
+                            <tr>
+                                <th class="text-left font-semibold px-3 py-2.5">Quando</th>
+                                <th class="text-left font-semibold px-3 py-2.5">Quem</th>
+                                <th class="text-right font-semibold px-3 py-2.5">Tempo</th>
+                                <th class="text-left font-semibold px-3 py-2.5">Câmeras</th>
+                                <th class="text-left font-semibold px-3 py-2.5">Aparelho</th>
+                                <th class="text-left font-semibold px-3 py-2.5">Local</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hist-corpo"><tr><td colspan="6" class="px-3 py-6 text-center text-gray-500 dark:text-gray-400">Carregando...</td></tr></tbody>
+                    </table>
+                </div>
+                <p id="hist-nota" class="text-[11px] text-gray-500 dark:text-gray-400 mt-3"></p>
+            </section>
+
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed mb-8">
+                <strong>Privacidade:</strong> as visitas são identificadas só pela aba do navegador, sem cookies novos. Não guardamos o e-mail e o IP aparece mascarado. Os perfis detalhados são apagados automaticamente depois de 30 dias; o resumo diário guarda apenas totais. Robôs e buscadores não entram na contagem.
+            </p>
+
+            <div id="global-footer"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { auth } from "/script/firebase-config.js";
+        import { initAuthModal, toggleLoginModal, syncAdminSession } from "/script/auth-modal.js";
+        import { initFooter } from "/script/footer-component.js";
+
+        let currentUser = null;
+        let days = 7;
+        let liveTimer = null;
+        const $ = (id) => document.getElementById(id);
+
+        function el(tag, cls, text) {
+            const n = document.createElement(tag);
+            if (cls) n.className = cls;
+            if (text !== undefined && text !== null) n.textContent = text;
+            return n;
+        }
+
+        function fmtDur(sec) {
+            sec = Math.max(0, Math.round(sec || 0));
+            if (sec < 60) return `${sec}s`;
+            const m = Math.floor(sec / 60), s = sec % 60;
+            if (m < 60) return s ? `${m}m ${String(s).padStart(2, '0')}s` : `${m}m`;
+            const h = Math.floor(m / 60), mm = m % 60;
+            return `${h}h ${String(mm).padStart(2, '0')}m`;
+        }
+        const fmtNum = (n) => Number(n || 0).toLocaleString('pt-BR');
+        const fmtWhen = (ms) => new Date(ms).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+        async function api(path) {
+            const token = currentUser ? await currentUser.getIdToken() : '';
+            const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || data.message || `Erro ${res.status}`);
+            return data;
+        }
+
+        function barList(container, rows, labelOf, valueOf, subOf, emptyText) {
+            container.replaceChildren();
+            if (!rows.length) { container.append(el('p', 'text-sm text-gray-500 dark:text-gray-400', emptyText)); return; }
+            const max = Math.max(...rows.map(valueOf), 1);
+            rows.forEach((r) => {
+                const wrap = el('div');
+                const top = el('div', 'flex items-baseline justify-between gap-3 mb-1');
+                top.append(el('span', 'text-sm font-semibold text-gray-800 dark:text-gray-100 truncate', labelOf(r)), el('span', 'text-xs text-gray-500 dark:text-gray-400 num whitespace-nowrap', subOf(r)));
+                const track = el('div', 'h-1.5 rounded-full bg-gray-100 dark:bg-gray-700');
+                const bar = el('div', 'hbar'); bar.style.width = `${Math.max(2, (valueOf(r) / max) * 100)}%`;
+                track.append(bar);
+                wrap.append(top, track);
+                container.append(wrap);
+            });
+        }
+
+        async function loadSummary() {
+            try {
+                const r = await api(`/api/admin/visitantes/resumo?dias=${days}`);
+                $('k-sessoes').textContent = fmtNum(r.sessoes);
+                $('k-media').textContent = r.sessoes ? fmtDur(r.mediaSegundos) : '--';
+                $('k-saida').textContent = r.sessoes ? `${r.saidaRapidaPct}%` : '--';
+                $('k-camera').textContent = r.sessoes ? `${r.comCameraPct}%` : '--';
+                $('k-paginas').textContent = r.sessoes ? String(r.paginasPorSessao).replace('.', ',') : '--';
+                $('k-logados').textContent = r.sessoes ? `${r.logadosPct}%` : '--';
+
+                barList($('rank-cameras'), r.camerasMaisAssistidas, (c) => c.nome, (c) => c.segundos,
+                    (c) => `${fmtDur(c.segundos)} · ${fmtNum(c.sessoes)} visita(s) · média ${fmtDur(c.mediaSegundos)}`,
+                    'Ainda não há câmeras assistidas neste período.');
+                barList($('rank-paginas'), r.paginasMaisUsadas, (p) => p.caminho, (p) => p.segundos, (p) => fmtDur(p.segundos),
+                    'Sem dados neste período.');
+                barList($('rank-dispositivos'), r.dispositivos, (d) => d.nome, (d) => d.sessoes, (d) => `${fmtNum(d.sessoes)}`,
+                    'Sem dados neste período.');
+
+                const box = $('grafico-horas');
+                box.replaceChildren();
+                const max = Math.max(...r.porHora.map((h) => h.sessoes), 1);
+                r.porHora.forEach((h) => {
+                    const col = el('div', 'flex-1 flex flex-col justify-end h-full');
+                    col.title = `${h.hora}h: ${h.sessoes} visita(s)`;
+                    const bar = el('div', 'w-full rounded-t bg-indigo-500/80');
+                    bar.style.height = `${h.sessoes ? Math.max(4, (h.sessoes / max) * 100) : 2}%`;
+                    if (!h.sessoes) bar.className = 'w-full rounded-t bg-gray-200 dark:bg-gray-700';
+                    col.append(bar);
+                    box.append(col);
+                });
+            } catch (e) {
+                $('k-sessoes').textContent = 'Erro';
+                console.error(e);
+            }
+        }
+
+        function chip(text, cls) { return el('span', 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ' + cls, text); }
+
+        async function loadLive() {
+            try {
+                const { visitantes } = await api('/api/admin/visitantes/ao-vivo');
+                $('aovivo-qtd').textContent = `(${visitantes.length})`;
+                const list = $('aovivo-lista');
+                list.replaceChildren();
+                if (!visitantes.length) { list.append(el('p', 'text-sm text-gray-500 dark:text-gray-400', 'Ninguém conectado neste momento.')); return; }
+
+                visitantes.forEach((v) => {
+                    const card = el('div', 'rounded-2xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center gap-3');
+                    const who = el('div', 'lg:w-56 shrink-0');
+                    who.append(el('p', 'text-sm font-bold text-gray-900 dark:text-white', v.usuario ? v.usuario.nome : 'Visitante anônimo'));
+                    who.append(el('p', 'text-xs text-gray-500 dark:text-gray-400', [v.dispositivo, v.navegador].filter(Boolean).join(' · ') || '—'));
+                    who.append(el('p', 'text-xs text-gray-500 dark:text-gray-400', [v.cidade, v.regiao].filter(Boolean).join(', ') || '—'));
+
+                    const time = el('div', 'lg:w-28 shrink-0');
+                    time.append(el('p', 'text-xl font-black num text-indigo-600 dark:text-indigo-400', fmtDur(v.tempoSegundos)));
+                    time.append(el('p', 'text-[11px] text-gray-500 dark:text-gray-400', `desde ${new Date(v.inicio).toLocaleTimeString('pt-BR', { timeZone: 'America/Rio_Branco', hour: '2-digit', minute: '2-digit' })}`));
+
+                    const now = el('div', 'flex-1 min-w-0 space-y-1.5');
+                    const row1 = el('div', 'flex flex-wrap items-center gap-1.5');
+                    row1.append(el('span', 'text-xs text-gray-500 dark:text-gray-400', 'Está em:'));
+                    (v.paginaAtual.length ? v.paginaAtual : [{ caminho: '—', nome: '—' }]).forEach((p) => row1.append(chip(p.caminho, 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200')));
+                    if (v.emSegundoPlano) row1.append(chip('aba em segundo plano', 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'));
+                    const row2 = el('div', 'flex flex-wrap items-center gap-1.5');
+                    row2.append(el('span', 'text-xs text-gray-500 dark:text-gray-400', 'Assistindo:'));
+                    if (v.assistindoAgora.length) v.assistindoAgora.forEach((c) => row2.append(chip(`${c.nome} · ${fmtDur(c.segundos)}`, 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300')));
+                    else row2.append(el('span', 'text-xs text-gray-400', 'nenhuma câmera'));
+                    const seen = v.cameras.filter((c) => !v.assistindoAgora.some((a) => a.codigo === c.codigo));
+                    if (seen.length) {
+                        const row3 = el('div', 'flex flex-wrap items-center gap-1.5');
+                        row3.append(el('span', 'text-xs text-gray-500 dark:text-gray-400', 'Já viu:'));
+                        seen.forEach((c) => row3.append(chip(`${c.nome} · ${fmtDur(c.segundos)}`, 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300')));
+                        now.append(row1, row2, row3);
+                    } else {
+                        now.append(row1, row2);
+                    }
+                    card.append(who, time, now);
+                    list.append(card);
+                });
+            } catch (e) {
+                $('aovivo-lista').textContent = 'Não foi possível carregar: ' + e.message;
+            }
+        }
+
+        function detailRow(s) {
+            const tr = el('tr', 'bg-gray-50 dark:bg-gray-900/50');
+            const td = el('td', 'px-3 py-4'); td.colSpan = 6;
+            const grid = el('div', 'grid grid-cols-1 md:grid-cols-2 gap-6');
+
+            const pg = el('div');
+            pg.append(el('p', 'text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2', `Páginas (entrou por ${s.entrada})`));
+            if (s.paginas.length) s.paginas.forEach((p) => {
+                const row = el('div', 'flex items-baseline justify-between gap-3 text-sm py-0.5');
+                row.append(el('span', 'truncate text-gray-800 dark:text-gray-100', p.caminho), el('span', 'num text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap', `${fmtDur(p.segundos)}${p.vezes > 1 ? ` · ${p.vezes}x` : ''}`));
+                pg.append(row);
+            }); else pg.append(el('p', 'text-sm text-gray-500', 'Sem páginas registradas.'));
+
+            const cm = el('div');
+            cm.append(el('p', 'text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2', 'Câmeras assistidas'));
+            if (s.cameras.length) s.cameras.forEach((c) => {
+                const row = el('div', 'flex items-baseline justify-between gap-3 text-sm py-0.5');
+                row.append(el('span', 'truncate text-gray-800 dark:text-gray-100', c.nome), el('span', 'num text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap', `${fmtDur(c.segundos)}${c.vezes > 1 ? ` · ${c.vezes}x` : ''}`));
+                cm.append(row);
+            }); else cm.append(el('p', 'text-sm text-gray-500', 'Não assistiu câmeras ao vivo.'));
+
+            grid.append(pg, cm);
+            td.append(grid, el('p', 'text-[11px] text-gray-500 dark:text-gray-400 mt-3', `Visita ${s.id} · IP ${s.ipMascarado || '—'} · ${s.sistema || '—'}`));
+            tr.append(td);
+            return tr;
+        }
+
+        async function loadHistory() {
+            const body = $('hist-corpo');
+            try {
+                const params = new URLSearchParams({ dias: String(days), limite: '200' });
+                if ($('f-camera').checked) params.set('camera', '1');
+                if ($('f-logados').checked) params.set('logados', '1');
+                if ($('f-min').value !== '0') params.set('min', $('f-min').value);
+                const { sessoes } = await api(`/api/admin/visitantes/sessoes?${params}`);
+
+                body.replaceChildren();
+                if (!sessoes.length) {
+                    const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-gray-500 dark:text-gray-400', 'Nenhuma visita neste filtro ainda.'); td.colSpan = 6; tr.append(td); body.append(tr);
+                    $('hist-nota').textContent = '';
+                    return;
+                }
+                sessoes.forEach((s) => {
+                    const tr = el('tr', 'border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 cursor-pointer');
+                    tr.tabIndex = 0;
+                    const camText = s.cameras.length ? s.cameras.slice(0, 2).map((c) => c.nome).join(', ') + (s.cameras.length > 2 ? ` +${s.cameras.length - 2}` : '') : '—';
+                    const cells = [
+                        [fmtWhen(s.inicio), 'px-3 py-2.5 whitespace-nowrap num text-xs text-gray-600 dark:text-gray-300'],
+                        [s.usuario ? s.usuario.nome : 'Anônimo', 'px-3 py-2.5 font-semibold ' + (s.usuario ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200')],
+                        [fmtDur(s.duracaoSegundos), 'px-3 py-2.5 text-right font-bold num'],
+                        [camText, 'px-3 py-2.5 text-gray-700 dark:text-gray-200 max-w-[16rem] truncate'],
+                        [[s.dispositivo, s.navegador].filter(Boolean).join(' · ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap'],
+                        [[s.cidade, s.regiao].filter(Boolean).join(', ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap']
+                    ];
+                    cells.forEach(([t, c]) => tr.append(el('td', c, t)));
+                    let detail = null;
+                    const toggle = () => {
+                        if (detail) { detail.remove(); detail = null; return; }
+                        detail = detailRow(s);
+                        tr.after(detail);
+                    };
+                    tr.addEventListener('click', toggle);
+                    tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+                    body.append(tr);
+                });
+                $('hist-nota').textContent = `${sessoes.length} perfil(is) exibido(s), do mais recente para o mais antigo.`;
+            } catch (e) {
+                body.replaceChildren();
+                const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-rose-600', 'Não foi possível carregar: ' + e.message); td.colSpan = 6; tr.append(td); body.append(tr);
+            }
+        }
+
+        function setPeriod(d) {
+            days = d;
+            document.querySelectorAll('.periodo-btn').forEach((b) => {
+                const on = Number(b.dataset.d) === d;
+                b.className = 'periodo-btn px-3 py-1.5 rounded-lg text-xs font-bold ' + (on ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700');
+            });
+            loadSummary();
+            loadHistory();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuthModal();
+            initFooter();
+            if (window.lucide) window.lucide.createIcons();
+
+            $('toggle-theme')?.addEventListener('click', () => { if (window.toggleTheme) window.toggleTheme(); });
+            $('nav-logout-btn')?.addEventListener('click', async () => {
+                await signOut(auth);
+                await fetch('/api/auth/session-logout', { method: 'POST' });
+                window.location.href = '/';
+            });
+            $('login-trigger')?.addEventListener('click', () => toggleLoginModal(true));
+
+            document.querySelectorAll('.periodo-btn').forEach((b) => b.addEventListener('click', () => setPeriod(Number(b.dataset.d))));
+            ['f-camera', 'f-logados', 'f-min'].forEach((id) => $(id).addEventListener('change', loadHistory));
+
+            onAuthStateChanged(auth, async (user) => {
+                let isAdmin = false;
+                if (user) isAdmin = await syncAdminSession(user);
+
+                if (user && isAdmin) {
+                    currentUser = user;
+                    $('access-denied').classList.add('hidden');
+                    $('content-wrapper').style.display = 'block';
+                    setPeriod(days);
+                    loadLive();
+                    clearInterval(liveTimer);
+                    liveTimer = setInterval(() => { if (document.visibilityState === 'visible') loadLive(); }, 5000);
+                    if (window.lucide) window.lucide.createIcons();
+                } else if (user) {
+                    $('content-wrapper').style.display = 'none';
+                    $('access-denied').classList.remove('hidden');
+                    $('access-denied').querySelector('p').textContent = 'Você não tem permissão de administrador.';
+                } else {
+                    $('content-wrapper').style.display = 'none';
+                    $('access-denied').classList.remove('hidden');
+                    toggleLoginModal(true);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

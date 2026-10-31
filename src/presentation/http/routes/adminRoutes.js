@@ -141,7 +141,7 @@ function adminRoutes(reportController, dashboardController, deps = {}) {
 
         // Envia os logs existentes na conexão inicial
         const initialData = {
-            logs: logger.getLogs({ limit: 250 }),
+            logs: logger.getLogs({ limit: logger.maxEntries }),
             stats: logger.getStats()
         };
         res.write(`event: init\ndata: ${JSON.stringify(initialData)}\n\n`);

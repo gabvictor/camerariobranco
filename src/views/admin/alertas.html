@@ -83,6 +83,9 @@
                 <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
+                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i> Visitantes
+                </a>
                 <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
                 </a>
@@ -230,6 +233,7 @@
                     <div>
                         <h2 id="previa-titulo" class="text-lg font-bold text-gray-900 dark:text-white">Prévia do e-mail</h2>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Assunto: <strong id="previa-assunto" class="text-gray-800 dark:text-gray-100">(clique em "Ver prévia")</strong></p>
+                        <p id="previa-cameras" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
                     </div>
                 </div>
                 <div class="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100">
@@ -264,6 +268,18 @@
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || data.message || `Erro ${res.status}`);
             return data;
+        }
+
+        const MOTIVO = { 'offline': 'fora do ar', 'sem imagem': 'sem imagem válida', 'falha ao obter': 'não respondeu', 'imagem grande demais': 'imagem muito grande' };
+
+        // Explica quais câmeras do rio entraram no e-mail (só as online) e quais ficaram de fora
+        function camerasText(r) {
+            const inc = (r.camerasIncluidas || []).map((c) => c.nome);
+            const out = (r.camerasIgnoradas || []).map((c) => `${c.nome} (${MOTIVO[c.motivo] || c.motivo})`);
+            if (!inc.length && !out.length) return 'Fotos das câmeras: não configuradas.';
+            const parts = [inc.length ? `Fotos incluídas: ${inc.join(', ')}.` : 'Nenhuma foto incluída (câmeras do rio fora do ar).'];
+            if (out.length) parts.push(`Fora do e-mail: ${out.join(', ')}.`);
+            return parts.join(' ');
         }
 
         function showFeedback(kind, message) {
@@ -374,6 +390,7 @@
                     body: JSON.stringify({ nivel: $('teste-nivel').value, metros: $('teste-metros').value })
                 });
                 $('previa-assunto').textContent = r.assunto;
+                $('previa-cameras').textContent = camerasText(r);
                 $('previa-frame').srcdoc = r.html;
                 showFeedback('ok', `Prévia gerada: ${r.assunto}`);
                 $('previa-frame').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -397,7 +414,7 @@
                     method: 'POST',
                     body: JSON.stringify({ email: to, nivel: $('teste-nivel').value, metros: $('teste-metros').value })
                 });
-                showFeedback('ok', `E-mail de teste enviado para ${to}. Assunto: ${r.assunto}. Restam ${r.restantesHoje} testes hoje. Confira também a caixa de spam.`);
+                showFeedback('ok', `E-mail de teste enviado para ${to}. Assunto: ${r.assunto}. ${camerasText(r)} Restam ${r.restantesHoje} testes hoje. Confira também a caixa de spam.`);
                 preview().catch(() => {});
             } catch (e) {
                 showFeedback('erro', e.message);

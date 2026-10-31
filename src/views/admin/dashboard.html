@@ -140,6 +140,9 @@
                 <a href="/dashboard" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
+                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i> Visitantes
+                </a>
                 <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
                 </a>
@@ -166,8 +169,23 @@
                 </a>
             </nav>
 
+            <!-- Índice rápido: pula direto para cada parte do painel -->
+            <div id="dash-index" class="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2 mb-6 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200/70 dark:border-gray-800">
+                <div class="flex items-center gap-2 overflow-x-auto text-xs font-semibold">
+                    <span class="shrink-0 text-gray-400">Ir para:</span>
+                    <a href="#secao-visao" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Visão geral</a>
+                    <a href="#secao-visitantes" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Visitantes</a>
+                    <a href="#secao-modulos" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Módulos</a>
+                    <a href="#secao-audiencia" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Audiência</a>
+                    <a href="#secao-origens" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Origens</a>
+                    <a href="#secao-cadastros" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Cadastros</a>
+                    <a href="#secao-moderacao" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Moderação</a>
+                    <a href="#secao-sistema" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Sistema</a>
+                </div>
+            </div>
+
             <!-- 5 Key Stats Cards Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+            <div id="secao-visao" class="scroll-mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
                 
                 <!-- Stat 1: Câmeras Totais -->
                 <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between">
@@ -255,8 +273,36 @@
                 </div>
             </div>
 
+            <!-- Visitantes e engajamento (tempo no site, câmeras assistidas) -->
+            <div id="secao-visitantes" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl"><i data-lucide="users" class="w-4 h-4"></i></div>
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Visitantes e engajamento</h2>
+                            <p class="text-xs text-gray-400">Quanto tempo as pessoas ficam, o que visitam e quais câmeras assistem (hoje)</p>
+                        </div>
+                    </div>
+                    <a href="/admin/visitantes" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-95">
+                        <i data-lucide="users" class="w-4 h-4"></i> Ver perfis completos
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200/70 dark:border-gray-700/60"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Visitantes agora</p><p id="vz-agora" class="text-2xl font-black text-emerald-600 dark:text-emerald-400">--</p></div>
+                    <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200/70 dark:border-gray-700/60"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Tempo médio hoje</p><p id="vz-media" class="text-2xl font-black text-gray-900 dark:text-white">--</p></div>
+                    <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200/70 dark:border-gray-700/60"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Assistiram câmera hoje</p><p id="vz-camera" class="text-2xl font-black text-gray-900 dark:text-white">--</p></div>
+                    <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200/70 dark:border-gray-700/60"><p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Câmera mais assistida hoje</p><p id="vz-top" class="text-sm font-black text-gray-900 dark:text-white leading-snug">--</p><p id="vz-top-sub" class="text-[11px] text-gray-500 dark:text-gray-400"></p></div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Ao vivo agora</h3>
+                    <div id="vz-lista" class="space-y-2"><p class="text-sm text-gray-500 dark:text-gray-400">Carregando...</p></div>
+                </div>
+            </div>
+
             <!-- Painel de Módulos Administrativos & Acesso Rápido -->
-            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
+            <div id="secao-modulos" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div class="flex items-center gap-2.5">
                         <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -280,7 +326,7 @@
                 </div>
 
                 <!-- Grid de Módulos Administrativos -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                     <!-- 1. Origens de Tráfego -->
                     <a href="/admin/origens" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group active:scale-98">
                         <div class="p-3 bg-indigo-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
@@ -358,7 +404,25 @@
                         </div>
                     </a>
 
-                    <!-- 8. Operações Rápidas Inline -->
+                    <!-- 8. Perfis de Visitantes -->
+                    <a href="/admin/visitantes" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-violet-50 dark:hover:bg-violet-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-violet-300 dark:hover:border-violet-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-violet-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><i data-lucide="users" class="w-5 h-5"></i></div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">Perfis de Visitantes</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Tempo, páginas & câmeras</p>
+                        </div>
+                    </a>
+
+                    <!-- 9. Alertas do Rio -->
+                    <a href="/admin/alertas" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-orange-300 dark:hover:border-orange-700 transition-all group active:scale-98">
+                        <div class="p-3 bg-orange-500 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><i data-lucide="bell-ring" class="w-5 h-5"></i></div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Alertas do Rio</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Teste, prévia & simulador</p>
+                        </div>
+                    </a>
+
+                    <!-- 10. Operações Rápidas Inline -->
                     <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60">
                         <button id="quick-trigger-scan-btn" title="Forçar Varredura" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
@@ -377,7 +441,7 @@
             </div>
 
             <!-- Heatmap & Audiência em Tempo Real -->
-            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
+            <div id="secao-audiencia" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div class="flex items-center gap-2.5">
                         <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -415,7 +479,7 @@
             </div>
 
             <!-- 🛰️ Seção: Monitoramento de Origens & Fontes de Tráfego -->
-            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
+            <div id="secao-origens" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-6">
                 <!-- Header com Controles -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div class="flex items-center gap-2.5">
@@ -593,7 +657,7 @@
             </div>
 
             <!-- Gráfico de Cadastros (Últimos 7 dias) -->
-            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-4">
+            <div id="secao-cadastros" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-4">
                 <div class="flex items-center gap-2.5">
                     <div class="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
                         <i data-lucide="user-plus" class="w-4 h-4"></i>
@@ -609,7 +673,7 @@
             </div>
 
             <!-- 3 Quick Access & Moderation Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div id="secao-moderacao" class="scroll-mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 
                 <!-- Card 1: Central de Reportes -->
                 <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between space-y-4">
@@ -677,7 +741,7 @@
             </div>
 
             <!-- Control Card 1: Velocidade de Stream MJPEG -->
-            <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-4">
+            <div id="secao-sistema" class="scroll-mt-20 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-8 space-y-4">
                 <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex items-center gap-2.5">
                         <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl text-emerald-600 dark:text-emerald-400">
@@ -1041,11 +1105,12 @@
 
                     const stats = await response.json();
 
-                    document.getElementById('total-users-stat').textContent = stats.totalUsers;
-                    document.getElementById('total-cameras-stat').textContent = stats.totalCameras;
-                    document.getElementById('active-users-stat').textContent = stats.activeUsers24h;
-                    document.getElementById('views-today-stat').textContent = stats.viewsToday;
-                    document.getElementById('views-total-stat').textContent = stats.totalViews;
+                    const fmtInt = (n) => Number(n || 0).toLocaleString('pt-BR');
+                    document.getElementById('total-users-stat').textContent = fmtInt(stats.totalUsers);
+                    document.getElementById('total-cameras-stat').textContent = fmtInt(stats.totalCameras);
+                    document.getElementById('active-users-stat').textContent = fmtInt(stats.activeUsers24h);
+                    document.getElementById('views-today-stat').textContent = fmtInt(stats.viewsToday);
+                    document.getElementById('views-total-stat').textContent = fmtInt(stats.totalViews);
 
                     const escapeHtml = (value = '') => String(value ?? '')
                         .replace(/&/g, '&amp;')
@@ -1060,7 +1125,7 @@
                     
                     if (stats.topCameras && stats.topCameras.length > 0) {
                         stats.topCameras.forEach((cam, index) => {
-                            const percent = Math.round((cam.views / (stats.viewsToday || 1)) * 100) || 0;
+                            const percent = Math.min(100, Math.round((cam.views / (stats.viewsToday || 1)) * 100) || 0);
                             const safeCamName = escapeHtml(cam.nome || 'Câmera ' + cam.codigo);
                             const safeCamCode = escapeHtml(cam.codigo);
                             const safeCamViews = Number(cam.views) || 0;
@@ -1924,6 +1989,66 @@
 
             if (window.lucide) window.lucide.createIcons();
         }
+    </script>
+    <!-- Visitantes: resumo de hoje e quem está ao vivo (usa o painel /admin/visitantes) -->
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { auth } from "/script/firebase-config.js";
+
+        const $ = (id) => document.getElementById(id);
+        const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+        const fmtDur = (sec) => {
+            sec = Math.max(0, Math.round(sec || 0));
+            if (sec < 60) return `${sec}s`;
+            const m = Math.floor(sec / 60), s = sec % 60;
+            if (m < 60) return s ? `${m}m ${String(s).padStart(2, '0')}s` : `${m}m`;
+            return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+        };
+        let timer = null;
+
+        async function load(user) {
+            try {
+                const token = await user.getIdToken();
+                const headers = { Authorization: `Bearer ${token}` };
+                const [liveRes, sumRes] = await Promise.all([
+                    fetch('/api/admin/visitantes/ao-vivo', { headers }),
+                    fetch('/api/admin/visitantes/resumo?dias=1', { headers })
+                ]);
+                if (!liveRes.ok || !sumRes.ok) throw new Error('sem permissão ou servidor indisponível');
+                const { visitantes } = await liveRes.json();
+                const r = await sumRes.json();
+
+                $('vz-agora').textContent = visitantes.length;
+                $('vz-media').textContent = r.sessoes ? fmtDur(r.mediaSegundos) : '--';
+                $('vz-camera').textContent = r.sessoes ? `${r.comCameraPct}%` : '--';
+                const top = r.camerasMaisAssistidas[0];
+                $('vz-top').textContent = top ? top.nome : 'Ainda sem dados';
+                $('vz-top-sub').textContent = top ? `${fmtDur(top.segundos)} assistidos` : '';
+
+                const list = $('vz-lista');
+                list.replaceChildren();
+                if (!visitantes.length) { list.append(el('p', 'text-sm text-gray-500 dark:text-gray-400', 'Ninguém conectado neste momento.')); return; }
+                visitantes.slice(0, 5).forEach((v) => {
+                    const row = el('div', 'flex flex-wrap items-center gap-x-3 gap-y-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 text-sm');
+                    row.append(el('span', 'font-bold text-gray-900 dark:text-white', v.usuario ? v.usuario.nome : 'Anônimo'));
+                    row.append(el('span', 'num font-bold text-indigo-600 dark:text-indigo-400', fmtDur(v.tempoSegundos)));
+                    row.append(el('span', 'text-xs text-gray-500 dark:text-gray-400', [v.dispositivo, v.cidade].filter(Boolean).join(' · ')));
+                    const watching = v.assistindoAgora.map((c) => c.nome).join(', ');
+                    row.append(el('span', 'text-xs ' + (watching ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-gray-400'), watching ? `assistindo: ${watching}` : (v.paginaAtual[0] ? v.paginaAtual[0].caminho : '')));
+                    list.append(row);
+                });
+                if (visitantes.length > 5) list.append(el('p', 'text-xs text-gray-500 dark:text-gray-400', `e mais ${visitantes.length - 5} visitante(s)...`));
+            } catch (e) {
+                $('vz-lista').textContent = 'Não foi possível carregar os visitantes: ' + e.message;
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            clearInterval(timer);
+            if (!user) return;
+            load(user);
+            timer = setInterval(() => { if (document.visibilityState === 'visible') load(user); }, 15000);
+        });
     </script>
 </body>
 

@@ -401,9 +401,9 @@ test('purgeStalePending: nova tentativa de inscrição renova o prazo da pendent
 });
 
 // ─── Painel admin: prévia, e-mail de teste, simulador e resumo ──────────────
-test('previewAlert: gera o e-mail com a marca de TESTE e sem enviar nada', () => {
+test('previewAlert: gera o e-mail com a marca de TESTE e sem enviar nada', async () => {
     const ctx = setup();
-    const p = ctx.service.previewAlert({ level: 'transbordamento', metros: 14.35 });
+    const p = await ctx.service.previewAlert({ level: 'transbordamento', metros: 14.35 });
     assert.match(p.assunto, /^\[TESTE\] /);
     assert.match(p.assunto, /transbordamento/i);
     assert.match(p.html, /E-mail de teste/);
@@ -413,14 +413,14 @@ test('previewAlert: gera o e-mail com a marca de TESTE e sem enviar nada', () =>
     assert.equal(ctx.mail.sent.length, 0);
 });
 
-test('previewAlert: nível e metros têm padrão e validação', () => {
+test('previewAlert: nível e metros têm padrão e validação', async () => {
     const ctx = setup();
-    assert.equal(ctx.service.previewAlert({}).nivel, 'alerta');
-    assert.equal(ctx.service.previewAlert({ level: 'atencao' }).metros, 12.6, 'padrão = cota + 10 cm');
-    assert.equal(ctx.service.previewAlert({ level: 'alerta', metros: '13,8' }).metros, 13.8, 'aceita vírgula');
-    assert.throws(() => ctx.service.previewAlert({ level: 'xpto' }), (e) => e.code === 'INVALID_LEVEL');
-    assert.throws(() => ctx.service.previewAlert({ metros: 99 }), (e) => e.code === 'INVALID_METERS');
-    assert.throws(() => ctx.service.previewAlert({ metros: 'abc' }), (e) => e.code === 'INVALID_METERS');
+    assert.equal((await ctx.service.previewAlert({})).nivel, 'alerta');
+    assert.equal((await ctx.service.previewAlert({ level: 'atencao' })).metros, 12.6, 'padrão = cota + 10 cm');
+    assert.equal((await ctx.service.previewAlert({ level: 'alerta', metros: '13,8' })).metros, 13.8, 'aceita vírgula');
+    await assert.rejects(ctx.service.previewAlert({ level: 'xpto' }), (e) => e.code === 'INVALID_LEVEL');
+    await assert.rejects(ctx.service.previewAlert({ metros: 99 }), (e) => e.code === 'INVALID_METERS');
+    await assert.rejects(ctx.service.previewAlert({ metros: 'abc' }), (e) => e.code === 'INVALID_METERS');
 });
 
 test('alerta real NÃO leva a marca de teste', async () => {

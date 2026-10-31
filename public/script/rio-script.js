@@ -207,7 +207,8 @@ function setupHeroCameraSwitcher() {
             if (current.status === 'offline') {
                 heroFeed.src = '/assets/offline.png';
             } else {
-                heroFeed.src = `/stream/camera/${code}?t=${Date.now()}`;
+                const tabId = window.camrbTabId ? window.camrbTabId() : '';
+                heroFeed.src = `/stream/camera/${code}?t=${Date.now()}${tabId ? `&tabId=${encodeURIComponent(tabId)}` : ''}`;
             }
         }
 

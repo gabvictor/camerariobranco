@@ -7,12 +7,18 @@
 const EventEmitter = require('events');
 
 class SystemLogger extends EventEmitter {
-    constructor(maxEntries = 300) {
+    constructor(maxEntries = 1000, { hookConsole = true } = {}) {
         super();
         this.maxEntries = maxEntries;
         this.logs = [];
         this.nextId = 1;
-        this._hookConsole();
+        // Contadores mantidos a cada log (evita recontar todas as entradas a cada evento)
+        this._counts = { info: 0, warn: 0, error: 0, stream: 0 };
+        if (hookConsole) this._hookConsole();
+    }
+
+    _countKey(level) {
+        return { INFO: 'info', WARN: 'warn', ERROR: 'error', STREAM: 'stream' }[level] || null;
     }
 
     /**
@@ -65,10 +71,13 @@ class SystemLogger extends EventEmitter {
         if (text.includes('Scanner initialized') || text.includes('Varredura')) {
             return text.replace(/Scanner initialized/i, 'Módulo de verificação de câmeras iniciado');
         }
-        if (text.includes('ETIMEDOUT') || text.includes('timeout of')) {
+        // Estas duas traduções valem só para a Prefeitura. Timeout da ANA, do e-mail etc. ficam com o texto original,
+        // senão o log diria que "o servidor da Prefeitura demorou" quando quem demorou foi outro serviço.
+        const aboutOtherService = ['RIO ACRE', 'E-MAIL', 'ALERTAS', 'ADMIN'].includes(category);
+        if (!aboutOtherService && (text.includes('ETIMEDOUT') || text.includes('timeout of'))) {
             return 'Servidor de imagens da Prefeitura demorou para responder. Aguardando novo ciclo...';
         }
-        if (text.includes('ECONNREFUSED') || text.includes('ENOTFOUND')) {
+        if (!aboutOtherService && (text.includes('ECONNREFUSED') || text.includes('ENOTFOUND'))) {
             return 'Servidor da Prefeitura temporariamente indisponível. Tentando reconexão...';
         }
         if (text.includes('Acesso sem token')) {
@@ -116,11 +125,58 @@ class SystemLogger extends EventEmitter {
         };
     }
 
+    /**
+     * Interpreta a linha do logger de requisições. Devolve null se não for uma requisição.
+     * Requisições de leitura que deram certo (GET/HEAD < 400) são rotina e não entram no histórico:
+     * antes elas lotavam o buffer e empurravam para fora o que importa (erros, logins, ações do admin).
+     */
+    _parseRequestLine(first) {
+        const m = /^\[\d{4}-\d{2}-\d{2}T[^\]]+\]\s+(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+(\S+)\s+→\s+(\d{3})\s+\((\d+)ms\)/.exec(first);
+        if (!m) return null;
+
+        const method = m[1];
+        const path = m[2].split('?')[0]; // sem query string: pode conter dados pessoais
+        const status = Number(m[3]);
+        const ms = Number(m[4]);
+        const isRead = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+
+        let level = 'INFO';
+        if (status >= 500) level = 'ERROR';
+        else if (status >= 400) level = 'WARN';
+        else if (isRead && ms >= 3000) level = 'WARN'; // leitura lenta
+
+        // Rotina que deu certo: não guarda
+        if (isRead && status < 400 && level === 'INFO') return { skip: true };
+        // 404 de leitura fora da API costuma ser robô procurando página: não guarda
+        if (isRead && status === 404 && !path.startsWith('/api/')) return { skip: true };
+
+        let category = 'REQUISIÇÃO';
+        if (path.startsWith('/api/admin') || path.startsWith('/admin') || path === '/dashboard') category = 'ADMIN';
+        else if (path.startsWith('/api/auth')) category = 'SEGURANÇA';
+        else if (path.startsWith('/api/alertas') || path.startsWith('/alertas')) category = 'ALERTAS';
+
+        const slow = level === 'WARN' && status < 400 ? ' (lenta)' : '';
+        return {
+            level,
+            category,
+            message: `${method} ${path} → ${status} em ${ms} ms${slow}`,
+            meta: { method, path, status, ms }
+        };
+    }
+
     _captureFromConsole(level, args) {
         if (!args || args.length === 0) return;
         
         const first = String(args[0] || '');
         if (first.startsWith('[') && first.includes('] [') && (first.includes('[INFO]') || first.includes('[WARN]') || first.includes('[ERROR]') || first.includes('[STREAM]'))) {
+            return;
+        }
+
+        // Linhas do tipo "[2026-10-31T10:00:00.000Z] GET /rota → 200 (12ms)": viram entradas estruturadas
+        const request = this._parseRequestLine(first);
+        if (request) {
+            if (request.skip) return;
+            this._add(request.level, request.category, request.message, request.meta, false);
             return;
         }
 
@@ -132,13 +188,23 @@ class SystemLogger extends EventEmitter {
             return;
         }
 
+        // Etiqueta explícita ([TIMELAPSE], [RIO_ALERT]...) manda mais que uma palavra solta como "câmeras"
+        const TAGS = [
+            ['[RIO_ALERT]', 'ALERTAS'], ['[EMAIL_VERIFICATION]', 'E-MAIL'], ['[MAIL', 'E-MAIL'],
+            ['[HidroWebAuth]', 'RIO ACRE'], ['[RioAcreService]', 'RIO ACRE'], ['[VISITANTES]', 'VISITANTES'],
+            ['[SCANNER]', 'VARREDURA'], ['[TIMELAPSE]', 'TIMELAPSE'], ['[FIREBASE]', 'BANCO DE DADOS'],
+            ['[STREAM]', 'TRANSMISSÃO'], ['[PROXY]', 'PROXY'], ['[SECURITY]', 'SEGURANÇA'], ['ARMADILHA', 'SEGURANÇA']
+        ];
+        const tagged = TAGS.find(([tag]) => first.includes(tag));
+
         let category = 'SISTEMA';
-        if (first.includes('[SCANNER]') || first.includes('ScanScheduler') || first.includes('Scanner') || first.includes('câmeras')) category = 'VARREDURA';
-        else if (first.includes('[TIMELAPSE]') || first.includes('Timelapse') || first.includes('snapshot')) category = 'TIMELAPSE';
-        else if (first.includes('[FIREBASE]') || first.includes('Firestore') || first.includes('Firebase') || first.includes('banco')) category = 'BANCO DE DADOS';
-        else if (first.includes('[STREAM]') || first.includes('MJPEG') || first.includes('transmissão')) category = 'TRANSMISSÃO';
-        else if (first.includes('[PROXY]') || first.includes('proxy') || first.includes('Prefeitura')) category = 'PROXY';
-        else if (first.includes('[SECURITY]') || first.includes('Auth') || first.includes('Token') || first.includes('Acesso')) category = 'SEGURANÇA';
+        if (tagged) category = tagged[1];
+        else if (first.includes('ScanScheduler') || first.includes('Scanner') || first.includes('câmeras')) category = 'VARREDURA';
+        else if (first.includes('Timelapse') || first.includes('snapshot')) category = 'TIMELAPSE';
+        else if (first.includes('Firestore') || first.includes('Firebase') || first.includes('banco')) category = 'BANCO DE DADOS';
+        else if (first.includes('MJPEG') || first.includes('transmissão')) category = 'TRANSMISSÃO';
+        else if (first.includes('proxy') || first.includes('Prefeitura')) category = 'PROXY';
+        else if (first.includes('Auth') || first.includes('Token') || first.includes('Acesso')) category = 'SEGURANÇA';
 
         const rawMsg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
         this._add(level, category, rawMsg, null, false);
@@ -162,8 +228,12 @@ class SystemLogger extends EventEmitter {
         };
 
         this.logs.unshift(entry); // Mais recentes primeiro
-        if (this.logs.length > this.maxEntries) {
-            this.logs.length = this.maxEntries;
+        const addedKey = this._countKey(entry.level);
+        if (addedKey) this._counts[addedKey]++;
+        while (this.logs.length > this.maxEntries) {
+            const removed = this.logs.pop();
+            const removedKey = this._countKey(removed.level);
+            if (removedKey) this._counts[removedKey]--;
         }
 
         if (printToConsole) {
@@ -208,7 +278,7 @@ class SystemLogger extends EventEmitter {
 
     getLogs(options = {}) {
         let results = [...this.logs];
-        const { level, category, search, limit = 250, sinceId } = options;
+        const { level, category, search, limit = this.maxEntries, sinceId } = options;
 
         if (sinceId) {
             const numId = parseInt(sinceId, 10);
@@ -232,26 +302,20 @@ class SystemLogger extends EventEmitter {
             );
         }
 
-        const maxLimit = Math.min(parseInt(limit, 10) || 250, 1000);
+        const maxLimit = Math.min(parseInt(limit, 10) || this.maxEntries, this.maxEntries);
         return results.slice(0, maxLimit);
     }
 
     clear() {
         const count = this.logs.length;
         this.logs = [];
+        this._counts = { info: 0, warn: 0, error: 0, stream: 0 };
         this.info('SISTEMA', `Histórico de logs limpo pelo administrador (${count} registros removidos).`);
         return true;
     }
 
     getStats() {
-        const counts = { total: this.logs.length, info: 0, warn: 0, error: 0, stream: 0 };
-        for (const l of this.logs) {
-            if (l.level === 'INFO') counts.info++;
-            else if (l.level === 'WARN') counts.warn++;
-            else if (l.level === 'ERROR') counts.error++;
-            else if (l.level === 'STREAM') counts.stream++;
-        }
-        return counts;
+        return { total: this.logs.length, ...this._counts, max: this.maxEntries };
     }
 }
 
@@ -259,3 +323,4 @@ const logger = new SystemLogger();
 logger.info('SISTEMA', 'Monitor de logs e proteção de dados inicializado com sucesso.');
 
 module.exports = logger;
+module.exports.SystemLogger = SystemLogger;

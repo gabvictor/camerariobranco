@@ -89,6 +89,9 @@
                 <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
                 </a>
+                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i> Visitantes
+                </a>
                 <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
                 </a>
@@ -185,6 +188,11 @@
                         <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                         <input type="text" id="log-search-input" placeholder="Buscar nos logs..." class="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
+
+                    <!-- Categoria -->
+                    <select id="category-select" aria-label="Filtrar por categoria" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none">
+                        <option value="ALL">Todas as categorias</option>
+                    </select>
 
                     <!-- Auto Refresh -->
                     <select id="auto-refresh-select" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none">
@@ -291,6 +299,7 @@
         // Logout
         document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
             await signOut(auth);
+            await fetch('/api/auth/session-logout', { method: 'POST' }).catch(() => {});
             window.location.href = '/login';
         });
 
@@ -306,6 +315,7 @@
             const downloadBtn = document.getElementById('download-logs-btn');
             const filterBtns = document.querySelectorAll('.filter-btn');
             let eventSource = null;
+            let reconnectTimer = null;
 
             const renderStats = (stats) => {
                 if (!stats) return;
@@ -314,25 +324,69 @@
                 document.getElementById('stat-warn').textContent = stats.warn || 0;
                 document.getElementById('stat-error').textContent = stats.error || 0;
                 document.getElementById('stat-stream').textContent = stats.stream || 0;
-                document.getElementById('logs-count-badge').textContent = `${cachedLogs.length} entradas`;
+            };
+
+            const qCache = new Map();
+            let categoryFilter = 'ALL';
+            let paused = false;
+            let renderEveryMs = 2000;
+            let renderTimer = null;
+            let renderPending = false;
+
+            // Texto de busca de cada log, calculado uma vez só
+            const textOf = (l) => {
+                let t = qCache.get(l.id);
+                if (t === undefined) {
+                    t = `${l.message} ${l.category} ${l.meta ? JSON.stringify(l.meta) : ''}`.toLowerCase();
+                    qCache.set(l.id, t);
+                    if (qCache.size > 3000) qCache.delete(qCache.keys().next().value);
+                }
+                return t;
+            };
+
+            const updateCategoryOptions = () => {
+                const select = document.getElementById('category-select');
+                if (!select) return;
+                const cats = [...new Set(cachedLogs.map(l => l.category))].sort();
+                const sig = cats.join('|') + '#' + categoryFilter;
+                if (select.dataset.sig === sig) return;
+                select.dataset.sig = sig;
+                select.replaceChildren(new Option('Todas as categorias', 'ALL'), ...cats.map(c => new Option(c, c)));
+                select.value = cats.includes(categoryFilter) ? categoryFilter : 'ALL';
             };
 
             const renderFilteredLogs = () => {
-                let filtered = [...cachedLogs];
-                if (currentLevel !== 'ALL') {
-                    filtered = filtered.filter(l => l.level === currentLevel);
-                }
-
+                renderPending = false;
+                let filtered = cachedLogs;
+                if (currentLevel !== 'ALL') filtered = filtered.filter(l => l.level === currentLevel);
+                if (categoryFilter !== 'ALL') filtered = filtered.filter(l => l.category === categoryFilter);
                 const q = searchInput.value.trim().toLowerCase();
-                if (q) {
-                    filtered = filtered.filter(l => 
-                        l.message.toLowerCase().includes(q) ||
-                        l.category.toLowerCase().includes(q) ||
-                        (l.meta && JSON.stringify(l.meta).toLowerCase().includes(q))
-                    );
-                }
+                if (q) filtered = filtered.filter(l => textOf(l).includes(q));
 
+                updateCategoryOptions();
                 renderLogs(filtered);
+                const badge = document.getElementById('logs-count-badge');
+                if (badge) badge.textContent = `${filtered.length} de ${cachedLogs.length} entradas`;
+            };
+
+            // Vários logs que chegam juntos viram um único redesenho (no máximo um por intervalo escolhido)
+            const scheduleRender = () => {
+                if (paused || renderTimer) { renderPending = true; return; }
+                renderFilteredLogs();
+                renderTimer = setTimeout(() => {
+                    renderTimer = null;
+                    if (renderPending && !paused) scheduleRender();
+                }, renderEveryMs);
+            };
+
+            const setLiveIndicator = () => {
+                const el = document.getElementById('live-indicator');
+                if (!el) return;
+                el.className = 'flex items-center gap-1.5 font-mono text-[11px] ' + (paused ? 'text-amber-400' : 'text-emerald-400');
+                el.replaceChildren();
+                const dot = document.createElement('span');
+                dot.className = 'w-2 h-2 rounded-full ' + (paused ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse');
+                el.append(dot, document.createTextNode(paused ? ' PAUSADO' : ' AO VIVO'));
             };
 
             const renderLogs = (logs) => {
@@ -376,15 +430,21 @@
                     else if (l.category === 'TIMELAPSE') { catBadgeClass = 'bg-purple-950 text-purple-300 border border-purple-800/50'; catIcon = '📸'; }
                     else if (l.category === 'SEGURANÇA' || l.category === 'SECURITY') { catBadgeClass = 'bg-amber-950 text-amber-300 border border-amber-800/50'; catIcon = '🔒'; }
                     else if (l.category === 'BANCO DE DADOS' || l.category === 'DATABASE') { catBadgeClass = 'bg-cyan-950 text-cyan-300 border border-cyan-800/50'; catIcon = '💾'; }
+                    else if (l.category === 'ADMIN') { catBadgeClass = 'bg-violet-950 text-violet-300 border border-violet-800/50'; catIcon = '🛠️'; }
+                    else if (l.category === 'ALERTAS') { catBadgeClass = 'bg-orange-950 text-orange-300 border border-orange-800/50'; catIcon = '🔔'; }
+                    else if (l.category === 'E-MAIL') { catBadgeClass = 'bg-sky-950 text-sky-300 border border-sky-800/50'; catIcon = '✉️'; }
+                    else if (l.category === 'RIO ACRE') { catBadgeClass = 'bg-blue-950 text-blue-300 border border-blue-800/50'; catIcon = '🌊'; }
+                    else if (l.category === 'REQUISIÇÃO') { catBadgeClass = 'bg-slate-800 text-slate-300 border border-slate-700/50'; catIcon = '🌐'; }
 
-                    const metaStr = l.meta ? `<div class="mt-1 text-[11px] text-gray-400 bg-gray-950/60 p-2 rounded border border-gray-800 font-mono">${escapeHtml(JSON.stringify(l.meta, null, 2))}</div>` : '';
+                    // Requisições já dizem tudo na própria linha (método, rota, status e tempo): o JSON só repetiria
+                    const metaStr = (l.meta && !(l.meta.method && l.meta.path)) ? `<div class="mt-1 text-[11px] text-gray-400 bg-gray-950/60 p-2 rounded border border-gray-800 font-mono">${escapeHtml(JSON.stringify(l.meta, null, 2))}</div>` : '';
 
                     return `
                         <div class="log-row flex items-start gap-2.5 py-1.5 px-3 rounded-xl transition-colors border-l-2 ${l.level === 'ERROR' ? 'border-red-500 bg-red-950/10' : l.level === 'WARN' ? 'border-amber-500 bg-amber-950/10' : l.level === 'STREAM' ? 'border-emerald-500 bg-emerald-950/10' : 'border-gray-800 hover:bg-gray-800/50'}">
                             <span class="text-gray-500 shrink-0 select-none font-mono text-[11px]">${l.timeFormatted}</span>
                             <span class="shrink-0">${levelBadge}</span>
                             <span class="px-2 py-0.5 rounded-md ${catBadgeClass} text-[10px] font-bold shrink-0 select-none flex items-center gap-1">${catIcon} ${escapeHtml(l.category)}</span>
-                            <div class="flex-grow">
+                            <div class="flex-grow min-w-0 break-words">
                                 <span class="${textColor} text-xs leading-relaxed font-medium">${escapeHtml(l.message)}</span>
                                 ${metaStr}
                             </div>
@@ -422,8 +482,8 @@
                             const data = JSON.parse(e.data);
                             if (data.entry) {
                                 cachedLogs.unshift(data.entry);
-                                if (cachedLogs.length > 1000) cachedLogs.pop();
-                                renderFilteredLogs();
+                                while (cachedLogs.length > ((data.stats && data.stats.max) || 1000)) cachedLogs.pop();
+                                scheduleRender();
                             }
                             if (data.stats) renderStats(data.stats);
                         } catch (err) {
@@ -432,7 +492,8 @@
                     });
 
                     eventSource.onerror = () => {
-                        setTimeout(connectLogsStream, 3000);
+                        clearTimeout(reconnectTimer);
+                        reconnectTimer = setTimeout(connectLogsStream, 3000);
                     };
 
                 } catch (err) {
@@ -456,7 +517,11 @@
             });
 
             // Search input filter
-            searchInput.addEventListener('input', renderFilteredLogs);
+            let searchTimer = null;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(renderFilteredLogs, 150);
+            });
 
             // Manual Reconnect / Refresh
             refreshBtn.addEventListener('click', connectLogsStream);
@@ -487,6 +552,20 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+            });
+
+            document.getElementById('category-select')?.addEventListener('change', (e) => {
+                categoryFilter = e.target.value;
+                renderFilteredLogs();
+            });
+
+            // Auto-atualizar: intervalo mínimo entre redesenhos; "Pausar" congela a tela (os logs seguem chegando)
+            document.getElementById('auto-refresh-select')?.addEventListener('change', (e) => {
+                const ms = parseInt(e.target.value, 10);
+                paused = ms === 0;
+                if (!paused) renderEveryMs = ms;
+                setLiveIndicator();
+                if (!paused) renderFilteredLogs();
             });
 
             connectLogsStream();

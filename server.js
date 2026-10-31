@@ -29,6 +29,9 @@ const ERROR_IMAGE_PATH = path.join(PUBLIC_FOLDER, 'assets', 'offline.png');
 // ─── Infraestrutura ───────────────────────────────────────────────────────────
 const { admin, db, ADMIN_EMAIL, KEY_FILE_CONFIG } = require('./src/config/firebaseAdmin');
 const { getClientIp } = require('./src/utils/clientIp');
+const { resolveLocation, maskIp } = require('./src/utils/geoUtils');
+const { resolveDevice } = require('./src/utils/deviceUtils');
+const nodeCrypto = require('crypto');
 const CONFIG = require('./src/config/appConfig');
 const { tarpit, verifyAdminPageSession, verifyAuthAllowUnverified, createRateLimiter, isUserAdmin, isVerifiedAdmin, parseCookies } = require('./src/middlewares/security');
 const { getRioBrancoDateStr } = require('./src/utils/dateUtils');
@@ -84,8 +87,13 @@ const cameraRoutes = require('./src/presentation/http/routes/cameraRoutes');
 const adminRoutes = require('./src/presentation/http/routes/adminRoutes');
 const sponsorRoutes = require('./src/presentation/http/routes/sponsorRoutes');
 const alertRoutes = require('./src/presentation/http/routes/alertRoutes');
+const visitorRoutes = require('./src/presentation/http/routes/visitorRoutes');
+const VisitorController = require('./src/presentation/http/controllers/VisitorController');
+const VisitorSessionService = require('./src/application/services/VisitorSessionService');
+const FirebaseVisitorSessionRepository = require('./src/infrastructure/database/FirebaseVisitorSessionRepository');
 const AlertController = require('./src/presentation/http/controllers/AlertController');
 const RioAlertService = require('./src/application/services/RioAlertService');
+const CameraSnapshotService = require('./src/infrastructure/services/CameraSnapshotService');
 const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
 // ─── Helper: SSR Theme Inlining (Zero Flash Visual de Tema) ───────────────────
@@ -142,14 +150,47 @@ const emailVerificationService = new EmailVerificationService({ db, admin, mailS
 const emailVerificationCtrl = new EmailVerificationController(emailVerificationService);
 
 // Alertas do Rio Acre por e-mail (opt-in com confirmação e cancelamento)
+const rioCameraSnapshots = new CameraSnapshotService({
+    http: axios,
+    cameraRepo,
+    codes: (process.env.RIO_ALERT_CAMERAS || '001334,001426').split(',').map((c) => c.trim()).filter(Boolean),
+    baseUrl: process.env.SITE_BASE_URL || 'https://camerasriobranco.com.br',
+    dir: path.join(PUBLIC_FOLDER, 'uploads', 'alertas'),
+    minKb: CONFIG.MIN_IMAGE_SIZE_KB
+});
 const rioAlertService = new RioAlertService({
     repo: new FirebaseAlertSubscriberRepository(db),
     mailService,
     rioService: rioAcreService,
+    cameras: rioCameraSnapshots,
     tokenSecret: KEY_FILE_CONFIG.tokenSecret,
     baseUrl: process.env.SITE_BASE_URL
 });
 const alertCtrl = new AlertController(rioAlertService);
+
+// Perfis de visitantes: tempo no site, páginas e câmeras assistidas (sessão = aba do navegador)
+const visitors = new VisitorSessionService({ repo: new FirebaseVisitorSessionRepository(db, admin) });
+const visitorCtrl = new VisitorController(visitors);
+
+/** Identificador da sessão: a aba do navegador; sem ela, uma assinatura anônima do aparelho. */
+const visitorSid = (req, ip) => {
+    const tab = req.query && req.query.tabId;
+    if (typeof tab === 'string' && /^[\w-]{6,80}$/.test(tab)) return tab;
+    return 'ip_' + nodeCrypto.createHash('sha1').update(`${ip}|${req.headers['user-agent'] || ''}`).digest('hex').slice(0, 12);
+};
+
+/** Dados do aparelho e da região, sem IP completo e sem identificar ninguém. */
+const visitorMeta = (req, ip) => {
+    const ua = req.headers['user-agent'] || '';
+    if (VisitorSessionService.isBot(ua)) return { bot: true };
+    const geo = resolveLocation(ip, req.headers) || {};
+    const dev = resolveDevice(ua, 0) || {};
+    return {
+        device: dev.device, browser: dev.browser, os: dev.os,
+        city: geo.city, region: geo.region, country: geo.country,
+        ipMasked: maskIp(ip)
+    };
+};
 if (mailService.driver === 'console') {
     console.warn('[AVISO] MODO DE TESTE (MAIL_DRIVER=console): nenhum e-mail é enviado; os códigos de verificação aparecem neste log.');
 } else if (!mailService.isConfigured()) {
@@ -809,8 +850,17 @@ const streamCameraHandler = async (req, res) => {
     }
 
     stream.subscribers.set(res, viewerInfo);
+    visitors.cameraOpened({
+        sid: visitorSid(req, viewerInfo.ip),
+        connId: res,
+        code,
+        name: camera ? camera.nome : null,
+        user: viewerInfo.isLoggedIn ? { uid: viewerInfo.uid, name: viewerInfo.name } : null,
+        meta: visitorMeta(req, viewerInfo.ip)
+    });
 
     const cleanupSubscriber = () => {
+        visitors.cameraClosed(res);
         stream.subscribers.delete(res);
         if (stream.subscribers.size === 0) {
             if (stream.timer) clearTimeout(stream.timer);
@@ -915,6 +965,14 @@ const handlePresenceConnection = async (req, res) => {
 
     res.write(': connected\n\n');
     sitePresence.set(res, viewerInfo);
+    visitors.pageOpened({
+        sid: visitorSid(req, viewerInfo.ip),
+        connId: res,
+        path: cleanPath,
+        title: viewerInfo.pageTitle,
+        user: viewerInfo.isLoggedIn ? { uid: viewerInfo.uid, name: viewerInfo.name } : null,
+        meta: visitorMeta(req, viewerInfo.ip)
+    });
 
     const pingInterval = setInterval(() => {
         try {
@@ -939,6 +997,7 @@ const handlePresenceConnection = async (req, res) => {
             res._presencePingTimer = null;
         }
         sitePresence.delete(res);
+        visitors.pageClosed(res);
     };
 
     req.on('close', cleanupPresence);
@@ -956,6 +1015,7 @@ app.get('/api/presence/home', handlePresenceConnection);
 app.use('/', cameraRoutes(cameraCtrl));
 app.use('/', sponsorRoutes(sponsorCtrl));
 app.use('/', alertRoutes(alertCtrl));
+app.use('/', visitorRoutes(visitorCtrl));
 app.use('/api', adminRoutes(reportCtrl, dashboardCtrl, {
     healthCheckService,
     scheduler,
@@ -1161,6 +1221,7 @@ app.get('/admin/monitor', verifyAdminPageSession, adminPage('monitor.html'));
 app.get('/admin/resources', (req, res) => res.redirect(301, '/admin/monitor'));
 app.get('/admin/logs', verifyAdminPageSession, adminPage('logs.html'));
 app.get('/admin/alertas', verifyAdminPageSession, adminPage('alertas.html'));
+app.get('/admin/visitantes', verifyAdminPageSession, adminPage('visitantes.html'));
 app.get('/admin/suggestions', (req, res) => res.redirect(301, '/admin/origens'));
 app.get('/admin/reports', verifyAdminPageSession, adminPage('reports.html'));
 app.get('/admin/comments', verifyAdminPageSession, adminPage('comments.html'));
@@ -1249,9 +1310,11 @@ async function bootstrap() {
     scheduler.start();
     timelapseScheduler.start();
     rioAlertService.start();
+    visitors.start();
 
     const shutdown = async (signal) => {
         console.log(`\n[${signal}] Salvando métricas e desligando...`);
+        try { await visitors.flushAll(); } catch (e) { console.error('[VISITANTES] Falha ao gravar sessões no desligamento:', e.message); }
         try {
             await db.collection('metrics').doc('global_views').set({
                 total: metrics.totalViews,

@@ -41,11 +41,12 @@ class RioAlertService {
      * @param {string} deps.tokenSecret  segredo para assinar links
      * @param {string} [deps.baseUrl]    URL pública do site
      */
-    constructor({ repo, mailService, rioService, tokenSecret, baseUrl, now, sleep, options = {} }) {
+    constructor({ repo, mailService, rioService, cameras, tokenSecret, baseUrl, now, sleep, options = {} }) {
         if (!tokenSecret) throw new Error('RioAlertService: tokenSecret é obrigatório.');
         this._repo = repo;
         this._mail = mailService;
         this._rio = rioService;
+        this._cameras = cameras || null; // fotos das câmeras do rio (só as online) para o e-mail
         this._secret = tokenSecret;
         this._baseUrl = String(baseUrl || 'https://camerasriobranco.com.br').replace(/\/+$/, '');
         this._now = now || (() => Date.now());
@@ -219,7 +220,7 @@ class RioAlertService {
         return { subject: 'Confirme seus alertas do Rio Acre - CamRB', text, html };
     }
 
-    _buildAlertMessage(sub, event, { test = false } = {}) {
+    _buildAlertMessage(sub, event, { test = false, images = [] } = {}) {
         const level = this.levels().find((l) => l.id === event.level);
         const unsubPage = this.unsubscribePageUrl(sub.id);
         const unsubPost = this.unsubscribePostUrl(sub.id);
@@ -235,6 +236,16 @@ class RioAlertService {
             ? `<p style="margin:0 0 16px;padding:10px 12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;font-size:13px;line-height:1.4;color:#92400e;"><strong>E-mail de teste.</strong> Enviado pelo painel de administração do CamRB para demonstração. Nenhum alerta real foi disparado e nenhum inscrito recebeu esta mensagem.</p>`
             : '';
 
+        const timeOf = (ms) => new Date(ms).toLocaleTimeString('pt-BR', { timeZone: 'America/Rio_Branco', hour: '2-digit', minute: '2-digit' });
+        const imagesText = images.length
+            ? ['Como está o rio agora (fotos de ' + timeOf(images[0].takenAt) + '):', ...images.map((i) => `- ${i.name}: ${this._baseUrl}/camera/${i.code}`), '']
+            : [];
+        const imagesHtml = images.length
+            ? `<p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#374151;">Como está o rio agora</p>`
+              + images.map((i) => `<a href="${escapeHtml(this._baseUrl + '/camera/' + i.code)}" style="text-decoration:none;"><img src="${escapeHtml(i.url)}" alt="Foto da câmera ${escapeHtml(i.name)}" width="416" style="display:block;width:100%;max-width:416px;height:auto;border-radius:10px;border:1px solid #e5e7eb;"></a>`
+                  + `<p style="margin:4px 0 16px;font-size:12px;color:#6b7280;">${escapeHtml(i.name)} · foto das ${escapeHtml(timeOf(i.takenAt))}</p>`).join('')
+            : '';
+
         const text = [
             ...testNoticeText,
             headline,
@@ -242,6 +253,7 @@ class RioAlertService {
             `Nível atual: ${fmtMeters(event.metros)} m (leitura de ${event.dataLeitura || 'agora há pouco'}).`,
             `Estação: Rio Branco - Rio Acre. Fonte: ${event.fonte || 'ANA'}.`,
             '',
+            ...imagesText,
             `Acompanhe em tempo real: ${riverUrl}`,
             '',
             'Este é um aviso automático e informativo, baseado em dados da ANA. Para orientações oficiais, consulte a Defesa Civil (199) e o SGB/CPRM.',
@@ -254,7 +266,7 @@ class RioAlertService {
             title: `<span style="color:${color};">${escapeHtml(headline)}</span>`,
             bodyHtml: `${testNoticeHtml}<p style="margin:0 0 4px;font-size:34px;font-weight:bold;">${fmtMeters(event.metros)} m</p>
     <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">Leitura de ${escapeHtml(event.dataLeitura || 'agora há pouco')} · Estação Rio Branco · Fonte: ${escapeHtml(event.fonte || 'ANA')}</p>
-    <p style="margin:0 0 24px;"><a href="${riverUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:10px;">Ver nível em tempo real</a></p>
+    ${imagesHtml}<p style="margin:0 0 24px;"><a href="${riverUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:10px;">Ver nível em tempo real</a></p>
     <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Aviso automático e informativo, baseado em dados da ANA. Para orientações oficiais, consulte a Defesa Civil (199) e o SGB/CPRM.</p>`,
             footerHtml: `Você recebe este e-mail porque pediu alertas do Rio Acre no CamRB.<br><a href="${unsubPage}" style="color:#6b7280;">Deixar de receber</a>`
         });
@@ -374,12 +386,16 @@ class RioAlertService {
             .filter((s) => (s.niveis || DEFAULT_LEVELS).includes(event.level) && s.lastEventId !== event.id)
             .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
+        // Uma captura por evento: todos recebem a foto do momento do alerta, mesmo se o envio levar mais de um ciclo
+        if (subs.length && !event.media) event.media = await this._captureMedia(`ev${event.id.split('-').pop()}`);
+        const images = (event.media && event.media.images) || [];
+
         let sent = 0;
         let failed = 0;
         for (const sub of subs) {
             if (state.sent.count >= this._opts.maxEmailsPerDay) break;
             try {
-                await this._mail.sendMessage(sub.email, this._buildAlertMessage(sub, event), { channel: 'alertas' });
+                await this._mail.sendMessage(sub.email, this._buildAlertMessage(sub, event, { images }), { channel: 'alertas' });
                 await this._repo.markNotified(sub.id, event.id);
                 state.sent.count++;
                 sent++;
@@ -432,13 +448,40 @@ class RioAlertService {
         };
     }
 
+    /** Fotos das câmeras do rio (só as online). Guardadas por 1 min para não criar um arquivo a cada clique. */
+    async _captureMedia(tag) {
+        if (!this._cameras) return { images: [], skipped: [] };
+        try {
+            return await this._cameras.capture(tag);
+        } catch (error) {
+            console.error('[RIO_ALERT] Falha ao capturar fotos das câmeras:', error.message);
+            return { images: [], skipped: [] };
+        }
+    }
+
+    async _previewMedia() {
+        const now = this._now();
+        if (this._mediaCache && now - this._mediaCache.at < 60 * 1000) return this._mediaCache.media;
+        const media = await this._captureMedia('teste');
+        this._mediaCache = { at: now, media };
+        return media;
+    }
+
+    _mediaSummary(media) {
+        return {
+            camerasIncluidas: media.images.map((i) => ({ codigo: i.code, nome: i.name })),
+            camerasIgnoradas: media.skipped.map((s) => ({ codigo: s.code, nome: s.name, motivo: s.reason }))
+        };
+    }
+
     /** Mostra como o e-mail de alerta fica, sem enviar nada. */
-    previewAlert({ level, metros } = {}) {
+    async previewAlert({ level, metros } = {}) {
         const levelId = this._levelOrThrow(level);
         const value = this._metersOrDefault(metros, levelId);
         const sample = { id: this._idFor('voce@exemplo.com'), email: 'voce@exemplo.com' };
-        const message = this._buildAlertMessage(sample, this._sampleEvent(levelId, value), { test: true });
-        return { nivel: levelId, metros: value, assunto: message.subject, texto: message.text, html: message.html };
+        const media = await this._previewMedia();
+        const message = this._buildAlertMessage(sample, this._sampleEvent(levelId, value), { test: true, images: media.images });
+        return { nivel: levelId, metros: value, assunto: message.subject, texto: message.text, html: message.html, ...this._mediaSummary(media) };
     }
 
     /**
@@ -462,7 +505,8 @@ class RioAlertService {
         }
 
         const sub = { id: this._idFor(email), email };
-        const message = this._buildAlertMessage(sub, this._sampleEvent(levelId, value), { test: true });
+        const media = await this._previewMedia();
+        const message = this._buildAlertMessage(sub, this._sampleEvent(levelId, value), { test: true, images: media.images });
         try {
             await this._mail.sendMessage(email, message, { channel: 'alertas' });
         } catch (error) {
@@ -471,7 +515,7 @@ class RioAlertService {
         }
         this._tests.count++;
         console.log(`[RIO_ALERT] E-mail de teste (${levelId}, ${value} m) enviado pelo painel admin.`);
-        return { ok: true, nivel: levelId, metros: value, assunto: message.subject, restantesHoje: this._opts.maxTestsPerDay - this._tests.count };
+        return { ok: true, nivel: levelId, metros: value, assunto: message.subject, restantesHoje: this._opts.maxTestsPerDay - this._tests.count, ...this._mediaSummary(media) };
     }
 
     /**
@@ -591,6 +635,11 @@ class RioAlertService {
                     await this.purgeStalePending();
                 } catch (e) {
                     console.error('[RIO_ALERT] Erro na limpeza de pendentes:', e.message);
+                }
+                try {
+                    if (this._cameras && this._cameras.cleanup) await this._cameras.cleanup(30);
+                } catch (e) {
+                    console.error('[RIO_ALERT] Erro na limpeza de fotos antigas:', e.message);
                 }
             }
         };

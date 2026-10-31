@@ -740,7 +740,9 @@ async function startVideoFeed(el, cameraCode) {
             if (user) {
                 try { token = await user.getIdToken(); } catch (_) {}
             }
-            const query = token ? `?token=${encodeURIComponent(token)}&t=${Date.now()}` : `?t=${Date.now()}`;
+            const tabId = window.camrbTabId ? window.camrbTabId() : '';
+            const tabParam = tabId ? `&tabId=${encodeURIComponent(tabId)}` : '';
+            const query = token ? `?token=${encodeURIComponent(token)}&t=${Date.now()}${tabParam}` : `?t=${Date.now()}${tabParam}`;
             if (feed) feed.src = `/stream/camera/${cameraCode}${query}`;
         };
 

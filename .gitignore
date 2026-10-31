@@ -62,3 +62,6 @@ Thumbs.db
 /public/assets/*.psd
 /public/assets/*.ai
 /public/assets/*.xcf
+
+# Fotos das câmeras geradas pelos alertas do rio (criadas em tempo de execução)
+public/uploads/alertas/

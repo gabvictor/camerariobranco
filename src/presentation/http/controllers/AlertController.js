@@ -61,10 +61,10 @@ class AlertController {
     }
 
     /** POST /api/admin/alertas/previa — mostra o e-mail sem enviar. */
-    adminPreview(req, res) {
+    async adminPreview(req, res) {
         try {
             const { nivel, metros } = req.body || {};
-            res.json(this._service.previewAlert({ level: nivel, metros }));
+            res.json(await this._service.previewAlert({ level: nivel, metros }));
         } catch (error) {
             this._adminError(res, error, 'Erro na prévia admin');
         }
