@@ -84,6 +84,7 @@ class RioAcreService {
         this._historicoCache = {};
         this._previsaoCache = null;
         this._lastPrevisaoFetchTime = 0;
+        this._previsaoEmAndamento = null;
         this._serie30Cache = new Map();   // código da estação → { at, readings }
         this.estacoesMontante = options.estacoesMontante || Upstream.ESTACOES_MONTANTE;
     }
@@ -209,8 +210,27 @@ class RioAcreService {
     // ─── Estimativa de tendência (NÃO é previsão oficial) ───────────────────────────
     async getPrevisaoRioAcre() {
         const now = Date.now();
-        if (this._previsaoCache && now - this._lastPrevisaoFetchTime < 5 * 60 * 1000) return this._previsaoCache;
+        const idade = now - this._lastPrevisaoFetchTime;
+        if (this._previsaoCache && idade < 5 * 60 * 1000) return this._previsaoCache;
+        // Recalcular consulta a ANA várias vezes (dezenas de segundos): quem chega com a previsão de até 1 h
+        // recebe essa na hora e a nova é calculada por trás, sem fazer o visitante esperar.
+        if (this._previsaoCache && idade < 60 * 60 * 1000) {
+            this._atualizarPrevisao().catch((err) => console.warn('[RioAcreService] Falha ao atualizar a previsão:', err.message));
+            return this._previsaoCache;
+        }
+        return this._atualizarPrevisao();
+    }
 
+    /** Uma atualização por vez: pedidos simultâneos esperam o mesmo cálculo. */
+    _atualizarPrevisao() {
+        if (!this._previsaoEmAndamento) {
+            this._previsaoEmAndamento = this._calcularPrevisaoAtual().finally(() => { this._previsaoEmAndamento = null; });
+        }
+        return this._previsaoEmAndamento;
+    }
+
+    async _calcularPrevisaoAtual() {
+        const now = Date.now();
         if (this.enablePythonEngine) {
             try {
                 const py = await this._fetchFromPython('previsao', 30, 60000); // consulta também as estações a montante

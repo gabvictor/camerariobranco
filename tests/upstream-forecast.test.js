@@ -111,3 +111,26 @@ test('com a lista de estações vazia, tudo é tendência e nenhuma estação é
     assert.deepEqual(p.montante, []);
     assert.ok(chamadas <= 3, `${chamadas} chamadas`);           // só Rio Branco (nível, histórico e série de 30 dias)
 });
+
+test('previsão velha (até 1 h) é entregue na hora e recalculada por trás; pedidos simultâneos dividem o cálculo', async () => {
+    const { up, rio } = series(false);
+    const svc = criar({ '13600002': rio, CAP: up });
+    const primeira = await svc.getPrevisaoRioAcre();
+
+    let calculos = 0;
+    const original = svc._calcularPrevisaoAtual.bind(svc);
+    svc._calcularPrevisaoAtual = async () => { calculos++; await new Promise((r) => setTimeout(r, 30)); return original(); };
+
+    svc._lastPrevisaoFetchTime = Date.now() - 10 * 60 * 1000;           // passou dos 5 min, ainda dentro de 1 h
+    const [a, b] = await Promise.all([svc.getPrevisaoRioAcre(), svc.getPrevisaoRioAcre()]);
+    assert.equal(a, primeira);                                           // resposta imediata, a anterior
+    assert.equal(b, primeira);
+    await new Promise((r) => setTimeout(r, 400));                        // o cálculo por trás termina
+    assert.equal(calculos, 1);
+    assert.notEqual(svc._previsaoCache, primeira);                       // e a nova previsão ficou guardada
+
+    svc._lastPrevisaoFetchTime = Date.now() - 2 * 60 * 60 * 1000;       // velha demais: espera o cálculo novo
+    const nova = await svc.getPrevisaoRioAcre();
+    assert.equal(nova, svc._previsaoCache);
+    assert.equal(calculos, 2);
+});
