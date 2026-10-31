@@ -28,6 +28,7 @@ const ERROR_IMAGE_PATH = path.join(PUBLIC_FOLDER, 'assets', 'offline.png');
 
 // ─── Infraestrutura ───────────────────────────────────────────────────────────
 const { admin, db, ADMIN_EMAIL, KEY_FILE_CONFIG } = require('./src/config/firebaseAdmin');
+const { getClientIp } = require('./src/utils/clientIp');
 const CONFIG = require('./src/config/appConfig');
 const { tarpit, verifyAdminPageSession, verifyAuthAllowUnverified, createRateLimiter, isUserAdmin, isVerifiedAdmin, parseCookies } = require('./src/middlewares/security');
 const { getRioBrancoDateStr } = require('./src/utils/dateUtils');
@@ -755,7 +756,7 @@ const streamCameraHandler = async (req, res) => {
         name: 'Anônimo',
         email: null,
         isLoggedIn: false,
-        ip: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1',
+        ip: getClientIp(req),
         connectedAt: new Date().toISOString()
     };
 
@@ -874,7 +875,7 @@ const handlePresenceConnection = async (req, res) => {
         name: 'Anônimo',
         email: null,
         isLoggedIn: false,
-        ip: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1',
+        ip: getClientIp(req),
         connectedAt: new Date().toISOString(),
         path: cleanPath,
         pageTitle: req.query.title || 'Página',

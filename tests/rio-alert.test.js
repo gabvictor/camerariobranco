@@ -13,6 +13,8 @@ function makeRepo() {
         get state() { return state; },
         async getSubscriber(id) { return subs.has(id) ? { id, ...subs.get(id) } : null; },
         async saveSubscriber({ id, ...data }) { subs.set(id, data); },
+        async listPendingSubscribers() { return [...subs].filter(([, v]) => v.status === 'pending').map(([id, v]) => ({ id, ...v })); },
+        async deleteSubscriber(id) { subs.delete(id); },
         async listActiveSubscribers() { return [...subs].filter(([, v]) => v.status === 'active').map(([id, v]) => ({ id, ...v })); },
         async markNotified(id, eventId) { subs.get(id).lastEventId = eventId; },
         async getState() { return state ? JSON.parse(JSON.stringify(state)) : null; },
@@ -356,4 +358,43 @@ test('RioAlertService: confirmação da inscrição e alertas pedem o canal "ale
     ctx.rio.metros = 13.8; await ctx.service.evaluate(); await ctx.service.evaluate();
     assert.equal(channels.length, 2);
     assert.deepEqual([...new Set(channels)], ['alertas']);
+});
+
+// ─── Limpeza de inscrições pendentes ────────────────────────────────────────
+test('purgeStalePending: apaga só pendentes antigas; mantém recentes, ativas e canceladas', async () => {
+    const DAY = 24 * 3600 * 1000;
+    let clock = Date.now();
+    const repo = makeRepo();
+    const service = new RioAlertService({
+        repo, mailService: makeMail(), rioService: makeRio(), tokenSecret: 's', sleep: async () => {}, now: () => clock
+    });
+    const put = (id, status, ageDays) => repo.subs.set(id, { email: `${id}@x.com`, status, confirmSentAt: clock - ageDays * DAY, createdAt: clock - ageDays * DAY });
+    put('pendente-velha', 'pending', 8);
+    put('pendente-recente', 'pending', 2);
+    put('ativa-velha', 'active', 60);
+    put('cancelada-velha', 'unsubscribed', 60);
+
+    const res = await service.purgeStalePending();
+    assert.equal(res.removed, 1);
+    assert.deepEqual([...repo.subs.keys()].sort(), ['ativa-velha', 'cancelada-velha', 'pendente-recente']);
+
+    clock += 6 * DAY; // a "recente" agora passa de 7 dias
+    assert.equal((await service.purgeStalePending()).removed, 1);
+    assert.deepEqual([...repo.subs.keys()].sort(), ['ativa-velha', 'cancelada-velha']);
+});
+
+test('purgeStalePending: nova tentativa de inscrição renova o prazo da pendente', async () => {
+    const DAY = 24 * 3600 * 1000;
+    let clock = 1_700_000_000_000;
+    const repo = makeRepo();
+    const service = new RioAlertService({
+        repo, mailService: makeMail(), rioService: makeRio(), tokenSecret: 's', sleep: async () => {}, now: () => clock
+    });
+    await service.subscribe({ email: 'a@b.com', consent: true });
+    clock += 6 * DAY;
+    await service.subscribe({ email: 'a@b.com', consent: true }); // reenvio (fora do cooldown) renova
+    clock += 3 * DAY; // 9 dias desde a 1ª, 3 desde a renovação
+    assert.equal((await service.purgeStalePending()).removed, 0);
+    clock += 5 * DAY;
+    assert.equal((await service.purgeStalePending()).removed, 1);
 });

@@ -39,11 +39,19 @@ onAuthStateChanged(auth, (user) => {
         if (userNameDisplay) userNameDisplay.textContent = displayName;
         if (userEmailDisplay) userEmailDisplay.textContent = user.email;
         if (userRoleBadge) {
-            const isAdmin = user.email === 'gabvictor.gv@gmail.com';
-            userRoleBadge.textContent = isAdmin ? 'Administrador' : 'Membro';
-            if (isAdmin) {
-                userRoleBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white';
-            }
+            userRoleBadge.textContent = 'Membro';
+            // Quem é administrador é decidido pelo servidor: o e-mail do admin não fica no JS público.
+            const viewer = user;
+            viewer.getIdToken()
+                .then((token) => fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }))
+                .then((res) => (res.ok ? res.json() : null))
+                .then((data) => {
+                    if (data && data.isAdmin && currentUser === viewer) {
+                        userRoleBadge.textContent = 'Administrador';
+                        userRoleBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white';
+                    }
+                })
+                .catch(() => { /* sem resposta: continua como Membro */ });
         }
 
         if (userAvatarImg && user.photoURL) {

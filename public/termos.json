@@ -169,7 +169,7 @@
     {
       "type": "listItem",
       "boldPrefix": "Dados guardados para os alertas:",
-      "text": "seu e-mail, os níveis que você escolheu, as datas do consentimento e da confirmação e a data do último aviso enviado. Após o cancelamento, mantemos o e-mail apenas marcado como \"cancelado\", para garantir que você não volte a receber mensagens. Se preferir a exclusão definitiva, basta pedir pelo e-mail de suporte."
+      "text": "seu e-mail, os níveis que você escolheu, as datas do consentimento e da confirmação e a data do último aviso enviado. Após o cancelamento, mantemos o e-mail apenas marcado como \"cancelado\", para garantir que você não volte a receber mensagens. Se preferir a exclusão definitiva, basta pedir pelo e-mail de suporte. Inscrições que não forem confirmadas em até 7 dias são apagadas automaticamente."
     },
     {
       "type": "listItem",

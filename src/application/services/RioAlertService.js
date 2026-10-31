@@ -60,6 +60,7 @@ class RioAlertService {
             sendIntervalMs: 600,                // Resend grátis aceita ~2 req/s
             confirmCooldownMs: 60 * 1000,
             maxEventAttempts: 6,
+            pendingMaxAgeMs: 7 * 24 * 3600 * 1000, // inscrição não confirmada em 7 dias é apagada
             ...options
         };
     }
@@ -389,10 +390,43 @@ class RioAlertService {
         return { sent, remaining };
     }
 
+    // ─── Limpeza ────────────────────────────────────────────────────────────────
+    /** Apaga inscrições que nunca foram confirmadas (minimização de dados, LGPD). */
+    async purgeStalePending(maxAgeMs = this._opts.pendingMaxAgeMs) {
+        const limit = this._now() - maxAgeMs;
+        const pending = await this._repo.listPendingSubscribers();
+        let removed = 0;
+        for (const sub of pending) {
+            const since = sub.confirmSentAt || sub.createdAt || 0;
+            if (since < limit) {
+                await this._repo.deleteSubscriber(sub.id);
+                removed++;
+            }
+        }
+        if (removed) console.log(`[RIO_ALERT] ${removed} inscrição(ões) pendente(s) antiga(s) removida(s).`);
+        return { removed };
+    }
+
     // ─── Agendamento ────────────────────────────────────────────────────────────
     start(intervalMs = 5 * 60 * 1000) {
         if (this._timer) return;
-        const tick = () => this.evaluate().catch((e) => console.error('[RIO_ALERT] Erro na avaliação:', e.message));
+        const dayMs = 24 * 3600 * 1000;
+        let lastPurgeAt = 0;
+        const tick = async () => {
+            try {
+                await this.evaluate();
+            } catch (e) {
+                console.error('[RIO_ALERT] Erro na avaliação:', e.message);
+            }
+            if (this._now() - lastPurgeAt >= dayMs) {
+                lastPurgeAt = this._now();
+                try {
+                    await this.purgeStalePending();
+                } catch (e) {
+                    console.error('[RIO_ALERT] Erro na limpeza de pendentes:', e.message);
+                }
+            }
+        };
         setTimeout(tick, 90 * 1000).unref();
         this._timer = setInterval(tick, intervalMs);
         this._timer.unref();

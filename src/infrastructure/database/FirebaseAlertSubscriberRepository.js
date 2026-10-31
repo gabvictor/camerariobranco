@@ -29,6 +29,15 @@ class FirebaseAlertSubscriberRepository {
         return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
 
+    async listPendingSubscribers() {
+        const snap = await this._col().where('status', '==', 'pending').get();
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    async deleteSubscriber(id) {
+        await this._col().doc(id).delete();
+    }
+
     async markNotified(id, eventId) {
         await this._col().doc(id).update({ lastEventId: eventId, lastNotifiedAt: Date.now() });
     }

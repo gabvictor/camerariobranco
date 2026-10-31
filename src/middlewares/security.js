@@ -1,5 +1,6 @@
 const { admin, ADMIN_EMAIL } = require('../config/firebaseAdmin');
 const CONFIG = require('../config/appConfig');
+const { getClientIp } = require('../utils/clientIp');
 
 const hasValidAdminEmail = Boolean(ADMIN_EMAIL && ADMIN_EMAIL.trim().length > 0);
 
@@ -164,7 +165,7 @@ const createRateLimiter = ({ windowMs = 60 * 1000, max = 60, message = 'Muitas r
     timer.unref();
 
     return (req, res, next) => {
-        const ip = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        const ip = getClientIp(req);
         const now = Date.now();
         const clientData = hits.get(ip) || { count: 0, startTime: now };
 
@@ -200,7 +201,7 @@ const tarpit = (req, res, next) => {
         caminho.endsWith('.php') ||
         caminho.startsWith('/wp')
     ) {
-        const ip = req.ip || req.headers['x-forwarded-for'];
+        const ip = getClientIp(req);
         console.warn(`[🛑 ARMADILHA] Bot capturado! IP: ${ip} tentou acessar: ${req.path}`);
 
         const html = `<!DOCTYPE html>
