@@ -146,6 +146,16 @@ export function initFooter() {
                         </h3>
                         <ul class="space-y-2 text-xs">
                             <li>
+                                <a href="/guias" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                    Guias do Rio Acre
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/guias/perguntas-frequentes" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                    Perguntas Frequentes
+                                </a>
+                            </li>
+                            <li>
                                 <a href="/sobre" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     Sobre o Projeto
                                 </a>

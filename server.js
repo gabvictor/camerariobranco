@@ -95,6 +95,8 @@ const AlertController = require('./src/presentation/http/controllers/AlertContro
 const RioAlertService = require('./src/application/services/RioAlertService');
 const CameraSnapshotService = require('./src/infrastructure/services/CameraSnapshotService');
 const RiverChartService = require('./src/infrastructure/services/RiverChartService');
+const GuideRenderer = require('./src/infrastructure/services/GuideRenderer');
+const { GUIAS } = require('./src/content/guias');
 const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
 // ─── Helper: SSR Theme Inlining (Zero Flash Visual de Tema) ───────────────────
@@ -1128,6 +1130,8 @@ app.get('/sitemap.xml', (req, res) => {
         { path: 'rio', changefreq: 'hourly', priority: '0.9', img: `${baseUrl}/proxy/camera/001426`, title: 'Nível do Rio Acre em Tempo Real', caption: 'Telemetria oficial da ANA/CPRM e câmera ao vivo da Ponte Metálica' },
         { path: 'timelapses', changefreq: 'daily', priority: '0.8', img: `${baseUrl}/assets/camrb.png`, title: 'Galeria de Timelapses 24h de Rio Branco' },
         { path: 'mapa', changefreq: 'weekly', priority: '0.8', img: `${baseUrl}/assets/camrb.png`, title: 'Mapa Interativo de Câmeras de Rio Branco' },
+        { path: 'guias', changefreq: 'weekly', priority: '0.8' },
+        ...GUIAS.map((g) => ({ path: `guias/${g.slug}`, changefreq: 'monthly', priority: '0.8', lastmod: g.atualizado })),
         { path: 'sobre', changefreq: 'monthly', priority: '0.7' },
         { path: 'novidades', changefreq: 'weekly', priority: '0.7' },
         { path: 'contato', changefreq: 'monthly', priority: '0.6' },
@@ -1138,7 +1142,7 @@ app.get('/sitemap.xml', (req, res) => {
         const loc = p.path ? `${baseUrl}/${p.path}` : `${baseUrl}/`;
         xml += '  <url>\n';
         xml += `    <loc>${loc}</loc>\n`;
-        xml += `    <lastmod>${lastMod}</lastmod>\n`;
+        xml += `    <lastmod>${p.lastmod || lastMod}</lastmod>\n`;
         xml += `    <changefreq>${p.changefreq}</changefreq>\n`;
         xml += `    <priority>${p.priority}</priority>\n`;
         if (p.img) {
@@ -1215,6 +1219,19 @@ app.get('/metrics', page('metrics.html'));
 app.get('/termos', page('termos.html'));
 app.get('/perfil', page('perfil.html'));
 app.get('/patrocine', page('patrocine.html'));
+
+// Guias: texto próprio sobre o rio e o site (montados na partida a partir de src/content/guias.js)
+const guideRenderer = new GuideRenderer({ guias: GUIAS, templatePath: GuideRenderer.defaultTemplate, baseUrl: CONFIG.SITE_BASE_URL });
+const guidePages = new Map([['', guideRenderer.renderIndex()], ...GUIAS.map((g) => [g.slug, guideRenderer.renderGuide(g.slug)])]);
+const sendGuide = (slug) => (req, res) => {
+    const html = guidePages.get(slug);
+    if (!html) return res.status(404).sendFile(path.join(PUBLIC_FOLDER, '404.html'));
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(applySsrTheme(html, req));
+};
+app.get('/guias', sendGuide(''));
+app.get('/guias/:slug', (req, res) => sendGuide(req.params.slug)(req, res));
 app.get('/embed/:id', (req, res) => {
     res.removeHeader('X-Frame-Options');
     res.setHeader('Content-Security-Policy', "frame-ancestors *");

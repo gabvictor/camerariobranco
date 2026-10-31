@@ -40,7 +40,6 @@ Disallow: /*?token=*
 # Bloquear rotas diretas com extensão .html (URLs limpas são usadas)
 Disallow: /*.html$
 Disallow: /camera.html
-Disallow: /ads-test.html
 
 # Sitemap oficial do site
 Sitemap: https://camerasriobranco.com.br/sitemap.xml

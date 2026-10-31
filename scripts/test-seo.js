@@ -65,7 +65,7 @@ htmlFiles.forEach(file => {
 });
 
 // 2. Validar páginas noindex
-['embed.html', 'login.html', 'perfil.html', '404.html', 'ads-test.html'].forEach(file => {
+['embed.html', 'login.html', 'perfil.html', '404.html'].forEach(file => {
     const filePath = path.join(PUBLIC_FOLDER, file);
     const content = fs.readFileSync(filePath, 'utf8');
     const robotsMatch = content.match(/<meta\s+name=["']robots["']\s+content=["']([^"']+)["']/i);
