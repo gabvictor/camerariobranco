@@ -179,14 +179,18 @@ const rioAlertService = new RioAlertService({
 const alertCtrl = new AlertController(rioAlertService);
 
 // Perfis de visitantes: tempo no site, páginas e câmeras assistidas (sessão = aba do navegador)
-const visitors = new VisitorSessionService({ repo: new FirebaseVisitorSessionRepository(db, admin) });
+// Só pessoas logadas entram nos perfis: anônimos podem ser robôs ou a mesma pessoa abrindo o site várias vezes.
+const visitors = new VisitorSessionService({ repo: new FirebaseVisitorSessionRepository(db, admin), options: { requireLogin: true } });
 const visitorCtrl = new VisitorController(visitors);
 
 /** Identificador da sessão: a aba do navegador; sem ela, uma assinatura anônima do aparelho. */
-const visitorSid = (req, ip) => {
+const visitorTab = (req) => {
     const tab = req.query && req.query.tabId;
-    if (typeof tab === 'string' && /^[\w-]{6,80}$/.test(tab)) return tab;
-    return 'ip_' + nodeCrypto.createHash('sha1').update(`${ip}|${req.headers['user-agent'] || ''}`).digest('hex').slice(0, 12);
+    return typeof tab === 'string' && /^[\w-]{6,80}$/.test(tab) ? tab : null;
+};
+const visitorSid = (req, ip, uid = null) => {
+    if (uid) return 'u_' + String(uid).replace(/[^\w-]/g, '').slice(0, 40); // logado: uma sessão por pessoa, em qualquer aba
+    return visitorTab(req) || 'ip_' + nodeCrypto.createHash('sha1').update(`${ip}|${req.headers['user-agent'] || ''}`).digest('hex').slice(0, 12);
 };
 
 /** Dados do aparelho e da região, sem IP completo e sem identificar ninguém. */
@@ -861,7 +865,8 @@ const streamCameraHandler = async (req, res) => {
 
     stream.subscribers.set(res, viewerInfo);
     visitors.cameraOpened({
-        sid: visitorSid(req, viewerInfo.ip),
+        tab: visitorTab(req),
+        sid: visitorSid(req, viewerInfo.ip, viewerInfo.isLoggedIn ? viewerInfo.uid : null),
         connId: res,
         code,
         name: camera ? camera.nome : null,
@@ -976,7 +981,8 @@ const handlePresenceConnection = async (req, res) => {
     res.write(': connected\n\n');
     sitePresence.set(res, viewerInfo);
     visitors.pageOpened({
-        sid: visitorSid(req, viewerInfo.ip),
+        tab: visitorTab(req),
+        sid: visitorSid(req, viewerInfo.ip, viewerInfo.isLoggedIn ? viewerInfo.uid : null),
         connId: res,
         path: cleanPath,
         title: viewerInfo.pageTitle,

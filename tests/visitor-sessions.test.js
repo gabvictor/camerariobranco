@@ -331,3 +331,78 @@ test('falha persistente do banco não trava a rotina (antes girava para sempre)'
     const r = await Promise.race([svc.sweep(), new Promise((resolve) => setTimeout(() => resolve('TRAVOU'), 2000))]);
     assert.notEqual(r, 'TRAVOU');
 });
+
+// ─── Só pessoas logadas ─────────────────────────────────────────────────────
+const ana = { uid: 'u_ana', name: 'Ana' };
+
+test('com requireLogin, anônimos e robôs não viram perfil, contagem nem "ao vivo"', async () => {
+    const { svc, repo, advance } = setup({ requireLogin: true });
+    for (let i = 0; i < 20; i++) svc.pageOpened({ sid: `anon${i}`, connId: `c${i}`, path: '/', title: 'Início', meta });
+    svc.cameraOpened({ sid: 'anon0', connId: 'v0', code: '001334', name: 'Passarela', meta });
+    svc.pageOpened({ sid: 'bot', connId: 'b', path: '/', title: 'x', user: ana, meta: { bot: true } });
+    assert.equal(svc.live().length, 0);
+    advance(40 * S);
+    for (let i = 0; i < 20; i++) svc.pageClosed(`c${i}`);
+    advance(5 * MIN);
+    await svc.sweep();
+    assert.equal(repo.sessions.length, 0);
+    assert.deepEqual(repo.addDailyCalls, []);
+});
+
+test('com requireLogin, quem está logado continua sendo medido', async () => {
+    const { svc, repo, advance } = setup({ requireLogin: true });
+    svc.pageOpened({ sid: 'u_ana', connId: 'c', path: '/rio', title: 'Rio', user: ana, meta });
+    assert.equal(svc.live().length, 1);
+    advance(60 * S); svc.pageClosed('c');
+    advance(5 * MIN);
+    await svc.sweep();
+    assert.equal(repo.sessions.length, 1);
+    assert.equal(repo.sessions[0].userName, 'Ana');
+    assert.equal(repo.sessions[0].durationSec, 60);
+});
+
+test('a mesma pessoa em várias abas vira uma sessão só, sem somar o tempo duas vezes', async () => {
+    const { svc, repo, advance } = setup({ requireLogin: true });
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_aaaaaa', connId: 'a', path: '/', title: 'Início', user: ana, meta });
+    advance(30 * S);
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_bbbbbb', connId: 'b', path: '/rio', title: 'Rio', user: ana, meta });
+    assert.equal(svc.live().length, 1);
+    advance(30 * S);
+    svc.pageClosed('a'); svc.pageClosed('b');
+    advance(5 * MIN);
+    await svc.sweep();
+    assert.equal(repo.sessions.length, 1);
+    assert.equal(repo.sessions[0].durationSec, 60);      // 60 s de relógio, não 90 s de soma das abas
+    assert.deepEqual(repo.sessions[0].pages.map((p) => p.path).sort(), ['/', '/rio']);
+});
+
+test('segundo plano só desconta quando TODAS as abas estão escondidas', async () => {
+    const { svc, repo, advance } = setup({ requireLogin: true });
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_aaaaaa', connId: 'a', path: '/', title: 'Início', user: ana, meta });
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_bbbbbb', connId: 'b', path: '/rio', title: 'Rio', user: ana, meta });
+    advance(20 * S);
+    svc.setHidden('tab_aaaaaa', true);                    // uma escondida, a outra à vista
+    advance(20 * S);
+    svc.setHidden('tab_bbbbbb', true);                    // agora as duas
+    advance(20 * S);
+    svc.setHidden('tab_bbbbbb', false);                   // uma volta
+    advance(20 * S);
+    svc.pageClosed('a'); svc.pageClosed('b');
+    advance(5 * MIN);
+    await svc.sweep();
+    assert.equal(repo.sessions[0].durationSec, 60);      // 80 s no total menos os 20 s com tudo escondido
+});
+
+test('fechar a aba escondida devolve a contagem para as abas que sobraram', async () => {
+    const { svc, repo, advance } = setup({ requireLogin: true });
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_aaaaaa', connId: 'a', path: '/', title: 'Início', user: ana, meta });
+    svc.pageOpened({ sid: 'u_ana', tab: 'tab_bbbbbb', connId: 'b', path: '/rio', title: 'Rio', user: ana, meta });
+    svc.setHidden('tab_aaaaaa', true);
+    advance(30 * S);
+    svc.pageClosed('a');                                  // a aba escondida fecha: sobra só a visível
+    advance(30 * S);
+    svc.pageClosed('b');
+    advance(5 * MIN);
+    await svc.sweep();
+    assert.equal(repo.sessions[0].durationSec, 60);      // nunca esteve tudo escondido
+});

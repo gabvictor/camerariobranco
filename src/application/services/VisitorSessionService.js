@@ -55,12 +55,14 @@ class VisitorSessionService {
             minCameraSeconds: 10,           // ...ou 10 s assistindo uma câmera, ou estar logado
             maxDetailedPerDay: 500,         // teto de perfis gravados por dia (protege a cota do banco)
             maxOpenSessions: 5000,
+            requireLogin: false,            // true: só pessoas logadas entram nos perfis (visitantes anônimos e robôs ficam de fora)
             retentionDays: 30,              // perfis detalhados são apagados depois disso
             flushEveryMs: 5 * 60 * 1000,
             ...options
         };
         this._open = new Map();      // sid -> sessão em andamento
-        this._conns = new Map();     // connId -> { sid, kind, key, since }
+        this._conns = new Map();     // connId -> { sid, kind, key, since, tab }
+        this._tabSid = new Map();    // tabId -> sid (a mesma pessoa pode ter várias abas numa só sessão)
         this._deltas = new Map();    // date -> contadores ainda não gravados
         this._detailedPerDay = new Map();
         this._lastFlushAt = 0;
@@ -90,7 +92,8 @@ class VisitorSessionService {
                 pages: new Map(),
                 cameras: new Map(),
                 intervals: [],   // conexões já encerradas: [inicio, fim]
-                hidden: [],      // períodos com a aba em segundo plano: [inicio, fim|null]
+                hidden: [],      // períodos em que TODAS as abas estavam em segundo plano: [inicio, fim|null]
+                tabHidden: new Map(), // tabId -> true/false
                 conns: new Set()
             };
             this._open.set(sid, s);
@@ -101,20 +104,34 @@ class VisitorSessionService {
         return s;
     }
 
-    pageOpened({ sid, connId, path, title, user, meta }) {
-        if (!sid || !connId || (meta && meta.bot)) return;
+    /** Anônimos e robôs não viram perfil quando `requireLogin` está ligado. */
+    _admits(user, meta) {
+        if (meta && meta.bot) return false;
+        return !this._opts.requireLogin || Boolean(user && user.uid);
+    }
+
+    _rememberTab(s, tab) {
+        if (!tab) return;
+        this._tabSid.set(tab, s.sid);
+        if (!s.tabHidden.has(tab)) s.tabHidden.set(tab, false);
+    }
+
+    pageOpened({ sid, connId, path, title, user, meta, tab }) {
+        if (!sid || !connId || !this._admits(user, meta)) return;
         const s = this._session(sid, user, meta);
         if (!s.meta.entryPath) s.meta.entryPath = path || '/';
         const now = this._now();
-        this._conns.set(connId, { sid, kind: 'page', key: path || '/', label: title || path || '/', since: now });
+        this._conns.set(connId, { sid, tab: tab || null, kind: 'page', key: path || '/', label: title || path || '/', since: now });
         s.conns.add(connId);
+        this._rememberTab(s, tab);
     }
 
-    cameraOpened({ sid, connId, code, name, user, meta }) {
-        if (!sid || !connId || !code || (meta && meta.bot)) return;
+    cameraOpened({ sid, connId, code, name, user, meta, tab }) {
+        if (!sid || !connId || !code || !this._admits(user, meta)) return;
         const s = this._session(sid, user, meta);
-        this._conns.set(connId, { sid, kind: 'camera', key: String(code), label: name || `Câmera ${code}`, since: this._now() });
+        this._conns.set(connId, { sid, tab: tab || null, kind: 'camera', key: String(code), label: name || `Câmera ${code}`, since: this._now() });
         s.conns.add(connId);
+        this._rememberTab(s, tab);
     }
 
     pageClosed(connId) { this._closeConn(connId); }
@@ -139,16 +156,31 @@ class VisitorSessionService {
         bucket.set(c.key, row);
         s.intervals.push([c.since, now]);
         s.lastActivityAt = now;
+
+        // A aba que fechou deixa de contar para "todas em segundo plano".
+        if (c.tab && ![...s.conns].some((id) => (this._conns.get(id) || {}).tab === c.tab)) {
+            s.tabHidden.delete(c.tab);
+            this._tabSid.delete(c.tab);
+            this._syncHidden(s, now);
+        }
     }
 
-    /** A aba foi para segundo plano (hidden=true) ou voltou (hidden=false). */
-    setHidden(sid, hidden) {
+    /** Há "segundo plano" na sessão só quando TODAS as abas abertas estão escondidas. */
+    _syncHidden(s, now) {
+        const all = s.tabHidden.size > 0 && [...s.tabHidden.values()].every(Boolean);
+        const last = s.hidden[s.hidden.length - 1];
+        if (all && (!last || last[1] != null)) s.hidden.push([now, null]);
+        else if (!all && last && last[1] == null) last[1] = now;
+    }
+
+    /** Uma aba foi para segundo plano (hidden=true) ou voltou (hidden=false). `key` é o tabId (ou o sid, nos testes). */
+    setHidden(key, hidden) {
+        const sid = this._tabSid.get(key) || key;
         const s = this._open.get(sid);
         if (!s) return;
         const now = this._now();
-        const last = s.hidden[s.hidden.length - 1];
-        if (hidden && (!last || last[1] != null)) s.hidden.push([now, null]);
-        else if (!hidden && last && last[1] == null) last[1] = now;
+        s.tabHidden.set(key, hidden);
+        this._syncHidden(s, now);
         s.lastActivityAt = now;
     }
 

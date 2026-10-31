@@ -141,7 +141,7 @@
     {
       "type": "listItem",
       "boldPrefix": "Estatísticas de Uso (sem identificar você):",
-      "text": "para melhorar o site, medimos quanto tempo as visitas ficam abertas, quais páginas são mais usadas e quais câmeras são mais assistidas. Cada visita é reconhecida apenas pela aba do navegador, sem cookies adicionais, sem o seu e-mail e com o IP mascarado; robôs e buscadores não são contados. O tempo não conta enquanto a aba está em segundo plano. Os perfis detalhados de visita são apagados automaticamente em até 30 dias, e o resumo diário guarda apenas totais. Se você estiver logado, o administrador do site pode ver o seu apelido (nunca o e-mail) nessa visita. A base legal é o legítimo interesse em manter e melhorar o serviço (art. 7º, IX, da LGPD), e você pode se opor a qualquer momento pelo e-mail de suporte."
+      "text": "para melhorar o site, medimos quanto tempo as visitas ficam abertas, quais páginas são mais usadas e quais câmeras são mais assistidas. Esse perfil de uso só é feito para quem está com a conta logada; visitantes sem login não são acompanhados individualmente. Não usamos cookies adicionais, não guardamos o seu e-mail nesse perfil e o IP é mascarado; robôs e buscadores não são contados. O tempo não conta enquanto a aba está em segundo plano. Os perfis detalhados de visita são apagados automaticamente em até 30 dias, e o resumo diário guarda apenas totais. O administrador do site pode ver o seu apelido (nunca o e-mail) nessa visita. A base legal é o legítimo interesse em manter e melhorar o serviço (art. 7º, IX, da LGPD), e você pode se opor a qualquer momento pelo e-mail de suporte."
     },
     {
       "type": "listItem",

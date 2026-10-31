@@ -4,10 +4,12 @@ Painel em **`/admin/visitantes`** (aba **Visitantes**) e resumo no **Dashboard**
 
 ## Como é medido
 
-- **Sem cookies novos e sem identificar ninguém.** Cada visita é reconhecida pela aba do navegador. Não se guarda e-mail, e o IP aparece mascarado.
+- **Só contas logadas.** Visitantes anônimos não entram: podem ser robôs ou a mesma pessoa abrindo o site várias vezes, o que enchia o painel de ruído. Quem está logado conta uma vez só, mesmo com várias abas abertas (o tempo é o do relógio, sem somar abas).
+- **Sem cookies novos.** Não se guarda e-mail, e o IP aparece mascarado.
 - **Tempo na página:** cada página aberta mantém uma conexão com o servidor; o tempo dela é o tempo na página.
 - **Câmeras assistidas:** cada vídeo ao vivo é uma conexão por câmera; o tempo dela é o tempo assistindo aquela câmera.
-- **Aba em segundo plano não conta.** O navegador avisa quando a aba fica escondida, e esse tempo é descontado.
+- **Segundo plano não conta.** O navegador avisa quando a aba fica escondida; o tempo só é descontado quando todas as abas da pessoa estão escondidas.
+- **Contadores gerais continuam.** As "visualizações do dia" do dashboard vêm de outro contador e seguem contando todo mundo; só os perfis são limitados a logados.
 - **Visita encerrada** quando fica sem nenhuma conexão por 3 minutos.
 - **Robôs e buscadores não entram** na contagem.
 
