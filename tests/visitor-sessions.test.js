@@ -406,3 +406,66 @@ test('fechar a aba escondida devolve a contagem para as abas que sobraram', asyn
     await svc.sweep();
     assert.equal(repo.sessions[0].durationSec, 60);      // nunca esteve tudo escondido
 });
+
+// ─── Uma linha por pessoa ───────────────────────────────────────────────────
+const gab = { uid: 'u_gab', name: 'gabvictor' };
+
+async function visita(ctx, { sid, user, path, camera, seconds, m = meta }) {
+    const { svc, advance } = ctx;
+    svc.pageOpened({ sid, connId: `p_${sid}`, path, title: path, user, meta: m });
+    if (camera) svc.cameraOpened({ sid, connId: `v_${sid}`, code: camera, name: `Câmera ${camera}`, user, meta: m });
+    advance(seconds * S);
+    svc.pageClosed(`p_${sid}`); svc.pageClosed(`v_${sid}`);
+    advance(5 * MIN);
+    await svc.sweep();
+}
+
+test('perfis: o mesmo usuário aparece uma vez só, com todas as visitas e a trajetória', async () => {
+    const ctx = setup({ requireLogin: true });
+    await visita(ctx, { sid: 'u_gab', user: gab, path: '/', seconds: 60 });
+    await visita(ctx, { sid: 'u_gab', user: gab, path: '/rio', camera: '001334', seconds: 120 });
+    await visita(ctx, { sid: 'u_gab', user: gab, path: '/rio', seconds: 30 });
+    await visita(ctx, { sid: 'u_ana', user: { uid: 'u_ana', name: 'Ana' }, path: '/', seconds: 45 });
+
+    const lista = await ctx.svc.profiles({});
+    assert.equal(lista.length, 2);
+    const g = lista.find((p) => p.usuario.nome === 'gabvictor');
+    assert.equal(g.visitas, 3);
+    assert.equal(g.duracaoSegundos, 60 + 120 + 30);
+    assert.equal(g.trajetoria.length, 3);
+    assert.deepEqual(g.trajetoria.map((v) => v.entrada), ['/', '/rio', '/rio']);        // do mais antigo ao mais novo
+    const rio = g.paginas.find((p) => p.caminho === '/rio');
+    assert.equal(rio.segundos, 150);                                                      // somado entre as duas visitas
+    assert.equal(rio.visitas, 2);
+    assert.equal(g.cameras[0].codigo, '001334');
+    assert.equal(g.agrupadoPor, 'conta');
+});
+
+test('perfis: anônimos antigos se juntam por IP mascarado, aparelho e navegador; aparelhos diferentes ficam separados', async () => {
+    const ctx = setup();                                                                  // sem requireLogin: simula os perfis já gravados
+    const casa = { ...meta, ipMasked: '200.1.x.x' };
+    const outro = { ...meta, ipMasked: '200.1.x.x', device: 'Desktop', browser: 'Firefox', os: 'Linux' };
+    await visita(ctx, { sid: 'a1', path: '/', seconds: 40, m: casa });
+    await visita(ctx, { sid: 'a2', path: '/rio', seconds: 50, m: casa });
+    await visita(ctx, { sid: 'a3', path: '/', seconds: 60, m: outro });
+
+    const lista = await ctx.svc.profiles({});
+    assert.equal(lista.length, 2);
+    const junto = lista.find((p) => p.visitas === 2);
+    assert.equal(junto.usuario, null);
+    assert.equal(junto.duracaoSegundos, 90);
+    assert.match(junto.agrupadoPor, /IP mascarado/);
+    assert.deepEqual(junto.ipsMascarados, ['200.1.x.x']);
+    assert.equal(junto.id.length, 8);
+});
+
+test('perfis: filtros valem para a pessoa inteira e o limite é respeitado', async () => {
+    const ctx = setup({ requireLogin: true });
+    await visita(ctx, { sid: 'u_gab', user: gab, path: '/', seconds: 30 });
+    await visita(ctx, { sid: 'u_gab', user: gab, path: '/', camera: '001334', seconds: 30 });
+    await visita(ctx, { sid: 'u_ana', user: { uid: 'u_ana', name: 'Ana' }, path: '/', seconds: 25 });
+    assert.equal((await ctx.svc.profiles({ onlyCamera: true })).length, 1);               // quem tem alguma visita com câmera
+    assert.equal((await ctx.svc.profiles({ minSeconds: 50 })).length, 1);                 // o total da pessoa é que conta
+    assert.equal((await ctx.svc.profiles({ onlyLogged: true })).length, 2);
+    assert.equal((await ctx.svc.profiles({ limit: 1 })).length, 1);
+});

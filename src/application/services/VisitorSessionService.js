@@ -1,3 +1,4 @@
+const { createHash } = require('crypto');
 const { getRioBrancoDateStr } = require('../../utils/dateUtils');
 const { sanitizeKey } = require('../../utils/originParser');
 
@@ -481,6 +482,77 @@ class VisitorSessionService {
             paginas: (s.pages || []).map((p) => ({ caminho: p.path, nome: p.title, segundos: p.seconds, vezes: p.views })),
             cameras: (s.cameras || []).map((c) => ({ codigo: c.code, nome: c.name, segundos: c.seconds, vezes: c.views }))
         }));
+    }
+
+    /**
+     * Uma linha por PESSOA: junta todas as visitas gravadas de quem aparece várias vezes.
+     *  - logado: pela conta (userId), em qualquer aparelho;
+     *  - anônimo (perfis antigos): por IP mascarado + aparelho + navegador + sistema, que é o que há em comum.
+     *    É uma aproximação: duas pessoas na mesma rede com o mesmo modelo de aparelho se juntam.
+     */
+    async profiles({ days = 7, limit = 200, onlyCamera = false, onlyLogged = false, minSeconds = 0 } = {}) {
+        const n = Math.max(1, Math.min(30, parseInt(days, 10) || 7));
+        const lim = Math.max(1, Math.min(500, parseInt(limit, 10) || 200));
+        const since = this._now() - n * 24 * 3600 * 1000;
+        const records = await this._repo.listSessions({ sinceMs: since, limit: 500 });
+
+        const people = new Map();
+        for (const s of records) {
+            const logged = Boolean(s.isLoggedIn && s.userId);
+            const key = logged ? `u:${s.userId}` : `a:${s.ipMasked || '?'}|${s.device || '?'}|${s.browser || '?'}|${s.os || '?'}`;
+            let p = people.get(key);
+            if (!p) {
+                p = { key, logged, name: logged ? s.userName : null, visits: [], devices: new Set(), places: new Set(), ips: new Set(),
+                    pages: new Map(), cameras: new Map(), seconds: 0, cameraSeconds: 0 };
+                people.set(key, p);
+            }
+            p.visits.push(s);
+            p.seconds += s.durationSec || 0;
+            p.cameraSeconds += s.cameraSeconds || 0;
+            const dev = [s.device, s.browser].filter(Boolean).join(' · ');
+            if (dev) p.devices.add(dev);
+            const place = [s.city, s.region].filter(Boolean).join(', ');
+            if (place) p.places.add(place);
+            if (s.ipMasked) p.ips.add(s.ipMasked);
+            for (const pg of s.pages || []) {
+                const row = p.pages.get(pg.path) || { caminho: pg.path, nome: pg.title, segundos: 0, vezes: 0, visitas: 0 };
+                row.segundos += pg.seconds || 0; row.vezes += pg.views || 0; row.visitas += 1;
+                p.pages.set(pg.path, row);
+            }
+            for (const c of s.cameras || []) {
+                const row = p.cameras.get(c.code) || { codigo: c.code, nome: c.name, segundos: 0, vezes: 0, visitas: 0 };
+                row.segundos += c.seconds || 0; row.vezes += c.views || 0; row.visitas += 1;
+                p.cameras.set(c.code, row);
+            }
+        }
+
+        let list = [...people.values()];
+        if (onlyCamera) list = list.filter((p) => p.cameras.size > 0);
+        if (onlyLogged) list = list.filter((p) => p.logged);
+        const min = Math.max(0, parseInt(minSeconds, 10) || 0);
+        if (min) list = list.filter((p) => p.seconds >= min);
+
+        return list.map((p) => {
+            const visits = [...p.visits].sort((a, b) => a.startedAtMs - b.startedAtMs);
+            const byTime = (a, b) => b.segundos - a.segundos;
+            return {
+                id: createHash('sha1').update(p.key).digest('hex').slice(0, 8),
+                usuario: p.logged ? { nome: p.name } : null,
+                agrupadoPor: p.logged ? 'conta' : 'IP mascarado, aparelho e navegador',
+                visitas: visits.length,
+                duracaoSegundos: p.seconds,
+                segundosEmCameras: p.cameraSeconds,
+                primeira: visits[0].startedAtMs,
+                ultima: Math.max(...visits.map((v) => v.endedAtMs || v.startedAtMs)),
+                dispositivos: [...p.devices], locais: [...p.places], ipsMascarados: [...p.ips],
+                paginas: [...p.pages.values()].sort(byTime).slice(0, 30),
+                cameras: [...p.cameras.values()].sort(byTime).slice(0, 20),
+                trajetoria: visits.slice(-50).map((v) => ({
+                    inicio: v.startedAtMs, duracaoSegundos: v.durationSec, entrada: v.entryPath,
+                    cameras: (v.cameras || []).map((c) => c.name)
+                }))
+            };
+        }).sort((a, b) => b.ultima - a.ultima).slice(0, lim);
     }
 
     // ─── Agendamento ────────────────────────────────────────────────────────────

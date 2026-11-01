@@ -8,6 +8,7 @@ class VisitorController {
         this.live = this.live.bind(this);
         this.summary = this.summary.bind(this);
         this.sessions = this.sessions.bind(this);
+        this.profiles = this.profiles.bind(this);
         this.visibility = this.visibility.bind(this);
     }
 
@@ -51,6 +52,20 @@ class VisitorController {
             res.json({ sessoes });
         } catch (error) {
             this._fail(res, error, 'sessoes');
+        }
+    }
+
+    /** GET /api/admin/visitantes/perfis?dias=7&limite=200&camera=1&logados=1&min=30 — uma linha por pessoa */
+    async profiles(req, res) {
+        try {
+            res.setHeader('Cache-Control', 'no-store');
+            const q = req.query;
+            const perfis = await this._service.profiles({
+                days: q.dias, limit: q.limite, onlyCamera: q.camera === '1', onlyLogged: q.logados === '1', minSeconds: q.min
+            });
+            res.json({ perfis });
+        } catch (error) {
+            this._fail(res, error, 'perfis');
         }
     }
 

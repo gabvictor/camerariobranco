@@ -149,7 +149,7 @@
                 <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
                     <div>
                         <h2 id="hist-titulo" class="text-lg font-bold text-gray-900 dark:text-white">Perfis de visitas</h2>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Clique em uma linha para ver as páginas e câmeras daquela visita. Só entram visitas com pelo menos 20 s, câmera assistida ou login.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Uma linha por pessoa, com todas as visitas juntas. Clique para ver as páginas, as câmeras e a trajetória visita a visita. Contas logadas são agrupadas pela conta; perfis anônimos antigos, pelo IP mascarado, aparelho e navegador.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
                         <label class="inline-flex items-center gap-1.5 cursor-pointer"><input id="f-camera" type="checkbox" class="accent-indigo-600"> Só com câmera</label>
@@ -165,15 +165,16 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-900/60 text-xs text-gray-500 dark:text-gray-400">
                             <tr>
-                                <th class="text-left font-semibold px-3 py-2.5">Quando</th>
+                                <th class="text-left font-semibold px-3 py-2.5">Última visita</th>
                                 <th class="text-left font-semibold px-3 py-2.5">Quem</th>
-                                <th class="text-right font-semibold px-3 py-2.5">Tempo</th>
+                                <th class="text-right font-semibold px-3 py-2.5">Visitas</th>
+                                <th class="text-right font-semibold px-3 py-2.5">Tempo total</th>
                                 <th class="text-left font-semibold px-3 py-2.5">Câmeras</th>
                                 <th class="text-left font-semibold px-3 py-2.5">Aparelho</th>
                                 <th class="text-left font-semibold px-3 py-2.5">Local</th>
                             </tr>
                         </thead>
-                        <tbody id="hist-corpo"><tr><td colspan="6" class="px-3 py-6 text-center text-gray-500 dark:text-gray-400">Carregando...</td></tr></tbody>
+                        <tbody id="hist-corpo"><tr><td colspan="7" class="px-3 py-6 text-center text-gray-500 dark:text-gray-400">Carregando...</td></tr></tbody>
                     </table>
                 </div>
                 <p id="hist-nota" class="text-[11px] text-gray-500 dark:text-gray-400 mt-3"></p>
@@ -323,29 +324,37 @@
             }
         }
 
-        function detailRow(s) {
+        function listBlock(title, rows, empty, labelOf, valueOf) {
+            const box = el('div');
+            box.append(el('p', 'text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2', title));
+            if (rows.length) rows.forEach((r) => {
+                const row = el('div', 'flex items-baseline justify-between gap-3 text-sm py-0.5');
+                row.append(el('span', 'truncate text-gray-800 dark:text-gray-100', labelOf(r)), el('span', 'num text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap', valueOf(r)));
+                box.append(row);
+            }); else box.append(el('p', 'text-sm text-gray-500', empty));
+            return box;
+        }
+
+        function detailRow(p) {
             const tr = el('tr', 'bg-gray-50 dark:bg-gray-900/50');
-            const td = el('td', 'px-3 py-4'); td.colSpan = 6;
-            const grid = el('div', 'grid grid-cols-1 md:grid-cols-2 gap-6');
-
-            const pg = el('div');
-            pg.append(el('p', 'text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2', `Páginas (entrou por ${s.entrada})`));
-            if (s.paginas.length) s.paginas.forEach((p) => {
-                const row = el('div', 'flex items-baseline justify-between gap-3 text-sm py-0.5');
-                row.append(el('span', 'truncate text-gray-800 dark:text-gray-100', p.caminho), el('span', 'num text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap', `${fmtDur(p.segundos)}${p.vezes > 1 ? ` · ${p.vezes}x` : ''}`));
-                pg.append(row);
-            }); else pg.append(el('p', 'text-sm text-gray-500', 'Sem páginas registradas.'));
-
-            const cm = el('div');
-            cm.append(el('p', 'text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2', 'Câmeras assistidas'));
-            if (s.cameras.length) s.cameras.forEach((c) => {
-                const row = el('div', 'flex items-baseline justify-between gap-3 text-sm py-0.5');
-                row.append(el('span', 'truncate text-gray-800 dark:text-gray-100', c.nome), el('span', 'num text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap', `${fmtDur(c.segundos)}${c.vezes > 1 ? ` · ${c.vezes}x` : ''}`));
-                cm.append(row);
-            }); else cm.append(el('p', 'text-sm text-gray-500', 'Não assistiu câmeras ao vivo.'));
-
-            grid.append(pg, cm);
-            td.append(grid, el('p', 'text-[11px] text-gray-500 dark:text-gray-400 mt-3', `Visita ${s.id} · IP ${s.ipMascarado || '—'} · ${s.sistema || '—'}`));
+            const td = el('td', 'px-3 py-4'); td.colSpan = 7;
+            const grid = el('div', 'grid grid-cols-1 lg:grid-cols-3 gap-6');
+            const times = (r) => `${fmtDur(r.segundos)}${r.vezes > 1 ? ` · ${r.vezes}x` : ''}`;
+            grid.append(
+                listBlock('Páginas mais usadas', p.paginas, 'Sem páginas registradas.', (r) => r.caminho, times),
+                listBlock('Câmeras assistidas', p.cameras, 'Não assistiu câmeras ao vivo.', (r) => r.nome, times),
+                listBlock('Trajetória, visita a visita', [...p.trajetoria].reverse(), 'Sem visitas.',
+                    (v) => `${fmtWhen(v.inicio)} · entrou por ${v.entrada || '/'}${v.cameras.length ? ' · ' + v.cameras.slice(0, 2).join(', ') + (v.cameras.length > 2 ? ` +${v.cameras.length - 2}` : '') : ''}`,
+                    (v) => fmtDur(v.duracaoSegundos))
+            );
+            const extra = [
+                p.dispositivos.length ? `Aparelhos: ${p.dispositivos.join('; ')}` : '',
+                p.locais.length ? `Locais: ${p.locais.join('; ')}` : '',
+                p.ipsMascarados.length ? `IP mascarado: ${p.ipsMascarados.join(', ')}` : '',
+                `Primeira visita: ${fmtWhen(p.primeira)}`,
+                `Agrupado por: ${p.agrupadoPor}`
+            ].filter(Boolean).join(' · ');
+            td.append(grid, el('p', 'text-[11px] text-gray-500 dark:text-gray-400 mt-3', extra));
             tr.append(td);
             return tr;
         }
@@ -357,41 +366,42 @@
                 if ($('f-camera').checked) params.set('camera', '1');
                 if ($('f-logados').checked) params.set('logados', '1');
                 if ($('f-min').value !== '0') params.set('min', $('f-min').value);
-                const { sessoes } = await api(`/api/admin/visitantes/sessoes?${params}`);
+                const { perfis } = await api(`/api/admin/visitantes/perfis?${params}`);
 
                 body.replaceChildren();
-                if (!sessoes.length) {
-                    const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-gray-500 dark:text-gray-400', 'Nenhuma visita neste filtro ainda.'); td.colSpan = 6; tr.append(td); body.append(tr);
+                if (!perfis.length) {
+                    const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-gray-500 dark:text-gray-400', 'Nenhum perfil neste filtro ainda.'); td.colSpan = 7; tr.append(td); body.append(tr);
                     $('hist-nota').textContent = '';
                     return;
                 }
-                sessoes.forEach((s) => {
+                perfis.forEach((p) => {
                     const tr = el('tr', 'border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 cursor-pointer');
                     tr.tabIndex = 0;
-                    const camText = s.cameras.length ? s.cameras.slice(0, 2).map((c) => c.nome).join(', ') + (s.cameras.length > 2 ? ` +${s.cameras.length - 2}` : '') : '—';
+                    const camText = p.cameras.length ? p.cameras.slice(0, 2).map((c) => c.nome).join(', ') + (p.cameras.length > 2 ? ` +${p.cameras.length - 2}` : '') : '—';
                     const cells = [
-                        [fmtWhen(s.inicio), 'px-3 py-2.5 whitespace-nowrap num text-xs text-gray-600 dark:text-gray-300'],
-                        [s.usuario ? s.usuario.nome : 'Anônimo', 'px-3 py-2.5 font-semibold ' + (s.usuario ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200')],
-                        [fmtDur(s.duracaoSegundos), 'px-3 py-2.5 text-right font-bold num'],
+                        [fmtWhen(p.ultima), 'px-3 py-2.5 whitespace-nowrap num text-xs text-gray-600 dark:text-gray-300'],
+                        [p.usuario ? p.usuario.nome : `Anônimo ${p.id}`, 'px-3 py-2.5 font-semibold ' + (p.usuario ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200')],
+                        [String(p.visitas), 'px-3 py-2.5 text-right num'],
+                        [fmtDur(p.duracaoSegundos), 'px-3 py-2.5 text-right font-bold num'],
                         [camText, 'px-3 py-2.5 text-gray-700 dark:text-gray-200 max-w-[16rem] truncate'],
-                        [[s.dispositivo, s.navegador].filter(Boolean).join(' · ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap'],
-                        [[s.cidade, s.regiao].filter(Boolean).join(', ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap']
+                        [p.dispositivos.slice(0, 2).join('; ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap'],
+                        [p.locais.slice(0, 2).join('; ') || '—', 'px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap']
                     ];
                     cells.forEach(([t, c]) => tr.append(el('td', c, t)));
                     let detail = null;
                     const toggle = () => {
                         if (detail) { detail.remove(); detail = null; return; }
-                        detail = detailRow(s);
+                        detail = detailRow(p);
                         tr.after(detail);
                     };
                     tr.addEventListener('click', toggle);
                     tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
                     body.append(tr);
                 });
-                $('hist-nota').textContent = `${sessoes.length} perfil(is) exibido(s), do mais recente para o mais antigo.`;
+                $('hist-nota').textContent = `${perfis.length} pessoa(s) exibida(s), da visita mais recente para a mais antiga.`;
             } catch (e) {
                 body.replaceChildren();
-                const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-rose-600', 'Não foi possível carregar: ' + e.message); td.colSpan = 6; tr.append(td); body.append(tr);
+                const tr = el('tr'); const td = el('td', 'px-3 py-6 text-center text-rose-600', 'Não foi possível carregar: ' + e.message); td.colSpan = 7; tr.append(td); body.append(tr);
             }
         }
 

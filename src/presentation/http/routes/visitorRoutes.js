@@ -17,6 +17,7 @@ function visitorRoutes(visitorController) {
     router.get('/api/admin/visitantes/ao-vivo', verifyAdmin, adminLimiter, visitorController.live);
     router.get('/api/admin/visitantes/resumo', verifyAdmin, adminLimiter, visitorController.summary);
     router.get('/api/admin/visitantes/sessoes', verifyAdmin, adminLimiter, visitorController.sessions);
+    router.get('/api/admin/visitantes/perfis', verifyAdmin, adminLimiter, visitorController.profiles);
 
     router.post('/api/presence/visibility', visibilityLimiter, visitorController.visibility);
 
