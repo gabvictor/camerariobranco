@@ -1348,6 +1348,7 @@ async function bootstrap() {
         rioAlertService.start();
     }
     visitors.start();
+    rioAcreService.iniciarAtualizacao(); // nível, histórico e previsão sempre em memória: ninguém espera a ANA
 
     const shutdown = async (signal) => {
         console.log(`\n[${signal}] Salvando métricas e desligando...`);

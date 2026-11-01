@@ -66,7 +66,7 @@ class CameraController {
                 this._rioAcreService = new RioAcreService();
             }
             const data = await this._rioAcreService.getNivelRioAcre();
-            res.setHeader('Cache-Control', 'public, max-age=60');
+            res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
             res.json(data);
         } catch (error) {
             this._rioErro(res, error, 'RIO_ACRE_ERROR');
@@ -82,7 +82,7 @@ class CameraController {
             }
             const dias = Math.max(1, Math.min(365, parseInt(req.query.dias, 10) || 30));
             const data = await this._rioAcreService.getHistoricoRioAcre(dias);
-            res.setHeader('Cache-Control', 'public, max-age=300');
+            res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
             res.json(data);
         } catch (error) {
             this._rioErro(res, error, 'RIO_ACRE_HISTORICO_ERROR');
@@ -97,7 +97,7 @@ class CameraController {
                 this._rioAcreService = new RioAcreService();
             }
             const data = await this._rioAcreService.getPrevisaoRioAcre();
-            res.setHeader('Cache-Control', 'public, max-age=300');
+            res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
             res.json(data);
         } catch (error) {
             this._rioErro(res, error, 'RIO_ACRE_PREVISAO_ERROR');

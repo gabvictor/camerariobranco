@@ -134,3 +134,88 @@ test('previsão velha (até 1 h) é entregue na hora e recalculada por trás; pe
     assert.equal(nova, svc._previsaoCache);
     assert.equal(calculos, 2);
 });
+
+// ─── Cache: ninguém espera a ANA ────────────────────────────────────────────
+function contador(porCodigo) {
+    let chamadas = 0;
+    const svc = criar(porCodigo, { montante: [] });
+    const original = svc.hidroWebService.consultarSerieTelemetricaAdotada;
+    svc.hidroWebService.consultarSerieTelemetricaAdotada = async (a) => { chamadas++; await new Promise((r) => setTimeout(r, 20)); return original(a); };
+    return { svc, chamadas: () => chamadas };
+}
+
+test('nível: vencido há pouco é entregue na hora e atualizado por trás; pedidos simultâneos fazem uma consulta só', async () => {
+    const { rio } = series(false);
+    const { svc, chamadas } = contador({ '13600002': rio });
+    const primeira = await svc.getNivelRioAcre();
+    const base = chamadas();
+
+    svc._lastFetchTime = Date.now() - 15 * 60 * 1000;                    // passou dos 10 min, dentro de 1 h
+    const t0 = Date.now();
+    const [a, b, c] = await Promise.all([svc.getNivelRioAcre(), svc.getNivelRioAcre(), svc.getNivelRioAcre()]);
+    assert.ok(Date.now() - t0 < 15, 'resposta imediata, sem esperar a consulta');
+    assert.equal(a.nivel.metros, primeira.nivel.metros);
+    assert.equal(a.estado, 'ok');
+    await new Promise((r) => setTimeout(r, 120));
+    assert.equal(chamadas() - base, 1, 'uma única consulta por trás');
+    assert.ok(Date.now() - svc._lastFetchTime < 1000, 'e o cache foi renovado');
+    assert.ok(b && c);
+});
+
+test('nível: cache velho demais (mais de 1 h) espera a consulta nova', async () => {
+    const { rio } = series(false);
+    const { svc, chamadas } = contador({ '13600002': rio });
+    await svc.getNivelRioAcre();
+    const base = chamadas();
+    svc._lastFetchTime = Date.now() - 2 * 60 * 60 * 1000;
+    await svc.getNivelRioAcre();
+    assert.equal(chamadas() - base, 1);
+    assert.ok(Date.now() - svc._lastFetchTime < 1000);
+});
+
+test('histórico: mesma regra, e dias diferentes não se misturam', async () => {
+    const { rio } = series(false);
+    const { svc, chamadas } = contador({ '13600002': rio });
+    const h30 = await svc.getHistoricoRioAcre(30);
+    const base = chamadas();
+    svc._historicoCache[30].at = Date.now() - 45 * 60 * 1000;            // vencido (30 min), dentro de 1 h
+    const t0 = Date.now();
+    const velho = await svc.getHistoricoRioAcre(30);
+    assert.ok(Date.now() - t0 < 15);
+    assert.equal(velho.pontos.length, h30.pontos.length);
+    await new Promise((r) => setTimeout(r, 120));
+    assert.equal(chamadas() - base, 1);
+    assert.ok(Date.now() - svc._historicoCache[30].at < 1000);
+});
+
+test('rotina em segundo plano deixa nível, histórico e previsão prontos e não deixa o processo preso', async () => {
+    const { up, rio } = series(false);
+    const svc = criar({ '13600002': rio, CAP: up });
+    svc.iniciarAtualizacao({ intervaloMs: 60 * 1000 });
+    await new Promise((r) => setTimeout(r, 400));                        // a primeira rodada termina
+    assert.ok(svc._cache && svc._historicoCache[30] && svc._previsaoCache, 'tudo em memória');
+    const t0 = Date.now();
+    const p = await svc.getPrevisaoRioAcre();
+    assert.ok(Date.now() - t0 < 15, 'previsão vem da memória');
+    assert.equal(p.disponivel, true);
+    svc.iniciarAtualizacao();                                             // segunda chamada não cria outro relógio
+    svc.pararAtualizacao();
+    assert.equal(svc._timerAtualizacao, null);
+});
+
+test('se a ANA falha na renovação, o cache antigo continua valendo (o relógio não zera)', async () => {
+    const { up, rio } = series(false);
+    const svc = criar({ '13600002': rio, CAP: up });
+    await svc.getNivelRioAcre();
+    const marcado = svc._lastFetchTime;
+    svc.hidroWebService.consultarSerieTelemetricaAdotada = async () => { throw new Error('ANA fora'); };
+    svc.enableLegacyFallback = false;                                     // sem rede de verdade no teste
+    const w = console.warn; console.warn = () => {};
+    try {
+        svc.iniciarAtualizacao({ intervaloMs: 60 * 1000 });
+        await new Promise((r) => setTimeout(r, 300));
+    } finally { console.warn = w; svc.pararAtualizacao(); }
+    assert.equal(svc._lastFetchTime, marcado);
+    const n = await svc.getNivelRioAcre();                                // continua servindo o dado real que tinha
+    assert.ok(n.nivel.metros > 0);
+});

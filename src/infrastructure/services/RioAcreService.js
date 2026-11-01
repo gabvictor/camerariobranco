@@ -31,6 +31,8 @@ const CLIMATOLOGIA = {
     10: [2.31, 'Transição p/ Chuvas'], 11: [2.78, 'Elevação das Águas'], 12: [6.59, 'Inverno Amazônico']
 };
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+// Cache vencido há menos que isso ainda é entregue na hora, enquanto a atualização roda por trás.
+const STALE_SERVE_MS = 60 * 60 * 1000;
 const RB_OFFSET_MS = 5 * 3600 * 1000; // Acre = UTC-5 o ano todo
 const AMORTECIMENTO = { 24: 0.8, 48: 0.6, 168: 0.3 }; // empíricos, sem calibração estatística
 
@@ -85,8 +87,45 @@ class RioAcreService {
         this._previsaoCache = null;
         this._lastPrevisaoFetchTime = 0;
         this._previsaoEmAndamento = null;
+        this._nivelEmAndamento = null;
+        this._timerAtualizacao = null;
         this._serie30Cache = new Map();   // código da estação → { at, readings }
         this.estacoesMontante = options.estacoesMontante || Upstream.ESTACOES_MONTANTE;
+    }
+
+    // ─── Atualização em segundo plano ──────────────────────────────────────────────
+    /**
+     * Mantém nível, histórico e previsão sempre quentes: o visitante recebe a resposta da memória, sem esperar a ANA.
+     * Os caches vencem em 10 min (nível), 30 min (histórico) e 5 min (previsão); a rotina renova antes disso.
+     */
+    iniciarAtualizacao({ intervaloMs = 4 * 60 * 1000 } = {}) {
+        if (this._timerAtualizacao) return;
+        let rodada = 0;
+        // Força a renovação zerando o relógio do cache; se a ANA falhar, devolve o relógio antigo (o cache velho segue servindo).
+        const renovar = async (ler, gravar, executar, rotulo) => {
+            const antes = ler();
+            gravar(0);
+            try { await executar(); } catch (e) { console.warn(`[RioAcreService] Atualização ${rotulo} falhou:`, e.message); }
+            if (ler() === 0) gravar(antes);
+        };
+        const rodar = async () => {
+            rodada += 1;
+            await renovar(() => this._lastFetchTime, (v) => { this._lastFetchTime = v; }, () => this.getNivelRioAcre(), 'do nível');
+            if (rodada === 1 || rodada % 5 === 0) {      // a cada ~20 min: o histórico vale 30
+                const h = () => this._historicoCache[30];
+                if (h()) await renovar(() => h().at, (v) => { h().at = v; }, () => this.getHistoricoRioAcre(30), 'do histórico');
+                else { try { await this.getHistoricoRioAcre(30); } catch (e) { console.warn('[RioAcreService] Atualização do histórico falhou:', e.message); } }
+            }
+            await renovar(() => this._lastPrevisaoFetchTime, (v) => { this._lastPrevisaoFetchTime = v; }, () => this._atualizarPrevisao(), 'da previsão');
+        };
+        rodar();
+        this._timerAtualizacao = setInterval(rodar, intervaloMs);
+        if (this._timerAtualizacao.unref) this._timerAtualizacao.unref();
+    }
+
+    pararAtualizacao() {
+        if (this._timerAtualizacao) clearInterval(this._timerAtualizacao);
+        this._timerAtualizacao = null;
     }
 
     // ─── Motor Python (opcional) ────────────────────────────────────────────────────
@@ -153,9 +192,26 @@ class RioAcreService {
 
     async getNivelRioAcre() {
         const now = Date.now();
-        if (this._cache && now - this._lastFetchTime < this._cacheTtlCurrentMs) {
+        const idade = now - this._lastFetchTime;
+        if (this._cache && idade < this._cacheTtlCurrentMs) return this._comFrescor(this._cache, false);
+        // Cache vencido há pouco: entrega o que tem na hora e atualiza por trás. Ninguém espera a ANA.
+        if (this._cache && idade < STALE_SERVE_MS) {
+            this._atualizarNivel().catch(() => {});
             return this._comFrescor(this._cache, false);
         }
+        return this._atualizarNivel();
+    }
+
+    /** Uma consulta por vez: pedidos simultâneos dividem a mesma resposta. */
+    _atualizarNivel() {
+        if (!this._nivelEmAndamento) {
+            this._nivelEmAndamento = this._buscarNivel().finally(() => { this._nivelEmAndamento = null; });
+        }
+        return this._nivelEmAndamento;
+    }
+
+    async _buscarNivel() {
+        const now = Date.now();
         const erros = [];
         const fontes = this._fontes('nivel', 2);
         for (const [idx, [nome, buscar]] of fontes.entries()) {
@@ -164,7 +220,7 @@ class RioAcreService {
                 const data = Array.isArray(r.readings) ? this._buildNivel(r.readings, r.fonte) : r; // r = JSON do Python
                 if (data && data.nivel) {
                     this._cache = data;
-                    this._lastFetchTime = now;
+                    this._lastFetchTime = Date.now();
                     // Dado vindo de fonte reserva (ex.: legado, sem qualidade) vale pouco: tenta a principal de novo logo.
                     this._cacheTtlCurrentMs = idx === 0 ? this._cacheTtlMs : this._cacheTtlFallbackMs;
                     return this._comFrescor(data, false);
@@ -185,7 +241,24 @@ class RioAcreService {
         const now = Date.now();
         const cached = this._historicoCache[diasParam];
         if (cached && now - cached.at < 30 * 60 * 1000) return this._comFrescor(cached.data, false);
+        if (cached && now - cached.at < STALE_SERVE_MS) {
+            this._atualizarHistorico(diasParam).catch(() => {});
+            return this._comFrescor(cached.data, false);
+        }
+        return this._atualizarHistorico(diasParam);
+    }
 
+    _atualizarHistorico(diasParam) {
+        this._historicoEmAndamento = this._historicoEmAndamento || {};
+        if (!this._historicoEmAndamento[diasParam]) {
+            this._historicoEmAndamento[diasParam] = this._buscarHistorico(diasParam).finally(() => { delete this._historicoEmAndamento[diasParam]; });
+        }
+        return this._historicoEmAndamento[diasParam];
+    }
+
+    async _buscarHistorico(diasParam) {
+        const now = Date.now();
+        const cached = this._historicoCache[diasParam];
         const erros = [];
         for (const [nome, buscar] of this._fontes('historico', diasParam)) {
             try {
@@ -194,7 +267,7 @@ class RioAcreService {
                     ? this._aggregateHistoricalReadings(r.readings, diasParam, r.fonte)
                     : r;
                 if (data && data.pontos && data.pontos.length) {
-                    this._historicoCache[diasParam] = { at: now, data };
+                    this._historicoCache[diasParam] = { at: Date.now(), data };
                     return this._comFrescor(data, false);
                 }
                 throw new Error('sem pontos válidos');
