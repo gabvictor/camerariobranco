@@ -219,3 +219,19 @@ test('se a ANA falha na renovação, o cache antigo continua valendo (o relógio
     const n = await svc.getNivelRioAcre();                                // continua servindo o dado real que tinha
     assert.ok(n.nivel.metros > 0);
 });
+
+test('ANA fora do ar: o aviso aparece uma vez e fica em silêncio, em vez de lotar o painel de logs', async () => {
+    const { rio } = series(false);
+    const svc = criar({ '13600002': rio, CAP: rio }, { erroEm: ['CAP'] });
+    const avisos = [];
+    const w = console.warn; console.warn = (...a) => avisos.push(a.join(' '));
+    try {
+        const chaves = ['nivel:HidroWebService', 'historico:HidroWebService', 'montante:series'];
+        for (let i = 0; i < 6; i++) chaves.forEach((c) => svc._avisar(c, `[RioAcreService] falha ${c}`, 'timeout'));
+        assert.equal(avisos.length, 3, 'uma linha por tipo de falha, não uma por tentativa');
+        svc._avisos.set('montante:series', Date.now() - 31 * 60 * 1000);                    // passou o silêncio
+        svc._avisar('montante:series', '[RioAcreService] falha de novo', 'timeout');
+        assert.equal(avisos.length, 4);
+        assert.match(avisos[3], /continua; avisos iguais ficam 30 min em silêncio/);
+    } finally { console.warn = w; }
+});

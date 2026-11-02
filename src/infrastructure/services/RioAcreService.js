@@ -33,6 +33,8 @@ const CLIMATOLOGIA = {
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 // Cache vencido há menos que isso ainda é entregue na hora, enquanto a atualização roda por trás.
 const STALE_SERVE_MS = 60 * 60 * 1000;
+// Falha repetida da ANA (a rotina tenta de novo a cada 4 min): avisa uma vez e fica em silêncio por este tempo.
+const AVISO_SILENCIO_MS = 30 * 60 * 1000;
 const RB_OFFSET_MS = 5 * 3600 * 1000; // Acre = UTC-5 o ano todo
 const AMORTECIMENTO = { 24: 0.8, 48: 0.6, 168: 0.3 }; // empíricos, sem calibração estatística
 
@@ -89,8 +91,18 @@ class RioAcreService {
         this._previsaoEmAndamento = null;
         this._nivelEmAndamento = null;
         this._timerAtualizacao = null;
+        this._avisos = new Map();         // chave -> quando avisou pela última vez
         this._serie30Cache = new Map();   // código da estação → { at, readings }
         this.estacoesMontante = options.estacoesMontante || Upstream.ESTACOES_MONTANTE;
+    }
+
+    /** console.warn com silêncio por chave: uma ANA fora do ar não pode encher o painel de logs de alertas iguais. */
+    _avisar(chave, mensagem, erro) {
+        const agora = Date.now();
+        const antes = this._avisos.get(chave);
+        if (antes && agora - antes < AVISO_SILENCIO_MS) return;
+        this._avisos.set(chave, agora);
+        console.warn(`${mensagem}${erro ? ' ' + erro : ''}${antes ? ' (continua; avisos iguais ficam 30 min em silêncio)' : ''}`);
     }
 
     // ─── Atualização em segundo plano ──────────────────────────────────────────────
@@ -105,7 +117,7 @@ class RioAcreService {
         const renovar = async (ler, gravar, executar, rotulo) => {
             const antes = ler();
             gravar(0);
-            try { await executar(); } catch (e) { console.warn(`[RioAcreService] Atualização ${rotulo} falhou:`, e.message); }
+            try { await executar(); } catch (e) { this._avisar('atualizacao:' + rotulo, `[RioAcreService] Atualização ${rotulo} falhou:`, e.message); }
             if (ler() === 0) gravar(antes);
         };
         const rodar = async () => {
@@ -114,7 +126,7 @@ class RioAcreService {
             if (rodada === 1 || rodada % 5 === 0) {      // a cada ~20 min: o histórico vale 30
                 const h = () => this._historicoCache[30];
                 if (h()) await renovar(() => h().at, (v) => { h().at = v; }, () => this.getHistoricoRioAcre(30), 'do histórico');
-                else { try { await this.getHistoricoRioAcre(30); } catch (e) { console.warn('[RioAcreService] Atualização do histórico falhou:', e.message); } }
+                else { try { await this.getHistoricoRioAcre(30); } catch (e) { this._avisar('atualizacao:historico', '[RioAcreService] Atualização do histórico falhou:', e.message); } }
             }
             await renovar(() => this._lastPrevisaoFetchTime, (v) => { this._lastPrevisaoFetchTime = v; }, () => this._atualizarPrevisao(), 'da previsão');
         };
@@ -228,7 +240,7 @@ class RioAcreService {
                 throw new Error('sem leitura válida');
             } catch (err) {
                 erros.push(`${nome}: ${err.message}`);
-                console.warn(`[RioAcreService] Falha em ${nome}:`, err.message);
+                this._avisar('nivel:' + nome, `[RioAcreService] Falha em ${nome}:`, err.message);
             }
         }
         if (this._cache) return this._comFrescor(this._cache, true); // dado real, porém velho
@@ -273,7 +285,7 @@ class RioAcreService {
                 throw new Error('sem pontos válidos');
             } catch (err) {
                 erros.push(`${nome}: ${err.message}`);
-                console.warn(`[RioAcreService] Histórico — falha em ${nome}:`, err.message);
+                this._avisar('historico:' + nome, `[RioAcreService] Histórico — falha em ${nome}:`, err.message);
             }
         }
         if (cached) return this._comFrescor(cached.data, true);
@@ -288,7 +300,7 @@ class RioAcreService {
         // Recalcular consulta a ANA várias vezes (dezenas de segundos): quem chega com a previsão de até 1 h
         // recebe essa na hora e a nova é calculada por trás, sem fazer o visitante esperar.
         if (this._previsaoCache && idade < 60 * 60 * 1000) {
-            this._atualizarPrevisao().catch((err) => console.warn('[RioAcreService] Falha ao atualizar a previsão:', err.message));
+            this._atualizarPrevisao().catch((err) => this._avisar('previsao', '[RioAcreService] Falha ao atualizar a previsão:', err.message));
             return this._previsaoCache;
         }
         return this._atualizarPrevisao();
@@ -313,7 +325,7 @@ class RioAcreService {
                     return py;
                 }
             } catch (err) {
-                console.warn('[RioAcreService] Previsão via Python falhou:', err.message);
+                this._avisar('previsao:python', '[RioAcreService] Previsão via Python falhou:', err.message);
             }
         }
 
@@ -322,7 +334,7 @@ class RioAcreService {
         try { hist = await this.getHistoricoRioAcre(2); } catch (_) { /* segue sem histórico */ }
         let montante = [];
         try { montante = await this._analiseMontante(nivel.nivel.timestamp); } catch (err) {
-            console.warn('[RioAcreService] Nível a montante indisponível, usando só a tendência:', err.message);
+            this._avisar('montante', '[RioAcreService] Nível a montante indisponível, usando só a tendência:', err.message);
         }
         const result = this._calcularPrevisao(nivel, hist, montante);
         this._previsaoCache = result;
@@ -470,7 +482,7 @@ class RioAcreService {
             this._serie30Cache.set(codigo, { at: Date.now(), readings });
             return readings;
         } catch (err) {
-            console.warn(`[RioAcreService] Série de 30 dias da estação ${codigo} indisponível: ${err.message}`);
+            this._avisar('montante:series', `[RioAcreService] Série de 30 dias da estação ${codigo} indisponível (as demais estações a montante podem estar iguais):`, err.message);
             return null; // sem a série, a estação simplesmente não entra na estimativa
         }
     }

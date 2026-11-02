@@ -186,7 +186,12 @@ class HidroWebAuthService {
             if (status === 401 || status === 403) {
                 console.warn('[HidroWebAuth] Falha na autenticação da ANA: Credenciais recusadas (HTTP ' + status + ')');
             } else {
-                console.warn('[HidroWebAuth] Erro ao comunicar com endpoint de autenticação da ANA:', error.message);
+                // A ANA fora do ar derruba várias consultas seguidas: um aviso por 30 min basta.
+                const agora = Date.now();
+                if (!this._ultimoAvisoComunicacao || agora - this._ultimoAvisoComunicacao > 30 * 60 * 1000) {
+                    this._ultimoAvisoComunicacao = agora;
+                    console.warn('[HidroWebAuth] Erro ao comunicar com endpoint de autenticação da ANA:', error.message);
+                }
             }
             this.invalidateToken();
             throw error;
