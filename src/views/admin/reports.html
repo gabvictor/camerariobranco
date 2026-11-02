@@ -136,39 +136,8 @@
                 </div>
             </header>
 
-            <!-- Admin Navigation Tabs -->
-            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
-                <a href="/dashboard" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
-                </a>
-                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="users" class="w-4 h-4"></i> Visitantes
-                </a>
-                <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
-                </a>
-                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
-                </a>
-                <a href="/admin" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
-                </a>
-                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
-                </a>
-                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
-                </a>
-                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
-                </a>
-                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
-                </a>
-                <a href="/admin/alertas" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="bell-ring" class="w-4 h-4"></i> Alertas do Rio
-                </a>
-            </nav>
+            <!-- Menu único do painel (public/script/admin-nav.js) -->
+            <div id="admin-nav"></div>
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -592,5 +561,6 @@
         };
 
     </script>
+    <script type="module" src="/script/admin-nav.js?v=1"></script>
 </body>
 </html>

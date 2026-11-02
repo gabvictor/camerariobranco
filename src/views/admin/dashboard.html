@@ -135,39 +135,8 @@
                 </div>
             </header>
 
-            <!-- Admin Navigation Tabs -->
-            <nav class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 border-b border-gray-200 dark:border-gray-800 text-xs sm:text-sm font-semibold">
-                <a href="/dashboard" class="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard
-                </a>
-                <a href="/admin/visitantes" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="users" class="w-4 h-4"></i> Visitantes
-                </a>
-                <a href="/admin/origens" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="compass" class="w-4 h-4"></i> Origens de Tráfego
-                </a>
-                <a href="/admin/monitor" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="activity" class="w-4 h-4"></i> Monitoramento NOC
-                </a>
-                <a href="/admin" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="video" class="w-4 h-4"></i> Câmeras & Config
-                </a>
-                <a href="/admin/analise-cameras" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="eye" class="w-4 h-4"></i> Análise de Câmeras
-                </a>
-                <a href="/admin/logs" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="terminal" class="w-4 h-4"></i> Logs do Servidor
-                </a>
-                <a href="/admin/reports" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> Reportes
-                </a>
-                <a href="/admin/comments" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="message-square" class="w-4 h-4"></i> Comentários
-                </a>
-                <a href="/admin/alertas" class="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <i data-lucide="bell-ring" class="w-4 h-4"></i> Alertas do Rio
-                </a>
-            </nav>
+            <!-- Menu único do painel (public/script/admin-nav.js) -->
+            <div id="admin-nav"></div>
 
             <!-- Índice rápido: pula direto para cada parte do painel -->
             <div id="dash-index" class="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2 mb-6 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200/70 dark:border-gray-800">
@@ -175,7 +144,6 @@
                     <span class="shrink-0 text-gray-400">Ir para:</span>
                     <a href="#secao-visao" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Visão geral</a>
                     <a href="#secao-visitantes" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Visitantes</a>
-                    <a href="#secao-modulos" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Módulos</a>
                     <a href="#secao-audiencia" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Audiência</a>
                     <a href="#secao-origens" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Origens</a>
                     <a href="#secao-cadastros" class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors">Cadastros</a>
@@ -309,8 +277,8 @@
                             <i data-lucide="layout-grid" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Módulos Administrativos do Sistema</h2>
-                            <p class="text-xs text-gray-400">Acesse diretamente qualquer subsistema ou recurso de gestão da plataforma</p>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">Estado dos serviços</h2>
+                            <p class="text-xs text-gray-400">O menu no topo leva a cada área do painel</p>
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-2" id="subsystem-pills">
@@ -325,119 +293,6 @@
                     </div>
                 </div>
 
-                <!-- Grid de Módulos Administrativos -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                    <!-- 1. Origens de Tráfego -->
-                    <a href="/admin/origens" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-indigo-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="compass" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Origens de Tráfego</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Fontes, GeoIP & UTMs</p>
-                        </div>
-                    </a>
-
-                    <!-- 2. Monitoramento NOC -->
-                    <a href="/admin/monitor" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-purple-300 dark:hover:border-purple-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-purple-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="activity" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Monitoramento NOC</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">CPU, RAM & Infraestrutura</p>
-                        </div>
-                    </a>
-
-                    <!-- 3. Câmeras & Config -->
-                    <a href="/admin" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-amber-300 dark:hover:border-amber-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-amber-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="video" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Câmeras & Config</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Cadastro & Parâmetros</p>
-                        </div>
-                    </a>
-
-                    <!-- 4. Análise de Câmeras -->
-                    <a href="/admin/analise-cameras" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-sky-300 dark:hover:border-sky-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-sky-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="eye" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">Análise de Câmeras</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Transmissões & Qualidade</p>
-                        </div>
-                    </a>
-
-                    <!-- 5. Logs do Servidor -->
-                    <a href="/admin/logs" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-rose-300 dark:hover:border-rose-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-rose-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="terminal" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Logs do Servidor</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Event Stream em Tempo Real</p>
-                        </div>
-                    </a>
-
-                    <!-- 6. Reportes de Usuários -->
-                    <a href="/admin/reports" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-orange-300 dark:hover:border-orange-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-orange-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Reportes</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Chamados de Usuários</p>
-                        </div>
-                    </a>
-
-                    <!-- 7. Moderação de Comentários -->
-                    <a href="/admin/comments" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-emerald-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                            <i data-lucide="message-square" class="w-5 h-5"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Comentários</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Moderação & Mensagens</p>
-                        </div>
-                    </a>
-
-                    <!-- 8. Perfis de Visitantes -->
-                    <a href="/admin/visitantes" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-violet-50 dark:hover:bg-violet-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-violet-300 dark:hover:border-violet-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-violet-600 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><i data-lucide="users" class="w-5 h-5"></i></div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">Perfis de Visitantes</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Tempo, páginas & câmeras</p>
-                        </div>
-                    </a>
-
-                    <!-- 9. Alertas do Rio -->
-                    <a href="/admin/alertas" class="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-gray-200/70 dark:border-gray-700/60 hover:border-orange-300 dark:hover:border-orange-700 transition-all group active:scale-98">
-                        <div class="p-3 bg-orange-500 text-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><i data-lucide="bell-ring" class="w-5 h-5"></i></div>
-                        <div class="min-w-0">
-                            <h3 class="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Alertas do Rio</h3>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">Teste, prévia & simulador</p>
-                        </div>
-                    </a>
-
-                    <!-- 10. Operações Rápidas Inline -->
-                    <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60">
-                        <button id="quick-trigger-scan-btn" title="Forçar Varredura" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                            <span class="text-[10px]">Varredura</span>
-                        </button>
-                        <button id="quick-clear-cache-btn" title="Recarregar Cache" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
-                            <i data-lucide="database" class="w-4 h-4"></i>
-                            <span class="text-[10px]">Cache BD</span>
-                        </button>
-                        <button id="quick-snapshot-btn" title="Capturar Snapshots" class="flex-1 py-3 px-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-xs font-bold border border-gray-200/80 dark:border-gray-700 transition-all active:scale-95 shadow-2xs flex flex-col items-center gap-1 cursor-pointer">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span class="text-[10px]">Snapshots</span>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <!-- Heatmap & Audiência em Tempo Real -->
@@ -2050,6 +1905,7 @@
             timer = setInterval(() => { if (document.visibilityState === 'visible') load(user); }, 15000);
         });
     </script>
+    <script type="module" src="/script/admin-nav.js?v=1"></script>
 </body>
 
 </html>
