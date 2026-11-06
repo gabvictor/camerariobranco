@@ -15,6 +15,7 @@
     var ID = 'camera-block-card';
 
     var CSS = [
+        '#' + ID + ',#' + ID + ' *{box-sizing:border-box}',
         '#' + ID + '{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;',
         'background:rgba(15,23,42,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);overflow:auto;',
         'font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}',
