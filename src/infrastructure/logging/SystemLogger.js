@@ -145,6 +145,8 @@ class SystemLogger extends EventEmitter {
         else if (status >= 400) level = 'WARN';
         else if (isRead && ms >= 3000) level = 'WARN'; // leitura lenta
 
+        // Imagem de câmera recusada pelo bloqueio (451): é o esperado enquanto o aviso estiver no ar, não um problema
+        if (status === 451) return { skip: true };
         // Rotina que deu certo: não guarda
         if (isRead && status < 400 && level === 'INFO') return { skip: true };
         // 404 de leitura fora da API costuma ser robô procurando página: não guarda

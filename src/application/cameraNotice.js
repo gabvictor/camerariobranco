@@ -34,6 +34,7 @@ const CSS = `<style id="cb-ssr-style">
 #cb-banner{display:block;width:100%;background:#7f1d1d;color:#fff;padding:10px 16px;font:600 13px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;text-align:center}
 #cb-banner a{color:#fecaca;font-weight:700;text-decoration:underline}
 #cb-banner strong{font-weight:800}
+[data-cb-hide]{display:none!important}[data-cb-show]{display:block!important}
 @media (prefers-color-scheme:dark){#camera-block-card .cb-card{background:#111827;color:#e5e7eb}#camera-block-card h2{color:#f9fafb}#camera-block-card p{color:#d1d5db}#camera-block-card .cb-contact{background:#1f2937;color:#d1d5db}#camera-block-card .cb-btn.alt{background:#111827;color:#a5b4fc;border-color:#3730a3}#camera-block-card .cb-icon{background:#450a0a;color:#f87171}#camera-block-card .cb-foot{color:#9ca3af}#camera-block-card .cb-foot a{color:#a5b4fc}}
 </style>`;
 
@@ -63,7 +64,8 @@ function injectNotice(html, mode) {
     const abre = /<body\b[^>]*>/i.exec(html);
     if (!abre) return html;
     const fim = abre.index + abre[0].length;
-    return html.slice(0, fim) + CSS + (mode === 'modal' ? MODAL : BANNER) + html.slice(fim);
+    // window.CAMERAS_BLOQUEADAS: os scripts das páginas (perfil, rio...) trocam a imagem de câmera pelo aviso.
+    return html.slice(0, fim) + CSS + '<script>window.CAMERAS_BLOQUEADAS=true;</script>' + (mode === 'modal' ? MODAL : BANNER) + html.slice(fim);
 }
 
 /**
@@ -76,6 +78,11 @@ function noticeMiddleware(getConfig) {
         const mode = req.method === 'GET' ? noticeModeFor(req.path) : null;
         if (!mode) return next();
 
+        // Quem já abriu a página antes do aviso tem uma cópia sem ele no navegador, com o mesmo ETag (o ETag é do HTML original).
+        // Sem pedido condicional, ninguém recebe "304 não mudou" e ficar com a versão antiga.
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
+
         const write = res.write.bind(res);
         const end = res.end.bind(res);
         const chunks = [];
@@ -86,7 +93,12 @@ function noticeMiddleware(getConfig) {
             if (decidido) return;
             decidido = true;
             reescrever = res.statusCode === 200 && /text\/html/i.test(String(res.getHeader('Content-Type') || '')) && camerasBloqueadas(getConfig());
-            if (reescrever) res.removeHeader('Content-Length');
+            if (reescrever) {
+                res.removeHeader('Content-Length');
+                res.removeHeader('ETag');
+                res.removeHeader('Last-Modified');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            }
         };
         const bytes = (chunk, enc) => (Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), typeof enc === 'string' ? enc : 'utf8'));
 

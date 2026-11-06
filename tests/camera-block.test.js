@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { camerasBloqueadas, podeVerCamera, pedidoDoPainel, codigosDoRio, MENSAGEM_BLOQUEIO } = require('../src/application/cameraAccess');
+const { camerasBloqueadas, podeVerCamera, pedidoDoPainel, MENSAGEM_BLOQUEIO } = require('../src/application/cameraAccess');
 const { noticeModeFor, injectNotice, noticeMiddleware } = require('../src/application/cameraNotice');
 
 const ROOT = path.join(__dirname, '..');
@@ -17,17 +17,13 @@ test('bloqueio vem ligado por padrão e só desliga quando alguém desliga de pr
     assert.equal(camerasBloqueadas({ camerasBloqueadas: false }), false);
 });
 
-test('com o bloqueio ligado: câmeras do rio e administradores passam, o resto não', () => {
-    const rio = codigosDoRio({ RIO_ALERT_CAMERAS: '001334, 001426' });
-    assert.deepEqual([...rio], ['001334', '001426']);
-    const cfg = {};
-    assert.equal(podeVerCamera({ config: cfg, codigo: '001334', rio }), true);
-    assert.equal(podeVerCamera({ config: cfg, codigo: '001426', rio }), true);
-    assert.equal(podeVerCamera({ config: cfg, codigo: '001302', rio }), false);
-    assert.equal(podeVerCamera({ config: cfg, codigo: '001302', rio, admin: true }), true);
-    assert.equal(podeVerCamera({ config: cfg, codigo: null, rio }), false);   // sem câmera (lista de timelapses): bloqueado
-    assert.equal(podeVerCamera({ config: { camerasBloqueadas: false }, codigo: '001302', rio }), true);
+test('com o bloqueio ligado só o painel passa: nem as câmeras do rio saem para o público', () => {
+    assert.equal(podeVerCamera({ config: {} }), false);
+    assert.equal(podeVerCamera({ config: undefined }), false);
+    assert.equal(podeVerCamera({ config: {}, admin: true }), true);
+    assert.equal(podeVerCamera({ config: { camerasBloqueadas: false } }), true);
     assert.match(MENSAGEM_BLOQUEIO, /indispon/i);
+    assert.ok(!/codigosDoRio|RIO_ALERT_CAMERAS/.test(ler('src', 'application', 'cameraAccess.js')), 'sem exceção para câmeras do rio');
 });
 
 test('o servidor recusa imagem, stream e quadros de timelapse antes de entregar qualquer coisa', () => {
@@ -35,7 +31,7 @@ test('o servidor recusa imagem, stream e quadros de timelapse antes de entregar 
     for (const nome of ['proxyCameraHandler', 'streamCameraHandler']) {
         const corpo = server.slice(server.indexOf(`const ${nome} = async`));
         const antes = corpo.slice(0, corpo.indexOf('cameraRepo.getCached()'));
-        assert.match(antes, /cameraImageAllowed\(req, code\)/, `${nome} precisa checar o bloqueio logo no começo`);
+        assert.match(antes, /cameraImageAllowed\(req\)/, `${nome} precisa checar o bloqueio logo no começo`);
     }
     const guarda = server.indexOf("app.use('/timelapse'");
     const estatico = server.indexOf('app.use(express.static(PUBLIC_FOLDER))');
@@ -91,13 +87,16 @@ test('timelapses: lista e quadros somem enquanto o bloqueio estiver ligado e vol
     assert.equal(r.corpo.length, 1);
 });
 
-test('o cartão está nas páginas que mostram câmeras e o /rio só leva um aviso', () => {
+test('o cartão está nas páginas que mostram câmeras e o /rio troca o player pelo aviso', () => {
     for (const f of ['index.html', 'camera.html', 'timelapses.html', 'mapa.html', 'embed.html']) {
         assert.match(ler('public', f), /src="\/script\/camera-block\.js/, `${f} precisa do cartão`);
     }
     const rio = ler('public', 'rio.html');
     assert.ok(!rio.includes('camera-block.js'), '/rio não leva o cartão que cobre a tela');
-    assert.match(rio, /id="aviso-cameras-rio"/);
+    assert.match(rio, /id="aviso-cameras-rio"[^>]*data-cb-show|data-cb-show[^>]*id="aviso-cameras-rio"/);
+    assert.match(rio, /<div data-cb-hide>\s*<!-- Seletor de Câmeras/);          // o player some quando o aviso entra
+    assert.match(rio, /data-cb-hide id="hero-camera-secondary-thumb"/);          // e a miniatura da outra câmera também
+    assert.match(rio, /nem as câmeras do rio/);
     assert.match(rio, /não tem nenhum envolvimento com a Prefeitura de Rio Branco/);
     assert.match(rio, /suportecamrb@gmail\.com/);
     assert.match(rio, /instagram\.com\/gabv_ctor/);
@@ -180,6 +179,11 @@ test('o servidor escreve o aviso no HTML de verdade (send, sendFile e arquivos),
         assert.ok(!(await (await fetch(base + '/admin')).text()).includes('cb-ssr-style'), 'painel fica de fora');
         assert.equal(await (await fetch(base + '/dados')).text(), '{"ok":true}');
         assert.equal((await fetch(base + '/vazio')).status, 204);
+        // Navegador que guardou a página ANTES do aviso: o ETag do HTML original é o mesmo, mas não pode virar "304 não mudou".
+        const velho = await fetch(base + '/', { headers: { 'If-None-Match': r.headers.get('etag') || 'W/"qualquer"', 'If-Modified-Since': new Date().toUTCString() } });
+        assert.equal(velho.status, 200);
+        assert.match(await velho.text(), /id="camera-block-card"/);
+        assert.match(r.headers.get('cache-control'), /no-store/);
         cfg = { camerasBloqueadas: false };                                             // bloqueio desligado: página limpa
         assert.ok(!(await (await fetch(base + '/')).text()).includes('cb-ssr-style'));
     } finally { srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
@@ -187,4 +191,26 @@ test('o servidor escreve o aviso no HTML de verdade (send, sendFile e arquivos),
 
 test('a página Sobre não mostra miniaturas quebradas quando as câmeras estão bloqueadas', () => {
     assert.match(ler('public', 'script', 'sobre-script.js'), /camerasBloqueadas !== false[\s\S]{0,300}suspensas/);
+});
+
+test('o perfil e o /rio trocam a imagem de câmera pelo aviso, e o servidor marca a página como bloqueada', () => {
+    const perfil = ler('public', 'script', 'perfil-script.js');
+    assert.match(perfil, /window\.CAMERAS_BLOQUEADAS === true/);
+    assert.match(perfil, /Imagens das câmeras suspensas/);
+    assert.match(perfil, /bloqueadas \? 'Suspensa'/);                       // nada de selo "Ao vivo" sobre o aviso
+    const modal = injectNotice('<html><body></body></html>', 'banner');
+    assert.match(modal, /window\.CAMERAS_BLOQUEADAS=true/);
+    assert.match(modal, /\[data-cb-hide\]\{display:none!important\}/);
+});
+
+test('e-mails de alerta saem sem fotos de câmera e as fotos guardadas deixam de ser entregues; o gráfico segue', () => {
+    const server = ler('server.js');
+    assert.match(server, /capture: \(tag\) => \(camerasBloqueadas\(cameraCtrl\._siteConfig\) \? Promise\.resolve\(\{ images: \[\], skipped: \[\] \}\)/);
+    const guarda = server.indexOf("app.use('/uploads/alertas'");
+    assert.ok(guarda > 0 && guarda < server.indexOf('app.use(express.static(PUBLIC_FOLDER))'));
+    assert.match(server, /rio-grafico-/);
+});
+
+test('imagem recusada pelo bloqueio (451) não vira alerta no painel de logs', () => {
+    assert.match(ler('src', 'infrastructure', 'logging', 'SystemLogger.js'), /status === 451\) return \{ skip: true \}/);
 });

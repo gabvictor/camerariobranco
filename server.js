@@ -173,7 +173,11 @@ const rioAlertService = new RioAlertService({
     repo: new FirebaseAlertSubscriberRepository(db),
     mailService,
     rioService: rioAcreService,
-    cameras: rioCameraSnapshots,
+    // Com o bloqueio ligado o e-mail sai sem fotos de câmera (só nível e gráfico); a limpeza de arquivos antigos continua.
+    cameras: {
+        capture: (tag) => (camerasBloqueadas(cameraCtrl._siteConfig) ? Promise.resolve({ images: [], skipped: [] }) : rioCameraSnapshots.capture(tag)),
+        cleanup: (dias) => rioCameraSnapshots.cleanup(dias)
+    },
     chart: rioChart,
     tokenSecret: KEY_FILE_CONFIG.tokenSecret,
     baseUrl: process.env.SITE_BASE_URL
@@ -642,9 +646,9 @@ const requestIsAdmin = async (req) => {
     return false;
 };
 
-/** Pode receber a imagem desta câmera? Câmeras do rio e administradores passam; o resto fica bloqueado enquanto o bloqueio estiver ligado. */
-const cameraImageAllowed = async (req, code) => {
-    if (podeVerCamera({ config: cameraCtrl._siteConfig, codigo: code })) return true;
+/** Pode receber a imagem de câmera? Só o painel de administração passa enquanto o bloqueio estiver ligado (inclusive as câmeras do rio). */
+const cameraImageAllowed = async (req) => {
+    if (podeVerCamera({ config: cameraCtrl._siteConfig })) return true;
     return requestIsAdmin(req);
 };
 
@@ -656,7 +660,7 @@ const sendCamerasBlocked = (res) => {
 const proxyCameraHandler = async (req, res) => {
     const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) return res.status(400).send('Código inválido.');
-    if (!(await cameraImageAllowed(req, code))) return sendCamerasBlocked(res);
+    if (!(await cameraImageAllowed(req))) return sendCamerasBlocked(res);
 
     const camera = cameraRepo.getCached().find(c => c.codigo === code);
     if (camera?.level === 3) {
@@ -834,7 +838,7 @@ function getOrCreateCameraStream(code) {
 const streamCameraHandler = async (req, res) => {
     const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) return res.status(400).send('Código inválido.');
-    if (!(await cameraImageAllowed(req, code))) return sendCamerasBlocked(res);
+    if (!(await cameraImageAllowed(req))) return sendCamerasBlocked(res);
 
     const camera = cameraRepo.getCached().find(c => c.codigo === code);
     
@@ -1232,6 +1236,12 @@ app.get('/index.html', (req, res) => res.redirect(301, '/'));
 });
 
 // ─── Static Files (Públicos apenas) ──────────────────────────────────────────
+// Fotos de câmera guardadas para os e-mails de alerta (rio-<evento>-<câmera>-...): bloqueadas também. O gráfico (rio-grafico-...) segue.
+app.use('/uploads/alertas', (req, res, next) => {
+    if (!camerasBloqueadas(cameraCtrl._siteConfig) || /^\/rio-grafico-[\w.-]+\.png$/i.test(req.path)) return next();
+    sendCamerasBlocked(res);
+});
+
 // Os quadros dos timelapses são arquivos: sem esta trava, bastaria saber o endereço para baixá-los.
 app.use('/timelapse', async (req, res, next) => {
     if (!camerasBloqueadas(cameraCtrl._siteConfig) || await requestIsAdmin(req)) return next();

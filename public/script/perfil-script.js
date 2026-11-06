@@ -162,13 +162,14 @@ const loadFavorites = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
                 ${favoriteCameras.map(cam => {
                     const isOnline = cam.status === 'online';
+                    const bloqueadas = window.CAMERAS_BLOQUEADAS === true;
                     return `
                         <div id="fav-card-${cam.codigo}" onclick="if (!event.target.closest('.remove-fav-btn')) window.location.href='/camera/${cam.codigo}'" class="group relative bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 hover:border-indigo-500 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer">
                             <div class="relative aspect-video bg-black rounded-xl overflow-hidden mb-2.5">
-                                <img src="/proxy/camera/${cam.codigo}" alt="${cam.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/offline.png'">
+                                ${bloqueadas ? `<div class="absolute inset-0 flex flex-col items-center justify-center text-center p-3 bg-slate-900 text-white"><p class="text-[11px] font-bold mb-1">Imagens das câmeras suspensas</p><p class="text-[10px] leading-snug text-slate-300">Acesso bloqueado: assunto em investigação. O CamRB não tem envolvimento com a Prefeitura de Rio Branco.</p></div>` : `<img src="/proxy/camera/${cam.codigo}" alt="${cam.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/offline.png'">`}
                                 <div class="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[10px] font-bold text-white flex items-center gap-1.5 ${isOnline ? 'bg-emerald-600/80 backdrop-blur-md' : 'bg-rose-600/80 backdrop-blur-md'}">
                                     <span class="w-1.5 h-1.5 rounded-full bg-white ${isOnline ? 'animate-pulse' : ''}"></span>
-                                    <span>${isOnline ? 'Ao Vivo' : 'Offline'}</span>
+                                    <span>${bloqueadas ? 'Suspensa' : (isOnline ? 'Ao Vivo' : 'Offline')}</span>
                                 </div>
                                 <button class="remove-fav-btn absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-600 text-white transition-colors cursor-pointer z-10" data-code="${cam.codigo}" title="Remover dos favoritos">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5 pointer-events-none"></i>

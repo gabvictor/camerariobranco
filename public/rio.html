@@ -294,12 +294,17 @@
 
                 <!-- Coluna Direita: Câmeras Ao Vivo Integradas (5 cols) -->
                 <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col justify-between">
-                    <div id="aviso-cameras-rio" role="note" class="mb-3 p-3 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 text-[11px] sm:text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-                        <p class="font-bold mb-1">Aviso sobre as imagens das câmeras</p>
-                        <p>O acesso às imagens das demais câmeras de Rio Branco está bloqueado neste site porque o assunto está sendo apurado em uma investigação. As câmeras do rio continuam aqui apenas para o acompanhamento do nível.</p>
-                        <p class="mt-1">O CamRB é um projeto independente e <strong>não tem nenhum envolvimento com a Prefeitura de Rio Branco</strong>. Para dúvidas ou esclarecimentos, escreva para <a href="mailto:suportecamrb@gmail.com" class="underline font-semibold">suportecamrb@gmail.com</a> ou envie uma mensagem direta no <a href="https://www.instagram.com/gabv_ctor/" target="_blank" rel="noopener noreferrer" class="underline font-semibold">Instagram</a>.</p>
+                    <!-- Com o bloqueio ligado o servidor mostra este aviso no lugar das câmeras (data-cb-show) e esconde o player (data-cb-hide) -->
+                    <div id="aviso-cameras-rio" data-cb-show style="display:none" role="note" class="rounded-lg border border-red-300 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 p-4 sm:p-5 text-slate-800 dark:text-slate-100">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="video-off" class="w-5 h-5 text-red-600 dark:text-red-400"></i>
+                            <p class="font-bold text-sm sm:text-base">Imagens das câmeras suspensas</p>
+                        </div>
+                        <p class="text-xs sm:text-sm leading-relaxed">O acesso às imagens das câmeras está bloqueado neste site porque o assunto está sendo apurado em uma investigação. Enquanto ela durar, nenhuma imagem de câmera será exibida aqui, nem as câmeras do rio.</p>
+                        <p class="text-xs sm:text-sm leading-relaxed mt-2">O CamRB é um projeto independente e <strong>não tem nenhum envolvimento com a Prefeitura de Rio Branco</strong>. Estamos abertos a prestar qualquer esclarecimento: escreva para <a href="mailto:suportecamrb@gmail.com" class="underline font-semibold">suportecamrb@gmail.com</a> ou envie uma mensagem direta no <a href="https://www.instagram.com/gabv_ctor/" target="_blank" rel="noopener noreferrer" class="underline font-semibold">Instagram</a>.</p>
+                        <p class="text-xs mt-2 text-slate-600 dark:text-slate-300">A medição do nível do Rio Acre, ao lado, continua normal.</p>
                     </div>
-                    <div>
+                    <div data-cb-hide>
                         <!-- Seletor de Câmeras em Barra de Abas Compacta -->
                         <div class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
@@ -352,7 +357,7 @@
                     </div>
 
                     <!-- Barra de Alternância Rápida da Outra Câmera -->
-                    <div id="hero-camera-secondary-thumb" class="mt-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer flex items-center justify-between">
+                    <div data-cb-hide id="hero-camera-secondary-thumb" class="mt-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
                             <div class="relative w-12 h-8 rounded bg-black flex-shrink-0 overflow-hidden border border-slate-300 dark:border-slate-700">
                                 <img id="hero-thumb-img" src="/proxy/camera/001426" alt="Outra câmera" onerror="this.src='/assets/offline.png'" class="w-full h-full object-cover">
