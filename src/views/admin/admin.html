@@ -222,6 +222,13 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- Bloqueio das imagens das câmeras (cartão nas páginas públicas + recusa no servidor) -->
+                    <label class="relative inline-flex items-center cursor-pointer mr-1" title="Bloquear as imagens das câmeras para o público (cartão de aviso + erro 451 no servidor)">
+                        <input type="checkbox" id="cameras-block-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+                        <span class="ml-2.5 text-xs font-bold text-gray-900 dark:text-gray-300 hidden sm:inline">Bloquear câmeras</span>
+                    </label>
+
                     <!-- App Banner Toggle -->
                     <label class="relative inline-flex items-center cursor-pointer mr-1" title="Habilitar/Desabilitar Banner do App">
                         <input type="checkbox" id="app-banner-toggle" class="sr-only peer">
@@ -503,6 +510,7 @@
 
         // --- Configuração do Site (Banner App) ---
         const appBannerToggle = document.getElementById('app-banner-toggle');
+        const camerasBlockToggle = document.getElementById('cameras-block-toggle');
 
         async function loadSiteConfig() {
             try {
@@ -511,9 +519,37 @@
                 if (appBannerToggle) {
                     appBannerToggle.checked = !!config.showAppBanner;
                 }
+                if (camerasBlockToggle) {
+                    camerasBlockToggle.checked = config.camerasBloqueadas !== false;
+                }
             } catch (error) {
                 console.error("Erro ao carregar config:", error);
             }
+        }
+
+        if (camerasBlockToggle) {
+            camerasBlockToggle.addEventListener('change', async (e) => {
+                const novo = e.target.checked;
+                const aviso = novo
+                    ? 'Bloquear as imagens das câmeras para o público?'
+                    : 'LIBERAR as imagens das câmeras para o público? O cartão de aviso some de todas as páginas.';
+                if (!window.confirm(aviso)) { e.target.checked = !novo; return; }
+                const user = auth.currentUser;
+                if (!user) { showToast('Você precisa estar logado.', 'error'); e.target.checked = !novo; return; }
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch('/api/site-config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ camerasBloqueadas: novo })
+                    });
+                    if (!res.ok) throw new Error('Falha ao salvar');
+                    showToast(`Imagens das câmeras ${novo ? 'bloqueadas' : 'liberadas'}.`, novo ? 'success' : 'info');
+                } catch (error) {
+                    showToast('Erro ao salvar o bloqueio das câmeras.', 'error');
+                    e.target.checked = !novo;
+                }
+            });
         }
 
         if (appBannerToggle) {

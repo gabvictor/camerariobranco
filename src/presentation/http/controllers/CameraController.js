@@ -1,5 +1,6 @@
 const { sanitizeCameraCode, sanitizeString, sanitizeMultiline } = require('../../../utils/validation');
 const { extractClientIp } = require('../../../utils/geoUtils');
+const { camerasBloqueadas, podeVerCamera } = require('../../../application/cameraAccess');
 /**
  * @controller CameraController
  * Apenas trata HTTP: valida request, chama use-case, formata response.
@@ -113,6 +114,11 @@ class CameraController {
             return res.json([]);
         }
 
+        // Com o bloqueio ligado, os timelapses (de qualquer câmera) não saem: a lista de quadros também não.
+        if (!podeVerCamera({ config: this._siteConfig, codigo: null })) {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(451).json([]);
+        }
         const frames = this._timelapseScheduler.getFrames(code);
         res.setHeader('Cache-Control', 'public, max-age=60');
         res.json(frames);
@@ -121,6 +127,10 @@ class CameraController {
     /** GET /api/timelapses-available */
     getAvailableTimelapses(req, res) {
         if (!this._timelapseScheduler) {
+            return res.json([]);
+        }
+        if (camerasBloqueadas(this._siteConfig)) {
+            res.setHeader('Cache-Control', 'no-store');
             return res.json([]);
         }
         const cameras = this._timelapseScheduler.getAvailableCamerasWithTimelapses();
@@ -329,7 +339,8 @@ class CameraController {
         res.json({
             showAppBanner: true,
             cameraStreamIntervalMs: this.getStreamIntervalMs(),
-            ...(this._siteConfig || {})
+            ...(this._siteConfig || {}),
+            camerasBloqueadas: camerasBloqueadas(this._siteConfig) // sempre explícito: o cartão da tela decide por este valor
         });
     }
 
@@ -341,6 +352,10 @@ class CameraController {
 
             if (typeof newConfig.showAppBanner === 'boolean') {
                 updates.showAppBanner = newConfig.showAppBanner;
+            }
+
+            if (typeof newConfig.camerasBloqueadas === 'boolean') {
+                updates.camerasBloqueadas = newConfig.camerasBloqueadas;
             }
 
             if (newConfig.cameraStreamIntervalMs !== undefined) {

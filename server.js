@@ -96,6 +96,7 @@ const RioAlertService = require('./src/application/services/RioAlertService');
 const CameraSnapshotService = require('./src/infrastructure/services/CameraSnapshotService');
 const RiverChartService = require('./src/infrastructure/services/RiverChartService');
 const GuideRenderer = require('./src/infrastructure/services/GuideRenderer');
+const { camerasBloqueadas, podeVerCamera, MENSAGEM_BLOQUEIO } = require('./src/application/cameraAccess');
 const { GUIAS } = require('./src/content/guias');
 const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
@@ -623,9 +624,33 @@ const snapshotCache = new Map();
 const sitePresence = new Map(); // chave: res (Response), valor: viewerInfo object
 
 // ─── Camera Proxy ─────────────────────────────────────────────────────────────
+// ─── Bloqueio das imagens das câmeras (configuração `camerasBloqueadas`, ligada por padrão) ─────────────────────
+/** A requisição é de um administrador? (token no pedido ou cookie de sessão) */
+const requestIsAdmin = async (req) => {
+    try {
+        const token = req.query.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split('Bearer ')[1] : null);
+        if (token) return isVerifiedAdmin(await admin.auth().verifyIdToken(token));
+        const cookies = parseCookies(req);
+        if (cookies.__session) return isVerifiedAdmin(await admin.auth().verifySessionCookie(cookies.__session, true));
+    } catch (_) { /* sem login válido: não é admin */ }
+    return false;
+};
+
+/** Pode receber a imagem desta câmera? Câmeras do rio e administradores passam; o resto fica bloqueado enquanto o bloqueio estiver ligado. */
+const cameraImageAllowed = async (req, code) => {
+    if (podeVerCamera({ config: cameraCtrl._siteConfig, codigo: code })) return true;
+    return requestIsAdmin(req);
+};
+
+const sendCamerasBlocked = (res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(451).type('text/plain; charset=utf-8').send(MENSAGEM_BLOQUEIO);
+};
+
 const proxyCameraHandler = async (req, res) => {
     const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) return res.status(400).send('Código inválido.');
+    if (!(await cameraImageAllowed(req, code))) return sendCamerasBlocked(res);
 
     const camera = cameraRepo.getCached().find(c => c.codigo === code);
     if (camera?.level === 3) {
@@ -803,6 +828,7 @@ function getOrCreateCameraStream(code) {
 const streamCameraHandler = async (req, res) => {
     const code = req.params.code || req.query.code;
     if (!code || !/^\d{6}$/.test(code)) return res.status(400).send('Código inválido.');
+    if (!(await cameraImageAllowed(req, code))) return sendCamerasBlocked(res);
 
     const camera = cameraRepo.getCached().find(c => c.codigo === code);
     
@@ -1200,6 +1226,11 @@ app.get('/index.html', (req, res) => res.redirect(301, '/'));
 });
 
 // ─── Static Files (Públicos apenas) ──────────────────────────────────────────
+// Os quadros dos timelapses são arquivos: sem esta trava, bastaria saber o endereço para baixá-los.
+app.use('/timelapse', async (req, res, next) => {
+    if (!camerasBloqueadas(cameraCtrl._siteConfig) || await requestIsAdmin(req)) return next();
+    sendCamerasBlocked(res);
+});
 app.use(express.static(PUBLIC_FOLDER));
 
 // ─── Clean URL Routes Públicas ────────────────────────────────────────────────
