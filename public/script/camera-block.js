@@ -65,7 +65,12 @@
     }
 
     function show() {
-        if (document.getElementById(ID)) return;
+        var existing = document.getElementById(ID);
+        if (existing) {            // cartão escrito pelo servidor: só trava a rolagem e prende o foco
+            document.documentElement.style.overflow = 'hidden';
+            inertOthers(existing);
+            return;
+        }
         if (!document.getElementById(ID + '-style')) {
             var st = document.createElement('style');
             st.id = ID + '-style';
@@ -98,6 +103,8 @@
     }
 
     function start() {
+        // O servidor já escreve o cartão no HTML: aqui só se reforça (rolagem travada, foco preso, volta se removido).
+        if (document.getElementById(ID)) { guard(); return; }
         fetch('/api/site-config', { cache: 'no-store' })
             .then(function (r) { return r.ok ? r.json() : { camerasBloqueadas: true }; })
             .catch(function () { return { camerasBloqueadas: true }; })

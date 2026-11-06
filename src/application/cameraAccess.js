@@ -28,6 +28,18 @@ function podeVerCamera({ config, codigo, admin = false, rio = codigosDoRio() }) 
     return codigo != null && rio.has(String(codigo));
 }
 
+/**
+ * O pedido vem do PAINEL? A isenção de administrador só vale para imagens pedidas pelas páginas do painel
+ * (têm `token` no endereço ou saem de uma página /admin ou /dashboard). Um administrador navegando nas páginas
+ * públicas, ou abrindo o endereço da imagem direto, recebe o mesmo bloqueio que todo mundo: o cookie de sessão
+ * dele não abre as câmeras para o público.
+ */
+function pedidoDoPainel(req) {
+    if (req && req.query && req.query.token) return true;
+    const ref = String((req && req.headers && (req.headers.referer || req.headers.referrer)) || '');
+    return /^https?:\/\/[^/]+\/(admin|dashboard)(\/|\?|#|$)/i.test(ref);
+}
+
 const MENSAGEM_BLOQUEIO = 'Imagens das câmeras indisponíveis no momento.';
 
-module.exports = { codigosDoRio, camerasBloqueadas, podeVerCamera, MENSAGEM_BLOQUEIO };
+module.exports = { codigosDoRio, camerasBloqueadas, podeVerCamera, pedidoDoPainel, MENSAGEM_BLOQUEIO };

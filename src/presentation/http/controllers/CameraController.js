@@ -340,7 +340,7 @@ class CameraController {
             showAppBanner: true,
             cameraStreamIntervalMs: this.getStreamIntervalMs(),
             ...(this._siteConfig || {}),
-            camerasBloqueadas: camerasBloqueadas(this._siteConfig) // sempre explícito: o cartão da tela decide por este valor
+            camerasBloqueadas: camerasBloqueadas(this._siteConfig) // só leitura: o painel não liga nem desliga o bloqueio
         });
     }
 
@@ -352,10 +352,6 @@ class CameraController {
 
             if (typeof newConfig.showAppBanner === 'boolean') {
                 updates.showAppBanner = newConfig.showAppBanner;
-            }
-
-            if (typeof newConfig.camerasBloqueadas === 'boolean') {
-                updates.camerasBloqueadas = newConfig.camerasBloqueadas;
             }
 
             if (newConfig.cameraStreamIntervalMs !== undefined) {

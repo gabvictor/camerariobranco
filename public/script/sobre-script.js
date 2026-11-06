@@ -48,6 +48,15 @@ async function fetchRandomCameras() {
     const grid = document.getElementById('random-cameras-grid');
     if (!grid) return;
 
+    // Com o bloqueio das imagens ligado não há o que mostrar aqui: evita miniaturas quebradas com selo "Ao vivo".
+    try {
+        const cfg = await (await fetch('/api/site-config', { cache: 'no-store' })).json();
+        if (cfg.camerasBloqueadas !== false) {
+            grid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center py-6">As imagens das câmeras estão suspensas no momento. Veja o aviso no topo da página.</p>';
+            return;
+        }
+    } catch (_) { /* sem configuração: segue o fluxo normal, o servidor recusa as imagens */ }
+
     try {
         const response = await fetch('/status-cameras');
         if (!response.ok) throw new Error('Failed to fetch cameras');

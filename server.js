@@ -96,7 +96,8 @@ const RioAlertService = require('./src/application/services/RioAlertService');
 const CameraSnapshotService = require('./src/infrastructure/services/CameraSnapshotService');
 const RiverChartService = require('./src/infrastructure/services/RiverChartService');
 const GuideRenderer = require('./src/infrastructure/services/GuideRenderer');
-const { camerasBloqueadas, podeVerCamera, MENSAGEM_BLOQUEIO } = require('./src/application/cameraAccess');
+const { camerasBloqueadas, podeVerCamera, pedidoDoPainel, MENSAGEM_BLOQUEIO } = require('./src/application/cameraAccess');
+const { noticeMiddleware } = require('./src/application/cameraNotice');
 const { GUIAS } = require('./src/content/guias');
 const FirebaseAlertSubscriberRepository = require('./src/infrastructure/database/FirebaseAlertSubscriberRepository');
 
@@ -229,13 +230,17 @@ app.use(helmet({
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     originAgentCluster: false,
-    frameguard: { action: 'sameorigin' }  // bloqueia iframes por padrão
+    frameguard: { action: 'sameorigin' },  // bloqueia iframes por padrão
+    referrerPolicy: { policy: 'same-origin' } // o painel precisa saber de que página veio a imagem da câmera (isenção de admin); nada vai para sites de fora
 }));
 
 app.use((req, res, next) => {
     res.setHeader('Permissions-Policy', 'fullscreen=(self "*"), accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()');
     next();
 });
+
+// Plano de contingência: o aviso das câmeras é escrito dentro do HTML de toda página pública (sem depender de JavaScript).
+app.use(noticeMiddleware(() => cameraCtrl._siteConfig));
 
 // ─── Middleware: libera iframes apenas para /embed/* ──────────────────────────
 app.use('/embed', (req, res, next) => {
@@ -625,8 +630,9 @@ const sitePresence = new Map(); // chave: res (Response), valor: viewerInfo obje
 
 // ─── Camera Proxy ─────────────────────────────────────────────────────────────
 // ─── Bloqueio das imagens das câmeras (configuração `camerasBloqueadas`, ligada por padrão) ─────────────────────
-/** A requisição é de um administrador? (token no pedido ou cookie de sessão) */
+/** O pedido é de um administrador, vindo do painel? (token no pedido ou cookie de sessão, e só se partir de /admin ou /dashboard) */
 const requestIsAdmin = async (req) => {
+    if (!pedidoDoPainel(req)) return false; // páginas públicas e endereços abertos direto não ganham a isenção de admin
     try {
         const token = req.query.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split('Bearer ')[1] : null);
         if (token) return isVerifiedAdmin(await admin.auth().verifyIdToken(token));
