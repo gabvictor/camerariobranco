@@ -9,19 +9,19 @@ const { noticeModeFor, injectNotice, noticeMiddleware } = require('../src/applic
 const ROOT = path.join(__dirname, '..');
 const ler = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 
-test('bloqueio vem ligado por padrão e só desliga quando alguém desliga de propósito', () => {
-    assert.equal(camerasBloqueadas(undefined), true);
-    assert.equal(camerasBloqueadas({}), true);
-    assert.equal(camerasBloqueadas({ camerasBloqueadas: true }), true);
-    assert.equal(camerasBloqueadas({ camerasBloqueadas: 'false' }), true);   // texto não vale: só o booleano false
+test('desde 11/11/2026 as câmeras vêm liberadas e o bloqueio só liga quando alguém liga de propósito', () => {
+    assert.equal(camerasBloqueadas(undefined), false);
+    assert.equal(camerasBloqueadas({}), false);
     assert.equal(camerasBloqueadas({ camerasBloqueadas: false }), false);
+    assert.equal(camerasBloqueadas({ camerasBloqueadas: 'true' }), false);   // texto não vale: só o booleano true
+    assert.equal(camerasBloqueadas({ camerasBloqueadas: true }), true);
 });
 
 test('com o bloqueio ligado só o painel passa: nem as câmeras do rio saem para o público', () => {
-    assert.equal(podeVerCamera({ config: {} }), false);
-    assert.equal(podeVerCamera({ config: undefined }), false);
-    assert.equal(podeVerCamera({ config: {}, admin: true }), true);
-    assert.equal(podeVerCamera({ config: { camerasBloqueadas: false } }), true);
+    assert.equal(podeVerCamera({ config: { camerasBloqueadas: true } }), false);
+    assert.equal(podeVerCamera({ config: { camerasBloqueadas: true }, admin: true }), true);
+    assert.equal(podeVerCamera({ config: {} }), true);
+    assert.equal(podeVerCamera({ config: undefined }), true);
     assert.match(MENSAGEM_BLOQUEIO, /indispon/i);
     assert.ok(!/codigosDoRio|RIO_ALERT_CAMERAS/.test(ler('src', 'application', 'cameraAccess.js')), 'sem exceção para câmeras do rio');
 });
@@ -54,12 +54,12 @@ const resposta = () => {
 test('a configuração pública informa sempre o estado do bloqueio, e nem o painel consegue desligar', async () => {
     let r = resposta();
     controlador(undefined).getSiteConfig({}, r);
-    assert.equal(r.corpo.camerasBloqueadas, true);
-    r = resposta();
-    controlador({ camerasBloqueadas: false }).getSiteConfig({}, r);
     assert.equal(r.corpo.camerasBloqueadas, false);
+    r = resposta();
+    controlador({ camerasBloqueadas: true }).getSiteConfig({}, r);
+    assert.equal(r.corpo.camerasBloqueadas, true);
 
-    const c = controlador({});
+    const c = controlador({ camerasBloqueadas: true });
     r = resposta();
     await c.updateSiteConfig({ body: { camerasBloqueadas: false } }, r);   // nenhum parâmetro válido: recusa
     assert.equal(r.codigo, 400);
@@ -69,7 +69,7 @@ test('a configuração pública informa sempre o estado do bloqueio, e nem o pai
 });
 
 test('timelapses: lista e quadros somem enquanto o bloqueio estiver ligado e voltam quando for desligado', () => {
-    let c = controlador({});
+    let c = controlador({ camerasBloqueadas: true });
     let r = resposta();
     c.getTimelapse({ params: { code: '001302' }, query: {} }, r);
     assert.equal(r.codigo, 451);
@@ -158,7 +158,7 @@ test('o servidor escreve o aviso no HTML de verdade (send, sendFile e arquivos),
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cb-'));
     fs.writeFileSync(path.join(dir, 'estatica.html'), '<html><body><p>arquivo</p></body></html>');
     fs.writeFileSync(path.join(dir, 'dados.json'), '{"ok":true}');
-    let cfg = {};
+    let cfg = { camerasBloqueadas: true };
     const app = express();
     app.use(noticeMiddleware(() => cfg));
     app.get('/', (req, res) => res.send('<html><body><p>inicio</p></body></html>'));
@@ -184,7 +184,7 @@ test('o servidor escreve o aviso no HTML de verdade (send, sendFile e arquivos),
         assert.equal(velho.status, 200);
         assert.match(await velho.text(), /id="camera-block-card"/);
         assert.match(r.headers.get('cache-control'), /no-store/);
-        cfg = { camerasBloqueadas: false };                                             // bloqueio desligado: página limpa
+        cfg = {};                                                                       // padrão (liberado): página limpa
         assert.ok(!(await (await fetch(base + '/')).text()).includes('cb-ssr-style'));
     } finally { srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });

@@ -1,15 +1,15 @@
 /**
  * Acesso às imagens das câmeras.
  *
- * Enquanto `camerasBloqueadas` estiver ligado na configuração do site (padrão: ligado), NENHUMA imagem de câmera é
+ * Enquanto `camerasBloqueadas` estiver ligado na configuração do site (padrão: desligado desde 11/11/2026), NENHUMA imagem de câmera é
  * entregue ao público, inclusive as câmeras do rio: as páginas mostram o aviso no lugar. Só passam os pedidos que
  * partem do painel de administração (ver `pedidoDoPainel`).
  * O cartão na tela é só a parte visível: o bloqueio de verdade acontece aqui, no servidor.
  */
 
-/** Ligado por padrão: só desliga se alguém desligar de propósito (`camerasBloqueadas: false`). */
+/** Desligado por padrão (câmeras liberadas desde 11/11/2026): só bloqueia se alguém ligar de propósito (`camerasBloqueadas: true`). */
 function camerasBloqueadas(config) {
-    return !config || config.camerasBloqueadas !== false;
+    return Boolean(config) && config.camerasBloqueadas === true;
 }
 
 /**
